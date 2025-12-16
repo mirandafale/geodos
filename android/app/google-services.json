@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "184271838084",
+    "project_id": "geodos-25677",
+    "storage_bucket": "geodos-25677.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:184271838084:android:199a41a4b48b99c3605bd1",
+        "android_client_info": {
+          "package_name": "com.example.geodos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7IXIUzLO2s4Izxnzb3PKYzqDX1jtJV-M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

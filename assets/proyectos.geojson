@@ -1,0 +1,53 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -14.0048697,
+          28.4003769
+        ]
+      },
+      "properties": {
+        "nombre": "LOS RINCONES Y SU ENTORNO (LA OLIVA, FUERTEVENTURA). Tres informes: marzo,",
+        "categoria": NaN,
+        "fecha": NaN,
+        "lugar_detectado": "Fuerteventura"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -15.4148878,
+          28.0768529
+        ]
+      },
+      "properties": {
+        "nombre": "ESTUDIO AM BIENTAL DEL COMP LEJO DE TRICAM P A (SAN CRISTÓBAL",
+        "categoria": NaN,
+        "fecha": NaN,
+        "lugar_detectado": "San Cristóbal"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -15.6318282,
+          28.1390522
+        ]
+      },
+      "properties": {
+        "nombre": "ESTUDIO DE VEGETACIÓN Y FAUNA. ÁM BITO CUEVA DEL P OLVO. GUÍA DE",
+        "categoria": NaN,
+        "fecha": NaN,
+        "lugar_detectado": "Guía"
+      }
+    }
+  ]
+}
