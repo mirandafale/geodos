@@ -36,7 +36,7 @@ class _AppDrawerState extends State<AppDrawer> {
             _item(context, Icons.home_rounded, 'Inicio', '/home'),
             _item(context, Icons.badge_rounded, 'Quiénes somos', '/quienes'),
             _item(context, Icons.map_rounded, 'Visor', '/visor'),
-            _item(context, Icons.mail_rounded, 'Contacto', '/contacto'),
+            _item(context, Icons.mail_rounded, 'Contacto', '/contact'),
             const Divider(height: 24),
             // Enlace al panel de administración
             _item(

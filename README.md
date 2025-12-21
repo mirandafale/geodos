@@ -1,16 +1,12 @@
 # geodos
 
-A new Flutter project.
+Portal GEODOS con integración de Firebase para web y Android.
 
-## Getting Started
+## Seguridad de Firebase
 
-This project is a starting point for a Flutter application.
+Para desplegar las reglas de Firestore se recomienda partir de esta estructura:
 
-A few resources to get you started if this is your first Flutter project:
+- `contact_messages`: permitir `create` al público y restringir las lecturas a administradores.
+- `projects` y `news`: solo administradores pueden crear/actualizar/eliminar documentos.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Configura las reglas según tu modelo de autenticación antes de publicar.
