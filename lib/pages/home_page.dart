@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:geodos/models/news_item.dart';
+import 'package:geodos/services/news_service.dart';
 
 // Menú lateral con las diferentes opciones de navegación.
 import '../widgets/app_drawer.dart';
@@ -672,18 +674,12 @@ class _AboutSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// BLOG / NOTICIAS – CARRUSEL ESTÁTICO
+// BLOG / NOTICIAS – Firestore
 // ---------------------------------------------------------------------------
-
-class _BlogPost {
-  final String title;
-  final String description;
-  final String imageUrl;
-  const _BlogPost({required this.title, required this.description, required this.imageUrl});
-}
 
 class _BlogSection extends StatefulWidget {
   const _BlogSection({super.key});
+
   @override
   State<_BlogSection> createState() => _BlogSectionState();
 }
@@ -692,39 +688,7 @@ class _BlogSectionState extends State<_BlogSection> {
   final _pageCtrl = PageController(viewportFraction: 0.9);
   int _current = 0;
   Timer? _timer;
-
-  final List<_BlogPost> _posts = const [
-    _BlogPost(
-      title: 'Nuevas metodologías para la evaluación ambiental estratégica',
-      description: 'Cómo integrar variables territoriales y climáticas en la planificación a largo plazo.',
-      imageUrl:
-      'https://images.pexels.com/photos/3137064/pexels-photo-3137064.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-    _BlogPost(
-      title: 'Cartografía colaborativa para la gestión del patrimonio',
-      description: 'Proyectos donde ciudadanía y administraciones construyen mapas de patrimonio compartidos.',
-      imageUrl:
-      'https://images.pexels.com/photos/1181467/pexels-photo-1181467.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-    _BlogPost(
-      title: 'El papel del SIG en la adaptación al cambio climático',
-      description: 'Uso de datos geoespaciales para identificar riesgos y priorizar actuaciones.',
-      imageUrl:
-      'https://images.pexels.com/photos/7571043/pexels-photo-7571043.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-    _BlogPost(
-      title: 'Participación ciudadana en proyectos territoriales',
-      description: 'Herramientas digitales para recoger aportaciones y mejorar la toma de decisiones.',
-      imageUrl:
-      'https://images.pexels.com/photos/3861964/pexels-photo-3861964.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-    _BlogPost(
-      title: 'Tendencias en planificación urbana sostenible',
-      description: 'Movilidad, renaturalización de espacios y resiliencia climática en las ciudades.',
-      imageUrl:
-      'https://images.pexels.com/photos/2486168/pexels-photo-2486168.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-  ];
+  int _postCount = 1;
 
   @override
   void initState() {
@@ -732,7 +696,8 @@ class _BlogSectionState extends State<_BlogSection> {
     // Carrusel automático: avanza cada 7 segundos.
     _timer = Timer.periodic(const Duration(seconds: 7), (_) {
       if (!mounted) return;
-      final next = (_current + 1) % _posts.length;
+      if (_postCount == 0) return;
+      final next = (_current + 1) % _postCount;
       _pageCtrl.animateToPage(
         next,
         duration: const Duration(milliseconds: 500),
@@ -749,7 +714,8 @@ class _BlogSectionState extends State<_BlogSection> {
   }
 
   void _goTo(int index) {
-    final target = index.clamp(0, _posts.length - 1);
+    if (_postCount == 0) return;
+    final target = index.clamp(0, _postCount - 1);
     _pageCtrl.animateToPage(
       target,
       duration: const Duration(milliseconds: 400),
@@ -771,97 +737,132 @@ class _BlogSectionState extends State<_BlogSection> {
               const _SectionHeader(
                 title: 'Blog y actualidad',
                 subtitle:
-                'Reflexiones, proyectos y noticias relacionadas con la planificación territorial y el medio ambiente.',
+                    'Reflexiones, proyectos y noticias relacionadas con la planificación territorial y el medio ambiente.',
                 icon: Icons.article_outlined,
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                height: 280,
-                child: PageView.builder(
-                  controller: _pageCtrl,
-                  itemCount: _posts.length,
-                  onPageChanged: (i) => setState(() => _current = i),
-                  itemBuilder: (ctx, index) {
-                    final p = _posts[index];
+              StreamBuilder<List<NewsItem>>(
+                stream: NewsService.publishedStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
                     return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              height: 130,
-                              width: double.infinity,
-                              child: Image.network(
-                                p.imageUrl,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    p.title,
-                                    style: t.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    p.description,
-                                    style: t.bodySmall,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Solo admin podrá editar estas noticias en la versión conectada a Firebase.',
-                                    style: t.labelSmall?.copyWith(
-                                      color: Colors.grey.shade600,
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text('No se pudieron cargar las noticias: ${snapshot.error}'),
+                    );
+                  }
+
+                  final posts = snapshot.data ?? [];
+                  _postCount = posts.isEmpty ? 0 : posts.length;
+                  if (_current >= _postCount && _postCount > 0) {
+                    _current = 0;
+                  }
+
+                  if (posts.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32.0),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.article_outlined, size: 48, color: Colors.grey),
+                          const SizedBox(height: 8),
+                          Text('No hay noticias publicadas todavía.', style: t.bodyMedium),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return Column(
+                    children: [
+                      SizedBox(
+                        height: 280,
+                        child: PageView.builder(
+                          controller: _pageCtrl,
+                          itemCount: posts.length,
+                          onPageChanged: (i) => setState(() => _current = i),
+                          itemBuilder: (ctx, index) {
+                            final p = posts[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              child: Card(
+                                elevation: 3,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16)),
+                                clipBehavior: Clip.antiAlias,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      height: 130,
+                                      width: double.infinity,
+                                      child: Image.network(
+                                        p.imageUrl,
+                                        fit: BoxFit.cover,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            p.title,
+                                            style: t.titleMedium?.copyWith(
+                                                fontWeight: FontWeight.w600),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            p.summary,
+                                            style: t.bodySmall,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Actualizado: ${(p.updatedAt ?? p.createdAt).toLocal()}',
+                                            style: t.labelSmall?.copyWith(
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: () => _goTo(_current - 1),
-                    icon: const Icon(Icons.chevron_left),
-                  ),
-                  const SizedBox(width: 8),
-                  ...List.generate(_posts.length, (i) {
-                    final selected = i == _current;
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: selected ? 12 : 8,
-                      height: selected ? 12 : 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: selected
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.grey.shade400,
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: () => _goTo(_current - 1),
+                            icon: const Icon(Icons.chevron_left),
+                          ),
+                          const SizedBox(width: 8),
+                          ...List.generate(posts.length, (i) {
+                            final selected = i == _current;
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              width: selected ? 12 : 8,
+                              height: selected ? 12 : 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: selected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey.shade400,
+                              ),
+                            );
+                          }),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: () => _goTo(_current + 1),
+                            icon: const Icon(Icons.chevron_right),
+                          ),
+                        ],
                       ),
-                    );
-                  }),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => _goTo(_current + 1),
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -871,9 +872,6 @@ class _BlogSectionState extends State<_BlogSection> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// CTA FINAL
-// ---------------------------------------------------------------------------
 
 class _FinalCtaSection extends StatelessWidget {
   const _FinalCtaSection({super.key});

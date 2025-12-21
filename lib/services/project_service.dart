@@ -1,95 +1,122 @@
-﻿// lib/services/project_service.dart
-import 'dart:convert';
-
-import 'package:flutter/services.dart' show rootBundle;
+// lib/services/project_service.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geodos/models/project.dart';
+import 'auth_service.dart';
 
-/// Servicio encargado de cargar y filtrar los proyectos desde assets.
+/// Servicio de proyectos conectado a Firestore.
+/// Lectura pública (stream) y escritura sólo para admins autenticados
+/// (validación se realiza antes de invocar estos métodos desde la UI).
 class ProjectService {
-  static List<Project> _projects = [];
-  static const _assetPath = 'assets/proyectos_por_municipio_cat_isla_v3_jittered.json';
+  static final _col = FirebaseFirestore.instance.collection('projects');
 
-  /// Inicializa cargando el archivo JSON de assets si aún no está cargado.
-  static Future<void> ensureInitialized() async {
-    if (_projects.isNotEmpty) return;
-    final raw = await rootBundle.loadString(_assetPath);
-    _projects = Project.listFromJsonString(raw)
-        .where((p) => p.hasValidCoords)
-        .toList();
-  }
-
-  /// Devuelve un flujo (stream) de proyectos filtrados en base a los criterios.
+  /// Devuelve un flujo de proyectos filtrados en cliente.
   static Stream<List<Project>> stream({
     int? year,
     String? category,
     ProjectScope? scope,
     String? island,
     String? search,
-  }) async* {
-    await ensureInitialized();
-    yield _projects.where((p) {
-      if (year != null && p.year != year) return false;
-      if (category != null && category.trim().isNotEmpty && !p.hasCategory(category)) {
-        return false;
+  }) {
+    return _col
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      final projects = snapshot.docs.map(Project.fromDoc).where((p) => p.hasValidCoords);
+
+      Iterable<Project> filtered = projects;
+      if (year != null) {
+        filtered = filtered.where((p) => p.year == year || p.enRedaccion);
       }
-      if (scope != null && scope != ProjectScope.unknown && p.scope != scope) {
-        return false;
+      if (category != null && category.trim().isNotEmpty) {
+        final c = category.trim().toUpperCase();
+        filtered = filtered.where((p) => p.category.toUpperCase() == c);
+      }
+      if (scope != null && scope != ProjectScope.unknown) {
+        filtered = filtered.where((p) => p.scope == scope);
       }
       if (island != null && island.trim().isNotEmpty) {
-        if (p.island.trim().toUpperCase() != island.trim().toUpperCase()) return false;
+        final isl = island.trim().toUpperCase();
+        filtered = filtered.where((p) => p.island.toUpperCase() == isl);
       }
-      if (search != null && search.isNotEmpty) {
+      if (search != null && search.trim().isNotEmpty) {
         final q = search.trim().toLowerCase();
-        final txt = '${p.title} ${p.municipality}'.toLowerCase();
-        if (!txt.contains(q)) return false;
+        filtered = filtered.where((p) =>
+            '${p.title} ${p.municipality}'.toLowerCase().contains(q));
       }
-      return true;
-    }).toList();
+      return filtered.toList();
+    });
   }
 
-  /// Extrae todos los años únicos presentes en los proyectos.
+  /// Devuelve listas únicas para filtros (se calcula en cliente).
   static Future<List<int>> getYears() async {
-    await ensureInitialized();
+    final snap = await _col.get();
     final set = <int>{};
-    for (final p in _projects) {
+    for (final doc in snap.docs) {
+      final p = Project.fromDoc(doc);
       if (p.year != null) set.add(p.year!);
     }
-    final list = set.toList();
-    list.sort((a, b) => b.compareTo(a)); // descendente
+    final list = set.toList()..sort((a, b) => b.compareTo(a));
     return list;
   }
 
-  /// Extrae todas las categorías únicas presentes en los proyectos.
   static Future<List<String>> getCategories() async {
-    await ensureInitialized();
-    final set = <String>{};
-    for (final p in _projects) {
-      if (p.category.isNotEmpty) set.add(p.category);
-    }
-    final list = set.toList();
-    list.sort();
+    final snap = await _col.get();
+    final set = snap.docs.map((d) => (d.data()['category'] ?? '').toString()).where((v) => v.isNotEmpty).toSet();
+    final list = set.toList()..sort();
     return list;
   }
 
-  /// Devuelve todos los ámbitos disponibles en los proyectos.
   static Future<List<ProjectScope>> getScopes() async {
-    await ensureInitialized();
-    final list = _projects.map((p) => p.scope).toSet().toList();
-    list.sort((a, b) => _scopeLabel(a).compareTo(_scopeLabel(b)));
-    return list;
+    final snap = await _col.get();
+    final set = snap.docs
+        .map((d) => Project.fromDoc(d).scope)
+        .where((s) => s != ProjectScope.unknown)
+        .toSet()
+        .toList();
+    set.sort((a, b) => _scopeLabel(a).compareTo(_scopeLabel(b)));
+    return set;
   }
 
-  /// Devuelve la lista de islas disponibles.
   static Future<List<String>> getIslands() async {
-    await ensureInitialized();
-    final list = _projects.map((p) => p.island.trim()).where((e) => e.isNotEmpty).toSet().toList();
-    list.sort((a, b) => a.compareTo(b));
-    return list;
+    final snap = await _col.get();
+    final set = snap.docs
+        .map((d) => (d.data()['island'] ?? d.data()['isla'] ?? '').toString())
+        .where((e) => e.trim().isNotEmpty)
+        .map((e) => e.trim())
+        .toSet()
+        .toList();
+    set.sort();
+    return set;
   }
 
-  /// Crear un nuevo proyecto en memoria (modo admin sin backend).
-  static Future<void> createAdminProject(Project project) async {
-    _projects.add(project);
+  static Future<String> createOrUpdate(Project project) async {
+    if (!AuthService.instance.isAdmin) {
+      throw Exception('Solo un administrador autenticado puede modificar proyectos.');
+    }
+    final doc = project.id.isEmpty ? _col.doc() : _col.doc(project.id);
+    final data = {
+      'title': project.title,
+      'municipality': project.municipality,
+      'year': project.year,
+      'category': project.category,
+      'lat': project.lat,
+      'lon': project.lon,
+      'island': project.island,
+      'scope': Project.scopeToString(project.scope),
+      'enRedaccion': project.enRedaccion,
+      'description': project.description,
+      'updatedAt': FieldValue.serverTimestamp(),
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+    await doc.set(data, SetOptions(merge: true));
+    return doc.id;
+  }
+
+  static Future<void> delete(String id) async {
+    if (!AuthService.instance.isAdmin) {
+      throw Exception('Solo un administrador autenticado puede eliminar proyectos.');
+    }
+    await _col.doc(id).delete();
   }
 
   static String _scopeLabel(ProjectScope scope) {
