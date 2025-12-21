@@ -22,10 +22,6 @@ dependencies:
   provider: ^6.1.1
   uuid: ^4.1.0
 
-
-
-
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -33,7 +29,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-
   assets:
     - assets/proyectos_por_municipio_cat_isla_v3_jittered.json
