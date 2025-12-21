@@ -67,7 +67,8 @@ class _ContactFormState extends State<ContactForm> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Por favor, introduzca su correo electrónico';
                   }
-                  final emailRegex = RegExp('^[\\w\\-.]+@([\\w-]+\\.)+[\\w-]{2,}\$');
+                  final emailRegex =
+                      RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,}$');
                   if (!emailRegex.hasMatch(value)) {
                     return 'Introduzca un correo válido';
                   }
