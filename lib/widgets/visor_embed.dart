@@ -208,7 +208,12 @@ class _ProjectsMap extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('No hay proyectos visibles con los filtros actuales.'),
+                          Text(
+                            ProjectService.lastRemoteCount == 0
+                                ? 'No hay proyectos disponibles desde Firestore. Añade un proyecto o ajusta los filtros.'
+                                : 'No hay proyectos visibles con los filtros actuales.',
+                            textAlign: TextAlign.center,
+                          ),
                           const SizedBox(height: 10),
                           ElevatedButton.icon(
                             onPressed: filters.reset,

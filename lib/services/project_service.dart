@@ -77,6 +77,7 @@ class ProjectService {
     await for (final snapshot in _firestore.snapshots()) {
       _remoteProjects = snapshot.docs.map(_projectFromDoc).toList();
       _lastRemoteCount = _remoteProjects.length;
+      debugPrint('ProjectService.stream: received ${_remoteProjects.length} projects from Firestore');
 
       if (_remoteProjects.isEmpty) {
         await _loadLocalIfNeeded();
@@ -171,27 +172,35 @@ class ProjectService {
   }
 
   static List<Project> _filterProjects(
-      int? year,
-      String? category,
-      ProjectScope? scope,
-      String? island,
-      String? search,) {
+    int? year,
+    String? category,
+    ProjectScope? scope,
+    String? island,
+    String? search,
+  ) {
     final combined = _availableProjects();
+    final normalizedCategory = category?.trim().toLowerCase();
+    final normalizedIsland = island?.trim().toLowerCase();
+    final normalizedSearch = search?.trim().toLowerCase();
+
     return combined.where((p) {
       if (year != null && p.year != year) return false;
-      if (category != null && category.trim().isNotEmpty && !p.hasCategory(category)) {
-        return false;
+
+      if (normalizedCategory != null && normalizedCategory.isNotEmpty) {
+        if (p.category.trim().toLowerCase() != normalizedCategory) return false;
       }
+
       if (scope != null && scope != ProjectScope.unknown && p.scope != scope) {
         return false;
       }
-      if (island != null && island.trim().isNotEmpty) {
-        if (p.island.trim().toUpperCase() != island.trim().toUpperCase()) return false;
+
+      if (normalizedIsland != null && normalizedIsland.isNotEmpty) {
+        if (p.island.trim().toLowerCase() != normalizedIsland) return false;
       }
-      if (search != null && search.isNotEmpty) {
-        final q = search.trim().toLowerCase();
+
+      if (normalizedSearch != null && normalizedSearch.isNotEmpty) {
         final txt = '${p.title} ${p.municipality}'.toLowerCase();
-        if (!txt.contains(q)) return false;
+        if (!txt.contains(normalizedSearch)) return false;
       }
       return true;
     }).toList();
