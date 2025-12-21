@@ -4,9 +4,7 @@ import 'package:geodos/models/news_item.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/news_service.dart';
 import 'package:provider/provider.dart';
-
-// Menú lateral con las diferentes opciones de navegación.
-import '../widgets/app_drawer.dart';
+import 'package:geodos/widgets/app_shell.dart';
 // Visor incrustado para mostrar los proyectos georreferenciados.
 import '../widgets/visor_embed.dart';
 // Controlador de filtros para mantener el estado de ámbito (categoría), año, etc.
@@ -57,52 +55,34 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF0C6372),
-                Color(0xFF2A7F62),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+    return AppShell(
+      title: Text(
+        'GEODOS',
+        style: theme.textTheme.titleLarge?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
         ),
-        title: Text(
-          'GEODOS',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => _scrollTo(_servicesKey),
-            child: const Text('Servicios', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/visor'),
-            child: const Text('Proyectos', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => _scrollTo(_aboutKey),
-            child: const Text('Quiénes somos', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => _scrollTo(_ctaKey),
-            child: const Text('Contacto', style: TextStyle(color: Colors.white)),
-          ),
-          const SizedBox(width: 16),
-        ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => _scrollTo(_servicesKey),
+          child: const Text('Servicios', style: TextStyle(color: Colors.white)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pushNamed(context, '/visor'),
+          child: const Text('Proyectos', style: TextStyle(color: Colors.white)),
+        ),
+        TextButton(
+          onPressed: () => _scrollTo(_aboutKey),
+          child: const Text('Quiénes somos', style: TextStyle(color: Colors.white)),
+        ),
+        TextButton(
+          onPressed: () => _scrollTo(_ctaKey),
+          child: const Text('Contacto', style: TextStyle(color: Colors.white)),
+        ),
+        const SizedBox(width: 16),
+      ],
       body: ListView(
         controller: _scrollCtrl,
         padding: EdgeInsets.zero,
@@ -717,7 +697,7 @@ class _BlogSectionState extends State<_BlogSection> {
     final now = DateTime.now();
     final samples = [
       NewsItem(
-        id: '',
+        id: 'debug-news-1',
         title: 'Bienvenida a GEODOS',
         body: 'Descubre cómo acercamos la variable espacial a tus proyectos con soluciones digitales sencillas.',
         imageUrl: '',
@@ -726,7 +706,7 @@ class _BlogSectionState extends State<_BlogSection> {
         published: true,
       ),
       NewsItem(
-        id: '',
+        id: 'debug-news-2',
         title: 'Nuevos proyectos territoriales',
         body: 'Impulsamos diagnósticos participativos y mapas interactivos para la toma de decisiones.',
         imageUrl: '',
@@ -735,7 +715,7 @@ class _BlogSectionState extends State<_BlogSection> {
         published: true,
       ),
       NewsItem(
-        id: '',
+        id: 'debug-news-3',
         title: 'Innovación y sostenibilidad',
         body: 'Aplicamos SIG, teledetección y análisis ambiental para proyectos más eficientes y transparentes.',
         imageUrl: '',
@@ -746,9 +726,7 @@ class _BlogSectionState extends State<_BlogSection> {
     ];
 
     try {
-      for (final item in samples) {
-        await NewsService.create(item);
-      }
+      await NewsService.seedDebugSamples(samples);
       _sampleSeeded = true;
     } finally {
       if (mounted) {
@@ -804,7 +782,10 @@ class _BlogSectionState extends State<_BlogSection> {
       builder: (context, snapshot) {
         final posts = snapshot.data ?? [];
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
-        if (!isLoading && posts.isEmpty) {
+        final hasError = snapshot.hasError;
+        final errorMessage = snapshot.error?.toString();
+
+        if (!isLoading && !hasError && posts.isEmpty) {
           _maybeSeedDebugNews();
         }
         return Center(
@@ -822,11 +803,29 @@ class _BlogSectionState extends State<_BlogSection> {
                     icon: Icons.article_outlined,
                   ),
                   const SizedBox(height: 24),
-                  if (isLoading || _isSeeding)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: CircularProgressIndicator(),
+                  if (hasError)
+                    Card(
+                      color: Colors.red.shade50,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red.shade700),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'No se pudieron cargar las noticias: ${errorMessage ?? 'Error desconocido'}',
+                                style: t.bodyMedium?.copyWith(color: Colors.red.shade800),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     )
+                  else if (isLoading || _isSeeding)
+                    _NewsSkeleton(textTheme: t)
                   else if (posts.isEmpty)
                     Card(
                       elevation: 1,
@@ -841,7 +840,7 @@ class _BlogSectionState extends State<_BlogSection> {
                             Icon(Icons.article_outlined, color: Colors.grey.shade600, size: 32),
                             const SizedBox(height: 12),
                             Text(
-                              'Aún no hay noticias',
+                              'Aún no hay noticias publicadas',
                               style: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 6),
@@ -864,7 +863,7 @@ class _BlogSectionState extends State<_BlogSection> {
                     )
                   else
                     SizedBox(
-                      height: 300,
+                      height: 320,
                       child: PageView.builder(
                         controller: _pageCtrl,
                         itemCount: posts.length,
@@ -896,6 +895,8 @@ class _BlogSectionState extends State<_BlogSection> {
                                         Text(
                                           _excerpt(p.body),
                                           style: t.bodySmall,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
@@ -951,6 +952,57 @@ class _BlogSectionState extends State<_BlogSection> {
           ),
         );
       },
+    );
+  }
+}
+
+class _NewsSkeleton extends StatelessWidget {
+  const _NewsSkeleton({required this.textTheme});
+
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseColor = textTheme.bodySmall?.color?.withOpacity(0.15) ??
+        Colors.grey.shade300;
+    return Column(
+      children: List.generate(2, (index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          child: Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Container(
+                    height: 90,
+                    width: 110,
+                    decoration: BoxDecoration(
+                      color: baseColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(height: 16, width: 160, color: baseColor),
+                        const SizedBox(height: 10),
+                        Container(height: 12, width: double.infinity, color: baseColor),
+                        const SizedBox(height: 8),
+                        Container(height: 12, width: 140, color: baseColor),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

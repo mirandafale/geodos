@@ -272,71 +272,61 @@ class _Legend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final sorted = [...categories]..sort();
-    const shadow = [Shadow(color: Colors.black38, blurRadius: 2, offset: Offset(0, 1))];
+    final sorted = [...categories]
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 280),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Proyectos visibles: $total',
+            style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 8,
+            children: sorted
+                .map(
+                  (raw) => ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 240),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Container(
+                          width: 14,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: colorForCategory(raw),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _normalizeCategory(raw),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: t.bodySmall?.copyWith(letterSpacing: 0.2),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 280),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Proyectos visibles: $total',
-                style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700, shadows: shadow),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                children: sorted
-                    .map(
-                      (c) => ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 240),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: colorForCategory(c),
-                                shape: BoxShape.circle,
-                                boxShadow: const [
-                                  BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                c.toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: t.bodySmall?.copyWith(letterSpacing: 0.2, shadows: shadow),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
+  }
+
+  String _normalizeCategory(String raw) {
+    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return normalized.isEmpty ? raw.trim() : normalized;
   }
 }
 

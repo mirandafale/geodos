@@ -1,119 +1,47 @@
 import 'package:flutter/material.dart';
-
-import '../brand/brand.dart';
-import '../widgets/legal_scaffold.dart';
+import 'package:geodos/widgets/app_shell.dart';
 
 class TermsConditionsPage extends StatelessWidget {
   const TermsConditionsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-
-    return LegalPageScaffold(
-      title: 'Aviso legal y condiciones de uso',
-      children: [
-        Text(
-          'El acceso y uso de este sitio web implica la aceptación de las presentes'
-          ' condiciones. La información publicada tiene carácter divulgativo y puede'
-          ' actualizarse sin previo aviso para reflejar mejoras en los servicios.',
-          style: t.bodyLarge,
-        ),
-        const SizedBox(height: 20),
-        _SectionTitle('Titularidad del sitio'),
-        const SizedBox(height: 8),
-        Text(
-          'GEODOS es titular del dominio y responsable de los contenidos. Puedes'
-          ' contactar a través del formulario de la web o escribiendo a'
-          ' info@geodos.es para cualquier cuestión relacionada con los derechos de'
-          ' propiedad intelectual o la gestión de datos.',
-          style: t.bodyMedium,
-        ),
-        const SizedBox(height: 20),
-        _SectionTitle('Uso correcto de los contenidos'),
-        const SizedBox(height: 8),
-        _BulletList(items: const [
-          'No se permite reproducir, distribuir ni modificar la información sin'
-              ' autorización expresa.',
-          'El usuario se compromete a utilizar la web de forma diligente y a no'
-              ' realizar actividades que dañen la seguridad o disponibilidad del'
-              ' servicio.',
-          'Los enlaces a sitios externos se proporcionan para comodidad del usuario'
-              ' y GEODOS no se hace responsable de su contenido.',
-        ]),
-        const SizedBox(height: 20),
-        Card(
-          margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Responsabilidad',
-                  style: t.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: Brand.primary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Trabajamos para que la información sea precisa y esté actualizada,'
-                  ' pero no podemos garantizar la ausencia de errores. GEODOS no'
-                  ' responderá por daños derivados del uso de la web más allá de lo'
-                  ' exigido por la normativa vigente.',
-                  style: t.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return const AppShell(
+      title: Text('Términos y Condiciones'),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(24),
+        child: _TermsContent(),
+      ),
     );
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  final String text;
-
-  const _SectionTitle(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: Brand.primary,
-          ),
-    );
-  }
-}
-
-class _BulletList extends StatelessWidget {
-  final List<String> items;
-
-  const _BulletList({required this.items});
+class _TermsContent extends StatelessWidget {
+  const _TermsContent();
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: items
-          .map(
-            (text) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('• '),
-                  Expanded(child: Text(text, style: t.bodyMedium)),
-                ],
-              ),
-            ),
-          )
-          .toList(),
+      children: [
+        Text('Términos y Condiciones de uso', style: t.headlineSmall),
+        const SizedBox(height: 16),
+        Text(
+          'El acceso y uso de esta web implica la aceptación de las presentes '
+              'condiciones de uso. El contenido del sitio tiene carácter informativo '
+              'y puede ser modificado sin previo aviso.',
+          style: t.bodyMedium,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'GEODOS no se hace responsable de las decisiones que se tomen a partir '
+              'de la información publicada ni de los daños que puedan derivarse del '
+              'uso de esta página web.',
+          style: t.bodyMedium,
+        ),
+      ],
     );
   }
 }
