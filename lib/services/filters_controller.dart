@@ -5,9 +5,6 @@ import 'package:geodos/models/project.dart';
 
 const _unset = Object();
 
-const _defaultCategory = 'MEDIOAMBIENTE';
-const _defaultIsland = 'CANARIAS';
-
 class FiltersState {
   final int? year;
   final ProjectScope? scope;
@@ -39,10 +36,7 @@ class FiltersState {
     );
   }
 
-  static const defaults = FiltersState(
-    category: _defaultCategory,
-    island: _defaultIsland,
-  );
+  static const defaults = FiltersState();
 }
 
 class FiltersController extends ChangeNotifier {
