@@ -1,93 +1,194 @@
-// lib/pages/login_page.dart
+import 'package:flutter/foundation.dart';
+import 'package:geodos/models/project.dart';
+import 'package:geodos/data/project_repository.dart';
 
-import 'package:flutter/material.dart';
-import 'package:geodos/state/app_state.dart';
-import 'package:provider/provider.dart';
+class AppState extends ChangeNotifier {
+  static final AppState instance = AppState._();
+  factory AppState() => instance;
+  AppState._() { _init(); }
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final ProjectRepository _repo = const ProjectRepository();
 
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
+  bool _loading = true;
+  String? _error;
+  bool _isAdmin = false;
 
-class _LoginPageState extends State<LoginPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _user = TextEditingController();
-  final _pass = TextEditingController();
-  bool _isLoading = false;
+  final List<Project> _assetProjects = [];
+  final List<Project> _userProjects = [];
 
-  @override
-  void dispose() {
-    _user.dispose();
-    _pass.dispose();
-    super.dispose();
-  }
+  // Filtros
+  String? _selectedCategory;
+  int? _yearFrom;
+  int? _yearTo;
+  String _search = '';
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _init() async {
+    try {
+      _loading = true;
+      _error = null;
+      notifyListeners();
 
-    setState(() => _isLoading = true);
-    final ok = await context.read<AppState>().signIn(
-      email: _user.text,
-      password: _pass.text,
-    );
-    setState(() => _isLoading = false);
+      final base = await _repo.loadFromAsset('assets/proyectos_por_municipio_centroides.json');
+      _assetProjects
+        ..clear()
+        ..addAll(base);
 
-    if (!mounted) return;
+      final user = await _repo.loadUserProjects();
+      _userProjects
+        ..clear()
+        ..addAll(user);
 
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Error de autenticación'),
-          content: const Text('Usuario o contraseña incorrectos.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Aceptar'),
-            ),
-          ],
-        ),
-      );
+      final years = _allProjects
+          .where((p) => !p.enRedaccion && p.year != null)
+          .map((p) => p.year!)
+          .toList()
+        ..sort();
+      if (years.isNotEmpty) {
+        _yearFrom = years.first;
+        _yearTo = years.last;
+      }
+
+      _selectedCategory = 'MEDIOAMBIENTE';
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loading = false;
+      notifyListeners();
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar sesión')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: _user,
-                  decoration: const InputDecoration(labelText: 'Correo electrónico'),
-                  validator: (v) => v != null && v.contains('@') ? null : 'Correo no válido',
-                ),
-                TextFormField(
-                  controller: _pass,
-                  decoration: const InputDecoration(labelText: 'Contraseña'),
-                  obscureText: true,
-                  validator: (v) => v != null && v.length >= 4 ? null : 'Contraseña demasiado corta',
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _submit,
-                  child: _isLoading ? const CircularProgressIndicator() : const Text('Entrar'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  bool get isLoaded => !_loading && _error == null;
+  bool get isLoading => _loading;
+  String? get error => _error;
+  bool get isAdmin => _isAdmin;
+
+  List<Project> get projects => filteredProjects;
+  List<Project> get _allProjects => [..._assetProjects, ..._userProjects];
+
+  String _fold(String s) {
+    final lower = s.toLowerCase();
+    return lower
+        .replaceAll(RegExp('[áàäâ]'), 'a')
+        .replaceAll(RegExp('[éèëê]'), 'e')
+        .replaceAll(RegExp('[íìïî]'), 'i')
+        .replaceAll(RegExp('[óòöô]'), 'o')
+        .replaceAll(RegExp('[úùüû]'), 'u')
+        .replaceAll('ñ', 'n')
+        .replaceAll('ç', 'c');
+  }
+
+  // ===== Filtros
+  String? get selectedCategory => _selectedCategory;
+  int? get fromYear => _yearFrom;
+  int? get toYear => _yearTo;
+  String get searchQuery => _search;
+
+  List<String> get distinctCategories => _allProjects
+      .map((p) => p.category)
+      .where((s) => s.trim().isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
+
+  List<int> get distinctYears => _allProjects
+      .where((p) => !p.enRedaccion && p.year != null)
+      .map((p) => p.year!)
+      .toSet()
+      .toList()
+    ..sort();
+
+  int get total => _allProjects.length;
+  int get conCoords => _allProjects.where((p) => p.hasValidCoords).length;
+  int get visibles => filteredProjects.length;
+
+  List<Project> get filteredProjects {
+    Iterable<Project> it = _allProjects.where((p) => p.hasValidCoords);
+
+    if (_selectedCategory != null) {
+      it = it.where((p) => p.category == _selectedCategory);
+    }
+    if (_yearFrom != null) {
+      it = it.where((p) {
+        if (p.enRedaccion) return true;
+        final y = p.year;
+        return y != null && y >= _yearFrom!;
+      });
+    }
+    if (_yearTo != null) {
+      it = it.where((p) {
+        if (p.enRedaccion) return true;
+        final y = p.year;
+        return y != null && y <= _yearTo!;
+      });
+    }
+
+    final q = _fold(_search.trim());
+    if (q.isNotEmpty) {
+      final tokens = q.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+      it = it.where((p) {
+        final hay = _fold('${p.title} ${p.municipality} ${p.category}');
+        return tokens.every((t) => hay.contains(t));
+      });
+    }
+
+    return it.toList();
+  }
+
+  Map<String, List<Project>> get visibleProjectsGroupedByCategory {
+    final map = <String, List<Project>>{};
+    for (final p in filteredProjects) {
+      map.putIfAbsent(p.category, () => []).add(p);
+    }
+    return map;
+  }
+
+  void setCategory(String? c) {
+    _selectedCategory = c;
+    notifyListeners();
+  }
+
+  void setYearRange({int? fromYear, int? toYear}) {
+    _yearFrom = fromYear;
+    _yearTo = toYear;
+    notifyListeners();
+  }
+
+  void setSearchQuery(String v) {
+    _search = v;
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    _selectedCategory = 'MEDIOAMBIENTE';
+    final years = distinctYears;
+    if (years.isNotEmpty) {
+      _yearFrom = years.first;
+      _yearTo = years.last;
+    } else {
+      _yearFrom = null;
+      _yearTo = null;
+    }
+    _search = '';
+    notifyListeners();
+  }
+
+  Future<bool> signIn({required String user, required String pass}) async {
+    if (user.trim() == 'admin' && pass == 'geodos2025') {
+      _isAdmin = true;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  void signOut() {
+    _isAdmin = false;
+    notifyListeners();
+  }
+
+  Future<void> addProject(Project p) async {
+    _userProjects.add(p);
+    await _repo.saveUserProjects(_userProjects);
+    notifyListeners();
   }
 }

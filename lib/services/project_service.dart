@@ -1,16 +1,17 @@
-﻿// lib/services/project_service.dart
-import 'dart:convert';
+// lib/services/project_service.dart
+
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:geodos/models/project.dart';
 
 /// Servicio encargado de cargar y filtrar los proyectos desde assets.
 class ProjectService {
   static List<Project> _projects = [];
+  static const _assetPath = 'assets/proyectos_por_municipio_cat_isla_v3_jittered.json';
 
   /// Inicializa cargando el archivo JSON de assets si aún no está cargado.
   static Future<void> ensureInitialized() async {
     if (_projects.isNotEmpty) return;
-    final raw = await rootBundle.loadString('assets/data/projects.json');
+    final raw = await rootBundle.loadString(_assetPath);
     _projects = Project.listFromJsonString(raw)
         .where((p) => p.hasValidCoords)
         .toList();
@@ -18,15 +19,24 @@ class ProjectService {
 
   /// Devuelve un flujo (stream) de proyectos filtrados en base a los criterios.
   static Stream<List<Project>> stream({
-    String? type,
     int? year,
-    String? scope,
+    String? category,
+    ProjectScope? scope,
+    String? island,
     String? search,
   }) async* {
     await ensureInitialized();
     yield _projects.where((p) {
       if (year != null && p.year != year) return false;
-      if (scope != null && scope != 'Todos' && !p.hasCategory(scope)) return false;
+      if (category != null && category.trim().isNotEmpty && !p.hasCategory(category)) {
+        return false;
+      }
+      if (scope != null && scope != ProjectScope.unknown && p.scope != scope) {
+        return false;
+      }
+      if (island != null && island.trim().isNotEmpty) {
+        if (p.island.trim().toUpperCase() != island.trim().toUpperCase()) return false;
+      }
       if (search != null && search.isNotEmpty) {
         final q = search.trim().toLowerCase();
         final txt = '${p.title} ${p.municipality}'.toLowerCase();
@@ -60,13 +70,39 @@ class ProjectService {
     return list;
   }
 
-  /// Devuelve todos los ámbitos encontrados (categorías normalizadas).
-  static List<String> get scopes {
-    return _projects.map((p) => p.category).toSet().toList()..sort();
+  /// Devuelve todos los ámbitos disponibles en los proyectos.
+  static Future<List<ProjectScope>> getScopes() async {
+    await ensureInitialized();
+    final list = _projects.map((p) => p.scope).toSet().toList();
+    list.sort((a, b) => _scopeLabel(a).compareTo(_scopeLabel(b)));
+    return list;
+  }
+
+  /// Devuelve la lista de islas disponibles.
+  static Future<List<String>> getIslands() async {
+    await ensureInitialized();
+    final list = _projects.map((p) => p.island.trim()).where((e) => e.isNotEmpty).toSet().toList();
+    list.sort((a, b) => a.compareTo(b));
+    return list;
   }
 
   /// Crear un nuevo proyecto en memoria (modo admin sin backend).
   static Future<void> createAdminProject(Project project) async {
     _projects.add(project);
+  }
+
+  static String _scopeLabel(ProjectScope scope) {
+    switch (scope) {
+      case ProjectScope.municipal:
+        return 'MUNICIPAL';
+      case ProjectScope.comarcal:
+        return 'COMARCAL';
+      case ProjectScope.insular:
+        return 'INSULAR';
+      case ProjectScope.regional:
+        return 'REGIONAL';
+      case ProjectScope.unknown:
+        return 'OTRO';
+    }
   }
 }

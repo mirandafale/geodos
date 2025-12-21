@@ -1,12 +1,13 @@
-// visor_embed.dart adaptado con mejoras funcionales
+// visor_embed.dart adaptado con mejoras funcionales y leyenda de categorías
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:geodos/services/project_service.dart';
-import 'package:geodos/services/filters_controller.dart';
+import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
+import 'package:geodos/services/filters_controller.dart';
+import 'package:geodos/services/project_service.dart';
 
 class VisorEmbed extends StatefulWidget {
   final bool startExpanded;
@@ -79,8 +80,11 @@ class _VisorEmbedState extends State<VisorEmbed> {
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.black12,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 6)),
+        ],
       ),
       child: Listener(
         onPointerDown: (_) => _expand(),
@@ -110,9 +114,10 @@ class _ProjectsMap extends StatelessWidget {
 
         return StreamBuilder<List<Project>>(
           stream: ProjectService.stream(
-            type: st.type,
             year: st.year,
+            category: st.category,
             scope: st.scope,
+            island: st.island,
             search: st.search,
           ),
           builder: (ctx, snap) {
@@ -185,12 +190,10 @@ class _ProjectsMap extends StatelessWidget {
                 Positioned(
                   bottom: 12,
                   right: 12,
-                  child: Card(
-                    color: Colors.white70,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text('Proyectos visibles: ${projects.length}'),
-                    ),
+                  child: _Legend(
+                    categories: projects.map((e) => e.category).toSet().toList(),
+                    total: projects.length,
+                    colorForCategory: (c) => _colorForCategory(context, c),
                   ),
                 ),
               ],
@@ -204,11 +207,73 @@ class _ProjectsMap extends StatelessWidget {
   Color _colorForCategory(BuildContext context, String category) {
     final c = category.toUpperCase();
     if (c.contains('MEDIOAMBIENTE')) return Colors.green.shade700;
-    if (c.contains('ORDENACION') || c.contains('ORDENACIÓN')) return Colors.blue.shade700;
-    if (c.contains('DESARROLLO')) return Colors.orange.shade700;
-    if (c.contains('ESTUDIOS')) return Colors.teal.shade700;
-    if (c.contains('SISTEMAS')) return Colors.brown.shade700;
+    if (c.contains('ORDENACION') || c.contains('ORDENACIÓN')) return Brand.primary;
     if (c.contains('PATRIMONIO')) return Colors.purple.shade700;
-    return Theme.of(context).colorScheme.primary;
+    if (c.contains('SISTEMAS')) return Colors.brown.shade700;
+    if (c.contains('ESTUDIOS') || c.contains('DESARROLLO')) return Colors.teal.shade700;
+    return Brand.secondary;
+  }
+}
+
+class _Legend extends StatelessWidget {
+  final List<String> categories;
+  final int total;
+  final Color Function(String) colorForCategory;
+
+  const _Legend({
+    super.key,
+    required this.categories,
+    required this.total,
+    required this.colorForCategory,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final sorted = [...categories]..sort();
+    return Card(
+      color: Colors.white,
+      elevation: 5,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 260),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Proyectos visibles: $total', style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 10,
+                runSpacing: 8,
+                children: sorted
+                    .map(
+                      (c) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: colorForCategory(c),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            c.toUpperCase(),
+                            style: t.bodySmall?.copyWith(letterSpacing: 0.2),
+                          ),
+                        ],
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

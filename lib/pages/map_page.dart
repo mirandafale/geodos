@@ -19,7 +19,7 @@ class MapPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mapa de Proyectos'),
-        actions: [SessionAction()],
+        actions: const [SessionActionWidget()],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showDialog(

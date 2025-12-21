@@ -17,6 +17,9 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
   final _title = TextEditingController();
   final _scope = TextEditingController();
   final _category = TextEditingController();
+  final _municipality = TextEditingController();
+  final _island = TextEditingController();
+  final _year = TextEditingController();
   final _lat = TextEditingController();
   final _lng = TextEditingController();
 
@@ -28,6 +31,9 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
       _title.text = p.title;
       _scope.text = p.scope.name;
       _category.text = p.category;
+      _municipality.text = p.municipality;
+      _island.text = p.island;
+      if (p.year != null) _year.text = p.year.toString();
       _lat.text = p.lat.toString();
       _lng.text = p.lon.toString();
     }
@@ -48,6 +54,19 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
             TextField(
               controller: _scope,
               decoration: const InputDecoration(labelText: 'Ámbito'),
+            ),
+            TextField(
+              controller: _municipality,
+              decoration: const InputDecoration(labelText: 'Municipio'),
+            ),
+            TextField(
+              controller: _island,
+              decoration: const InputDecoration(labelText: 'Isla'),
+            ),
+            TextField(
+              controller: _year,
+              decoration: const InputDecoration(labelText: 'Año'),
+              keyboardType: TextInputType.number,
             ),
             DropdownButtonFormField<String>(
               value: _category.text.isNotEmpty ? _category.text : null,
@@ -78,14 +97,18 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
         ElevatedButton(
           onPressed: () {
             final project = Project(
+              id: widget.initial?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
               title: _title.text,
               scope: ProjectScope.values.firstWhere(
-                    (e) => e.name == _scope.text.trim(),
+                (e) => e.name == _scope.text.trim(),
                 orElse: () => ProjectScope.insular,
               ),
+              municipality: _municipality.text,
+              year: int.tryParse(_year.text),
               category: _category.text,
               lat: double.tryParse(_lat.text) ?? 0.0,
               lon: double.tryParse(_lng.text) ?? 0.0,
+              island: _island.text,
               enRedaccion: false,
             );
             Navigator.of(context).pop(project);

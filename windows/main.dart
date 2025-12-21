@@ -1,10 +1,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'brand/brand.dart';
-import 'state/app_state.dart';
-import 'pages/map_page.dart';
-import 'pages/contact_page.dart';
+import 'package:geodos/brand/brand.dart';
+import 'package:geodos/state/app_state.dart';
+import 'package:geodos/pages/map_page.dart';
+import 'package:geodos/pages/contact_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,34 +1,35 @@
 // filters_controller.dart corregido y extendido
 
 import 'package:flutter/foundation.dart';
+import 'package:geodos/models/project.dart';
 
 class FiltersState {
-  final String? type;
   final int? year;
-  final String? scope;
+  final ProjectScope? scope;
   final String? category;
+  final String? island;
   final String search;
 
   const FiltersState({
-    this.type,
     this.year,
     this.scope,
     this.category,
+    this.island,
     this.search = '',
   });
 
   FiltersState copyWith({
-    String? type,
     int? year,
-    String? scope,
+    ProjectScope? scope,
     String? category,
+    String? island,
     String? search,
   }) {
     return FiltersState(
-      type: type ?? this.type,
       year: year ?? this.year,
       scope: scope ?? this.scope,
       category: category ?? this.category,
+      island: island ?? this.island,
       search: search ?? this.search,
     );
   }
@@ -43,23 +44,23 @@ class FiltersController extends ChangeNotifier {
 
   FiltersState get state => _state;
 
-  void setType(String? type) {
-    _state = _state.copyWith(type: type);
-    notifyListeners();
-  }
-
   void setYear(int? year) {
     _state = _state.copyWith(year: year);
     notifyListeners();
   }
 
-  void setScope(String? scope) {
+  void setScope(ProjectScope? scope) {
     _state = _state.copyWith(scope: scope);
     notifyListeners();
   }
 
   void setCategory(String? category) {
     _state = _state.copyWith(category: category);
+    notifyListeners();
+  }
+
+  void setIsland(String? island) {
+    _state = _state.copyWith(island: island);
     notifyListeners();
   }
 

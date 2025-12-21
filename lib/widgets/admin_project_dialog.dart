@@ -21,6 +21,7 @@ class AdminProjectDialog extends StatelessWidget {
         ElevatedButton(
           onPressed: () {
             final project = Project(
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
               title: 'Nuevo Proyecto',
               municipality: 'Desconocido',
               category: 'General',
