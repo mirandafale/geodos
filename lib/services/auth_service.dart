@@ -4,9 +4,8 @@ import 'package:flutter/foundation.dart';
 /// Servicio global de autenticación.
 /// Envuelve FirebaseAuth y expone un estado sencillo (usuario + esAdmin).
 class AuthService extends ChangeNotifier {
-  AuthService._internal() {
+  AuthService._() {
     _user = _auth.currentUser;
-    // Escuchamos cambios de sesión (login / logout / expiración de token...)
     _auth.authStateChanges().listen((user) {
       _user = user;
       notifyListeners();
@@ -14,12 +13,13 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Instancia singleton
-  static final AuthService instance = AuthService._internal();
+  static final AuthService instance = AuthService._();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? _user;
 
   User? get user => _user;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
   bool get isLoggedIn => _user != null;
 
   /// Lista de correos que consideramos "admins".

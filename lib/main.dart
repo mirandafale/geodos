@@ -14,11 +14,18 @@ import 'package:geodos/pages/login_admin_page.dart';
 import 'package:geodos/pages/privacy_page.dart';
 import 'package:geodos/pages/visor_page.dart';
 import 'package:geodos/pages/terms_page.dart';
+import 'package:geodos/services/auth_service.dart';
+import 'package:provider/provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const GeodosApp());
+  runApp(
+    ChangeNotifierProvider<AuthService>(
+      create: (_) => AuthService.instance,
+      child: const GeodosApp(),
+    ),
+  );
 }
 
 class GeodosApp extends StatelessWidget {
