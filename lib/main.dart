@@ -1,17 +1,22 @@
 // lib/main.dart
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:geodos/pages/home_page.dart';
-import 'package:geodos/pages/visor_page.dart';
-import 'package:geodos/pages/contact_page.dart';
-import 'package:geodos/pages/login_admin_page.dart';
+import 'package:geodos/brand/brand.dart';
+import 'package:geodos/firebase_options.dart';
 import 'package:geodos/pages/about_page.dart';
 import 'package:geodos/pages/accessibility_page.dart';
-import 'package:geodos/pages/privacy_page.dart';
-import 'package:geodos/pages/data_privacy_page.dart';
+import 'package:geodos/pages/contact_page.dart';
 import 'package:geodos/pages/cookies_page.dart';
+import 'package:geodos/pages/data_privacy_page.dart';
+import 'package:geodos/pages/home_page.dart';
+import 'package:geodos/pages/login_admin_page.dart';
+import 'package:geodos/pages/privacy_page.dart';
+import 'package:geodos/pages/visor_page.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const GeodosApp());
 }
 
@@ -23,11 +28,7 @@ class GeodosApp extends StatelessWidget {
     return MaterialApp(
       title: 'Geodos',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
+      theme: Brand.theme(),
       initialRoute: '/',
       routes: {
         '/': (context) => const HomePage(),
