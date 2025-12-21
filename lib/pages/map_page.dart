@@ -1,9 +1,7 @@
 // lib/pages/map_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:geodos/models/project.dart';
 import 'package:geodos/state/app_state.dart';
-import 'package:geodos/widgets/admin_project_dialog.dart';
 import 'package:geodos/widgets/project_form_dialog.dart';
 import 'package:geodos/widgets/projects_list_dialog.dart';
 import 'package:geodos/widgets/session_action.dart';
@@ -15,22 +13,25 @@ class MapPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppState.instance;
     final groups = app.visibleProjectsGroupedByCategory;
+    final isAdmin = app.isAdmin;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mapa de Proyectos'),
-        actions: [SessionAction()],
+        actions: const [SessionActionWidget()],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => ProjectFormDialog(
-            categories: app.distinctCategories,
-            onSubmit: (project) => app.addProject(project),
-          ),
-        ),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: isAdmin
+          ? FloatingActionButton(
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) => ProjectFormDialog(
+                  categories: app.distinctCategories,
+                  onSubmit: (project) => app.addProject(project),
+                ),
+              ),
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: ListView(
         children: groups.entries.map((entry) {
           final category = entry.key;

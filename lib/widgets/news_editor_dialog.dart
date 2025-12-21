@@ -1,8 +1,14 @@
 // lib/widgets/news_editor_dialog.dart
+import 'dart:io' as io;
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/news_item.dart';
 import '../services/auth_service.dart';
+import '../services/firebase_service.dart';
 import '../services/news_service.dart';
 
 class NewsEditorDialog extends StatefulWidget {
@@ -21,6 +27,7 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
   late final TextEditingController _imageCtrl;
   bool _published = false;
   bool _saving = false;
+  bool _uploading = false;
 
   @override
   void initState() {
@@ -37,6 +44,53 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
     _summaryCtrl.dispose();
     _imageCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    setState(() {
+      _uploading = true;
+    });
+    try {
+      final result = await FilePicker.platform
+          .pickFiles(type: FileType.image, allowMultiple: false, withData: true);
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.single;
+      Uint8List? bytes = file.bytes;
+      if (bytes == null && file.path != null && !kIsWeb) {
+        bytes = await io.File(file.path!).readAsBytes();
+      }
+      if (bytes == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo leer la imagen seleccionada.')),
+        );
+        return;
+      }
+
+      final url = await FirebaseService.uploadImageToStorage(
+        bytes,
+        folder: 'news_images',
+        fileName: file.name,
+      );
+      if (!mounted) return;
+      setState(() {
+        _imageCtrl.text = url;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagen subida correctamente.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al subir imagen: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploading = false;
+        });
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -123,12 +177,30 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
                   (v == null || v.trim().isEmpty) ? 'Obligatorio' : null,
                 ),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _imageCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'URL de imagen (opcional)',
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _imageCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'URL de imagen (opcional)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton.tonalIcon(
+                      onPressed: _uploading ? null : _pickAndUploadImage,
+                      icon: _uploading
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.cloud_upload),
+                      label: const Text('Subir'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 SwitchListTile(

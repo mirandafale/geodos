@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../services/firebase_service.dart';
+
 /// Un diálogo de contacto translúcido similar al de inicio de sesión.
 ///
 /// Muestra un formulario para que el usuario pueda enviar un mensaje.
@@ -17,6 +19,7 @@ class _ContactDialogState extends State<ContactDialog> {
   final _email = TextEditingController();
   final _subject = TextEditingController();
   final _message = TextEditingController();
+  bool _sending = false;
 
   @override
   void dispose() {
@@ -65,7 +68,9 @@ class _ContactDialogState extends State<ContactDialog> {
                           keyboardType: TextInputType.emailAddress,
                           validator: (v) {
                             if (v == null || v.trim().isEmpty) return 'Requerido';
-                            final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+\$').hasMatch(v.trim());
+                            final ok = RegExp(
+                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                            ).hasMatch(v.trim());
                             return ok ? null : 'Email no válido';
                           },
                         ),
@@ -104,9 +109,16 @@ class _ContactDialogState extends State<ContactDialog> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: _submit,
-                          icon: const Icon(Icons.send),
-                          label: const Text('Enviar'),
+                          onPressed: _sending ? null : _submit,
+                          icon: _sending
+                              ? const SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.send),
+                          label: Text(_sending ? 'Enviando...' : 'Enviar'),
                         ),
                       ),
                     ],
@@ -114,7 +126,7 @@ class _ContactDialogState extends State<ContactDialog> {
                   const SizedBox(height: 8),
                   // Nota informativa similar al formulario original
                   const Text(
-                    'Nota: este formulario es demostrativo. Integraremos el envío (email/API) cuando nos pases el endpoint.',
+                    'Tus datos se almacenan temporalmente en Firebase al enviar el formulario.',
                     style: TextStyle(fontSize: 12, color: Colors.black54),
                   ),
                 ],
@@ -126,10 +138,29 @@ class _ContactDialogState extends State<ContactDialog> {
     );
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    // Muestra un SnackBar y cierra el diálogo
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Mensaje enviado (demo)')));
-    Navigator.of(context).pop();
+    setState(() => _sending = true);
+    try {
+      await FirebaseService.submitContactMessage(
+        name: _name.text.trim(),
+        email: _email.text.trim(),
+        company: _subject.text.trim(),
+        message: _message.text.trim(),
+        originSection: 'dialog',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mensaje enviado correctamente.')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al enviar: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 }

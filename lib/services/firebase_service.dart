@@ -64,6 +64,7 @@ class FirebaseService {
       'title': item.title,
       'summary': item.summary,
       'imageUrl': item.imageUrl,
+      'published': item.published,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };

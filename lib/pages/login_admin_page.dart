@@ -279,7 +279,8 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
         Row(
           children: [
             FilledButton(
-              onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+              onPressed: () =>
+                  Navigator.pushReplacementNamed(context, '/'),
               child: const Text('Volver a inicio'),
             ),
             const SizedBox(width: 12),
