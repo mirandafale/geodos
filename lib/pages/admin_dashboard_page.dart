@@ -129,7 +129,18 @@ class _ProjectsTabState extends State<_ProjectsTab> {
       ),
     );
     if (confirm == true) {
-      await ProjectService.deleteProject(project.id);
+      try {
+        await ProjectService.deleteProject(project.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Proyecto "${project.title}" eliminado')),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar el proyecto: $e')),
+        );
+      }
     }
   }
 
@@ -270,14 +281,31 @@ class _ProjectsTabState extends State<_ProjectsTab> {
                   lon: double.parse(lonCtrl.text.trim()),
                   description: descCtrl.text.trim(),
                   enRedaccion: enRedaccion.value,
+                  createdAt: data.createdAt ?? DateTime.now(),
                   updatedAt: DateTime.now(),
                 );
-                if (isEditing) {
-                  await ProjectService.updateProject(projectUpdated);
-                } else {
-                  await ProjectService.createAdminProject(projectUpdated);
+                try {
+                  if (isEditing) {
+                    await ProjectService.updateProject(projectUpdated);
+                  } else {
+                    await ProjectService.createAdminProject(projectUpdated);
+                  }
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEditing
+                            ? 'Proyecto actualizado'
+                            : 'Proyecto creado'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al guardar: $e')),
+                  );
                 }
-                if (context.mounted) Navigator.pop(context);
               },
               child: Text(isEditing ? 'Guardar cambios' : 'Crear'),
             ),
@@ -382,7 +410,18 @@ class _NewsTabState extends State<_NewsTab> {
       ),
     );
     if (confirm == true) {
-      await NewsService.delete(item.id);
+      try {
+        await NewsService.delete(item.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Noticia "${item.title}" eliminada')),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar la noticia: $e')),
+        );
+      }
     }
   }
 
@@ -482,12 +521,27 @@ class _NewsTabState extends State<_NewsTab> {
                   updatedAt: now,
                   published: published.value,
                 );
-                if (isEditing) {
-                  await NewsService.update(news, image: pickedFile);
-                } else {
-                  await NewsService.create(news, image: pickedFile);
+                try {
+                  if (isEditing) {
+                    await NewsService.update(news, image: pickedFile);
+                  } else {
+                    await NewsService.create(news, image: pickedFile);
+                  }
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            isEditing ? 'Noticia actualizada' : 'Noticia creada'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al guardar la noticia: $e')),
+                  );
                 }
-                if (context.mounted) Navigator.pop(context);
               },
               child: Text(isEditing ? 'Guardar cambios' : 'Crear'),
             ),
