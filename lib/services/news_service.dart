@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/news_item.dart';
+import 'firebase_service.dart';
 
 class NewsService {
   static final _db = FirebaseFirestore.instance;
@@ -19,12 +20,12 @@ class NewsService {
 
   /// Crea una noticia nueva
   static Future<void> create(NewsItem item) async {
-    await _col.add(item.toMap());
+    await FirebaseService.createOrUpdateNews(item);
   }
 
   /// Actualiza una noticia existente
   static Future<void> update(NewsItem item) async {
-    await _col.doc(item.id).update(item.toMap());
+    await FirebaseService.createOrUpdateNews(item);
   }
 
   /// Borra una noticia

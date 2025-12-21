@@ -928,7 +928,7 @@ class _FinalCtaSection extends StatelessWidget {
                       backgroundColor: Colors.white,
                       foregroundColor: Theme.of(context).colorScheme.primary,
                     ),
-                    onPressed: () => Navigator.pushNamed(context, '/contacto'),
+                    onPressed: () => Navigator.pushNamed(context, '/contact'),
                     child: const Text('Habla con un experto'),
                   ),
                   OutlinedButton(
@@ -936,7 +936,7 @@ class _FinalCtaSection extends StatelessWidget {
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white),
                     ),
-                    onPressed: () => Navigator.pushNamed(context, '/contacto'),
+                    onPressed: () => Navigator.pushNamed(context, '/contact'),
                     child: const Text('Pídenos un presupuesto'),
                   ),
                 ],
