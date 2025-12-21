@@ -51,3 +51,6 @@ service firebase.storage {
 - `/admin`: tablero con pestañas para **Proyectos** y **Noticias** (CRUD, subida de imagen, publicación).
 - Home muestra el carrusel de noticias publicadas y el visor sigue siendo público con filtros.
 - Sesión de admin persistente gracias a Firebase Auth y el guardián de ruta `AdminGate`.
+
+## Archivos generados
+`flutter pub get` vuelve a crear `pubspec.lock` y los registradores de plugins de Linux/macOS/Windows. Se excluyen del repositorio para evitar ruido en los diffs; ejecútalo localmente antes de compilar en cada plataforma.
