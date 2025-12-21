@@ -1,6 +1,5 @@
-﻿// lib/services/project_service.dart
+// lib/services/project_service.dart
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart' show rootBundle;
