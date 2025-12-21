@@ -24,19 +24,7 @@ class AuthService extends ChangeNotifier {
   User? get user => _user;
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   bool get isLoggedIn => _user != null;
-
-  /// Lista de correos que consideramos "admins".
-  /// ⚠️ Cambia estos por los vuestros reales.
-  static const Set<String> _adminEmails = {
-    'admin@geodos.es',
-    'geodos.admin@gmail.com',
-  };
-
-  bool get isAdmin {
-    final email = _user?.email?.toLowerCase();
-    if (email == null) return false;
-    return _adminEmails.contains(email);
-  }
+  bool get isAdmin => isLoggedIn;
 
   Future<void> signIn(String email, String password) async {
     await _auth.signInWithEmailAndPassword(
@@ -44,6 +32,13 @@ class AuthService extends ChangeNotifier {
       password: password.trim(),
     );
     // authStateChanges ya actualizará _user y notificará.
+  }
+
+  Future<void> signInWithCredentials({
+    required String email,
+    required String password,
+  }) async {
+    await signIn(email, password);
   }
 
   Future<void> signOut() async {
