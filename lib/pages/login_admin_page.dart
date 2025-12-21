@@ -50,7 +50,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
       );
 
       // Volvemos a la home o a donde prefieras
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/');
     } on FirebaseAuthException catch (e) {
       String msg = 'No se ha podido iniciar sesión.';
       if (e.code == 'user-not-found') {

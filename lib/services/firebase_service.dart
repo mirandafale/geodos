@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/news_item.dart';
 import '../models/project.dart';
+import 'auth_service.dart';
 
 class FirebaseService {
   FirebaseService._();
@@ -30,7 +31,12 @@ class FirebaseService {
   }
 
   static Future<void> createOrUpdateProject(Project project) async {
-    final doc = _firestore.collection('projects').doc(project.id);
+    if (!AuthService.instance.isAdmin) {
+      throw Exception('Solo un administrador autenticado puede modificar proyectos.');
+    }
+    final doc = project.id.isEmpty
+        ? _firestore.collection('projects').doc()
+        : _firestore.collection('projects').doc(project.id);
     final data = {
       'title': project.title,
       'municipality': project.municipality,
@@ -50,6 +56,9 @@ class FirebaseService {
   }
 
   static Future<String> createOrUpdateNews(NewsItem item) async {
+    if (!AuthService.instance.isAdmin) {
+      throw Exception('Solo un administrador autenticado puede modificar noticias.');
+    }
     final collection = _firestore.collection('news');
     final payload = {
       'title': item.title,

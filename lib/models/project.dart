@@ -1,6 +1,8 @@
 // lib/models/project.dart
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 /// Ámbito del proyecto según el campo `cat` del JSON.
 enum ProjectScope { municipal, comarcal, insular, regional, unknown }
 
@@ -90,7 +92,7 @@ class Project {
     }
 
     final scopeStr =
-    (json['cat'] ?? json['scope'] ?? '').toString().toUpperCase().trim();
+        (json['cat'] ?? json['scope'] ?? '').toString().toUpperCase().trim();
     final scope = _scopeFromString(scopeStr);
 
     final latVal = json['lat'];
@@ -118,6 +120,43 @@ class Project {
       scope: scope,
       enRedaccion: json['enRedaccion'] == true || enRedaccion,
       description: json['description']?.toString(),
+    );
+  }
+
+  factory Project.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data() ?? <String, dynamic>{};
+    final rawYear = data['year'] ?? data['date'];
+    int? year;
+    bool enRedaccion = false;
+    if (rawYear is int) {
+      year = rawYear;
+    } else if (rawYear is String) {
+      final norm = rawYear.toUpperCase();
+      if (norm.contains('REDACCION')) {
+        enRedaccion = true;
+      } else {
+        year = int.tryParse(rawYear);
+      }
+    }
+
+    final scopeStr = (data['scope'] ?? data['cat'] ?? '').toString().toUpperCase();
+    final latVal = data['lat'];
+    final lonVal = data['lon'];
+
+    return Project(
+      id: doc.id,
+      title: (data['title'] ?? '').toString(),
+      municipality: (data['municipality'] ?? '').toString(),
+      year: year,
+      category: (data['category'] ?? '').toString(),
+      lat: latVal is num ? latVal.toDouble() : double.tryParse(latVal?.toString() ?? '') ?? 0,
+      lon: lonVal is num ? lonVal.toDouble() : double.tryParse(lonVal?.toString() ?? '') ?? 0,
+      island: (data['island'] ?? data['isla'] ?? '').toString(),
+      scope: _scopeFromString(scopeStr),
+      enRedaccion: data['enRedaccion'] == true || enRedaccion,
+      description: (data['description'] ?? '').toString().trim().isEmpty
+          ? null
+          : (data['description'] ?? '').toString(),
     );
   }
 
@@ -169,4 +208,6 @@ class Project {
         return 'UNKNOWN';
     }
   }
+
+  static String scopeToString(ProjectScope scope) => _scopeToString(scope);
 }
