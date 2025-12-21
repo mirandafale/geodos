@@ -42,11 +42,15 @@ class AuthService extends ChangeNotifier {
       email: email.trim(),
       password: password.trim(),
     );
+    _user = _auth.currentUser;
+    notifyListeners();
     // authStateChanges ya actualizará _user y notificará.
   }
 
   Future<void> signOut() async {
     await _auth.signOut();
+    _user = null;
+    notifyListeners();
     // authStateChanges deja _user a null y notifica.
   }
 }
