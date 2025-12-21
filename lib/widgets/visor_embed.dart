@@ -138,10 +138,23 @@ class _ProjectsMap extends StatelessWidget {
                 height: 40,
                 child: Tooltip(
                   message: '${p.title}\n${p.category} · ${p.year ?? 's/f'}',
-                  child: Icon(
-                    Icons.location_pin,
-                    color: color,
-                    size: 36,
+                  child: Center(
+                    child: Container(
+                      width: 15,
+                      height: 15,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.25),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -239,41 +252,61 @@ class _Legend extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final sorted = [...categories]..sort();
-    return Card(
-      color: Colors.white,
-      elevation: 5,
+    const shadow = [Shadow(color: Colors.black38, blurRadius: 2, offset: Offset(0, 1))];
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 260),
+          constraints: const BoxConstraints(maxWidth: 280),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Proyectos visibles: $total', style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+              Text(
+                'Proyectos visibles: $total',
+                style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700, shadows: shadow),
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 10,
                 runSpacing: 8,
                 children: sorted
                     .map(
-                      (c) => Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: colorForCategory(c),
-                              shape: BoxShape.circle,
+                      (c) => ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 240),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: colorForCategory(c),
+                                shape: BoxShape.circle,
+                                boxShadow: const [
+                                  BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            c.toUpperCase(),
-                            style: t.bodySmall?.copyWith(letterSpacing: 0.2),
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                c.toUpperCase(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: t.bodySmall?.copyWith(letterSpacing: 0.2, shadows: shadow),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                     .toList(),
