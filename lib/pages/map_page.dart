@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/state/app_state.dart';
 import 'package:geodos/widgets/admin_project_dialog.dart';
+import 'package:geodos/widgets/app_shell.dart';
 import 'package:geodos/widgets/project_form_dialog.dart';
 import 'package:geodos/widgets/projects_list_dialog.dart';
 import 'package:geodos/widgets/session_action.dart';
@@ -16,11 +17,9 @@ class MapPage extends StatelessWidget {
     final app = AppState.instance;
     final groups = app.visibleProjectsGroupedByCategory;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mapa de Proyectos'),
-        actions: [SessionAction()],
-      ),
+    return AppShell(
+      title: const Text('Mapa de Proyectos'),
+      actions: [SessionAction()],
       floatingActionButton: FloatingActionButton(
         onPressed: () => showDialog(
           context: context,
