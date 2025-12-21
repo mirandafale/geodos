@@ -2,35 +2,59 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:geodos/models/project.dart';
 import 'package:uuid/uuid.dart';
 
 /// Servicio encargado de cargar y filtrar los proyectos desde assets.
 class ProjectService {
-  static List<Project> _projects = [];
+  static List<Project> _localProjects = [];
   static List<Project> _remoteProjects = [];
   static final _firestore = FirebaseFirestore.instance.collection('projects');
   static final _uuid = const Uuid();
   static bool _remoteLoaded = false;
+  static bool _localLoaded = false;
+  static int _lastRemoteCount = 0;
   static const _assetPath = 'assets/proyectos_por_municipio_cat_isla_v3_jittered.json';
 
-  /// Inicializa cargando el archivo JSON de assets si aún no está cargado.
+  /// Inicializa cargando los datos remotos y, en debug, el fallback local.
   static Future<void> ensureInitialized() async {
-    if (_projects.isNotEmpty) return;
-    final raw = await rootBundle.loadString(_assetPath);
-    _projects = Project.listFromJsonString(raw)
-        .where((p) => p.hasValidCoords)
-        .toList();
     await _loadRemoteOnce();
+    await _loadLocalIfNeeded();
   }
 
   static Future<void> _loadRemoteOnce() async {
     if (_remoteLoaded) return;
     final snapshot = await _firestore.get();
     _remoteProjects = snapshot.docs.map(_projectFromDoc).toList();
+    _lastRemoteCount = _remoteProjects.length;
     _remoteLoaded = true;
+    debugPrint('ProjectService: initial remote load $_lastRemoteCount docs');
   }
+
+  static Future<void> _loadLocalIfNeeded() async {
+    if (_localLoaded || !kDebugMode) return;
+    if (_remoteProjects.isNotEmpty) return;
+    final raw = await rootBundle.loadString(_assetPath);
+    _localProjects = Project.listFromJsonString(raw)
+        .where((p) => p.hasValidCoords)
+        .toList();
+    _localLoaded = true;
+    debugPrint('ProjectService: loaded local fallback ${_localProjects.length} projects');
+  }
+
+  static List<Project> _availableProjects() {
+    if (_remoteProjects.isNotEmpty) return _remoteProjects;
+    if (kDebugMode) return _localProjects;
+    return const [];
+  }
+
+  static int get lastRemoteCount => _lastRemoteCount;
+
+  static bool get usingLocalFallback => _remoteProjects.isEmpty && _localProjects.isNotEmpty;
+
+  static int get localFallbackCount => _localProjects.length;
 
   /// Devuelve un flujo (stream) de proyectos filtrados en base a los criterios.
   static Stream<List<Project>> stream({
@@ -40,11 +64,28 @@ class ProjectService {
     String? island,
     String? search,
   }) async* {
+    final filtersLog = _filtersDescription(year, category, scope, island, search);
+    debugPrint('ProjectService.stream: building stream with $filtersLog');
+
     await ensureInitialized();
-    yield _filterProjects(year, category, scope, island, search);
+
+    var filtered = _filterProjects(year, category, scope, island, search);
+    debugPrint(
+        'ProjectService.stream: initial filtered=${filtered.length} remote=$lastRemoteCount local=${_localProjects.length} (${usingLocalFallback ? 'using local fallback' : 'firestore'}) with $filtersLog');
+    yield filtered;
+
     await for (final snapshot in _firestore.snapshots()) {
       _remoteProjects = snapshot.docs.map(_projectFromDoc).toList();
-      yield _filterProjects(year, category, scope, island, search);
+      _lastRemoteCount = _remoteProjects.length;
+
+      if (_remoteProjects.isEmpty) {
+        await _loadLocalIfNeeded();
+      }
+
+      filtered = _filterProjects(year, category, scope, island, search);
+      debugPrint(
+          'ProjectService.stream: snapshot docs=${snapshot.docs.length} filtered=${filtered.length} (${usingLocalFallback ? 'local fallback' : 'firestore'}) with $filtersLog');
+      yield filtered;
     }
   }
 
@@ -52,7 +93,7 @@ class ProjectService {
   static Future<List<int>> getYears() async {
     await ensureInitialized();
     final set = <int>{};
-    for (final p in [..._projects, ..._remoteProjects]) {
+    for (final p in _availableProjects()) {
       if (p.year != null) set.add(p.year!);
     }
     final list = set.toList();
@@ -64,7 +105,7 @@ class ProjectService {
   static Future<List<String>> getCategories() async {
     await ensureInitialized();
     final set = <String>{};
-    for (final p in [..._projects, ..._remoteProjects]) {
+    for (final p in _availableProjects()) {
       if (p.category.isNotEmpty) set.add(p.category);
     }
     final list = set.toList();
@@ -75,10 +116,7 @@ class ProjectService {
   /// Devuelve todos los ámbitos disponibles en los proyectos.
   static Future<List<ProjectScope>> getScopes() async {
     await ensureInitialized();
-    final list = [..._projects, ..._remoteProjects]
-        .map((p) => p.scope)
-        .toSet()
-        .toList();
+    final list = _availableProjects().map((p) => p.scope).toSet().toList();
     list.sort((a, b) => _scopeLabel(a).compareTo(_scopeLabel(b)));
     return list;
   }
@@ -86,7 +124,7 @@ class ProjectService {
   /// Devuelve la lista de islas disponibles.
   static Future<List<String>> getIslands() async {
     await ensureInitialized();
-    final list = [..._projects, ..._remoteProjects]
+    final list = _availableProjects()
         .map((p) => p.island.trim())
         .where((e) => e.isNotEmpty)
         .toSet()
@@ -138,7 +176,7 @@ class ProjectService {
       ProjectScope? scope,
       String? island,
       String? search,) {
-    final combined = [..._projects, ..._remoteProjects];
+    final combined = _availableProjects();
     return combined.where((p) {
       if (year != null && p.year != year) return false;
       if (category != null && category.trim().isNotEmpty && !p.hasCategory(category)) {
@@ -157,6 +195,28 @@ class ProjectService {
       }
       return true;
     }).toList();
+  }
+
+  static String describeFilters({
+    int? year,
+    String? category,
+    ProjectScope? scope,
+    String? island,
+    String? search,
+  }) {
+    return _filtersDescription(year, category, scope, island, search);
+  }
+
+  static String _filtersDescription(
+      int? year, String? category, ProjectScope? scope, String? island, String? search) {
+    final parts = <String>[
+      'year=${year ?? 'all'}',
+      'category=${(category?.trim().isEmpty ?? true) ? 'all' : category?.trim()}',
+      'scope=${scope?.name ?? 'all'}',
+      'island=${(island?.trim().isEmpty ?? true) ? 'all' : island?.trim()}',
+      'search=${(search?.trim().isEmpty ?? true) ? '""' : search?.trim()}',
+    ];
+    return 'filters(${parts.join(', ')})';
   }
 
   static Project _projectFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
