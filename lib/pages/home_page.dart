@@ -1,24 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:geodos/brand/brand.dart';
 
-// Menú lateral con las diferentes opciones de navegación.
 import '../widgets/app_drawer.dart';
-// Visor incrustado para mostrar los proyectos georreferenciados.
+import '../widgets/contact_form.dart';
 import '../widgets/visor_embed.dart';
-// Controlador de filtros para mantener el estado de ámbito (categoría), año, etc.
-import '../services/filters_controller.dart';
-// Servicio que carga los proyectos desde el JSON de assets y expone categorías disponibles.
-import '../services/project_service.dart';
 
-/// Página de inicio de GEODOS basada en el diseño original proporcionado.
-///
-/// Incluye un encabezado (hero), una sección de servicios, una sección de
-/// proyectos por categoría con un visor reducido, un apartado de flujo de
-/// trabajo, una sección "Quiénes somos", un carrusel de blog/noticias,
-/// un bloque de llamada a la acción y un pie de página con enlaces
-/// legales. Todas las secciones se pueden alcanzar mediante el menú superior
-/// que realiza scroll a la posición correspondiente.
+/// Página de inicio renovada con foco corporativo y secciones claras.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -27,17 +14,11 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final _scrollCtrl = ScrollController();
-
-  // Claves para hacer scroll a secciones concretas.
-  final _servicesKey = GlobalKey();
-  final _projectsKey = GlobalKey();
   final _aboutKey = GlobalKey();
-  final _blogKey = GlobalKey();
-  final _ctaKey = GlobalKey();
-  final _footerKey = GlobalKey();
+  final _workflowKey = GlobalKey();
+  final _visorKey = GlobalKey();
+  final _contactKey = GlobalKey();
 
-  /// Desplaza la vista hasta la sección asociada a [key].
   void _scrollTo(GlobalKey key) {
     final ctx = key.currentContext;
     if (ctx == null) return;
@@ -46,9 +27,25 @@ class _HomePageState extends State<HomePage> {
       ctx,
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeInOut,
-      alignment: 0.1,
+      alignment: 0.08,
     );
   }
+
+  ButtonStyle get _primaryButtonStyle => FilledButton.styleFrom(
+        backgroundColor: Brand.primary,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      );
+
+  ButtonStyle get _secondaryButtonStyle => OutlinedButton.styleFrom(
+        foregroundColor: Brand.primary,
+        side: const BorderSide(color: Brand.primary, width: 1.4),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -60,151 +57,110 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF0C6372),
-                Color(0xFF2A7F62),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        flexibleSpace: Container(decoration: const BoxDecoration(gradient: Brand.appBarGradient)),
         title: Text(
           'GEODOS',
           style: theme.textTheme.titleLarge?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+            letterSpacing: 1.1,
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => _scrollTo(_servicesKey),
-            child: const Text('Servicios', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/visor'),
-            child: const Text('Proyectos', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => _scrollTo(_aboutKey),
-            child: const Text('Quiénes somos', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => _scrollTo(_ctaKey),
-            child: const Text('Contacto', style: TextStyle(color: Colors.white)),
-          ),
+          _NavButton(label: 'Quiénes somos', onTap: () => _scrollTo(_aboutKey)),
+          _NavButton(label: 'Cómo trabajamos', onTap: () => _scrollTo(_workflowKey)),
+          _NavButton(label: 'Visor', onTap: () => _scrollTo(_visorKey)),
+          _NavButton(label: 'Contacto', onTap: () => _scrollTo(_contactKey)),
           const SizedBox(width: 16),
         ],
       ),
       body: ListView(
-        controller: _scrollCtrl,
         padding: EdgeInsets.zero,
         children: [
-          _HeroSection(),
-          const SizedBox(height: 40),
-          _ServicesSection(key: _servicesKey),
-          const SizedBox(height: 40),
-          _ProjectsByCategorySection(key: _projectsKey),
-          const SizedBox(height: 40),
-          _WorkflowSection(),
-          const SizedBox(height: 40),
+          _HeroSection(
+            primaryStyle: _primaryButtonStyle,
+            secondaryStyle: _secondaryButtonStyle,
+            onExploreTap: () => Navigator.pushNamed(context, '/visor'),
+            onContactTap: () => _scrollTo(_contactKey),
+          ),
           _AboutSection(key: _aboutKey),
-          const SizedBox(height: 40),
-          _BlogSection(key: _blogKey),
-          const SizedBox(height: 40),
-          _FinalCtaSection(key: _ctaKey),
-          const SizedBox(height: 24),
-          _FooterSection(key: _footerKey),
+          _WorkflowSection(key: _workflowKey),
+          _VisorPreviewSection(key: _visorKey),
+          _ContactSection(
+            key: _contactKey,
+            primaryStyle: _primaryButtonStyle,
+            secondaryStyle: _secondaryButtonStyle,
+          ),
+          const _FooterSection(),
         ],
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// HEADER DE SECCIÓN
-// ---------------------------------------------------------------------------
+class _NavButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
 
-/// Widget reutilizable para encabezados de sección.
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final String? subtitle;
-  final IconData? icon;
-
-  const _SectionHeader({
-    required this.title,
-    this.subtitle,
-    this.icon,
-  });
+  const _NavButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final primary = Theme.of(context).colorScheme.primary;
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+    return TextButton(
+      onPressed: onTap,
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
       ),
-      color: Colors.white,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border(
-            left: BorderSide(
-              color: primary,
-              width: 4,
-            ),
+    );
+  }
+}
+
+class _SectionShell extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets padding;
+
+  const _SectionShell({required this.child, this.padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 32)});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: padding,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _SectionHeader({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: textTheme.headlineSmall?.copyWith(
+            color: Brand.primary,
+            fontWeight: FontWeight.w800,
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (icon != null)
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: primary.withOpacity(0.10),
-                ),
-                child: Icon(
-                  icon,
-                  color: primary,
-                  size: 22,
-                ),
-              ),
-            if (icon != null) const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: t.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: primary,
-                    ),
-                  ),
-                  if (subtitle != null) const SizedBox(height: 4),
-                  if (subtitle != null)
-                    Text(
-                      subtitle!,
-                      style: t.bodyMedium?.copyWith(
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: textTheme.bodyLarge?.copyWith(color: Colors.grey.shade800, height: 1.4),
         ),
-      ),
+      ],
     );
   }
 }
@@ -214,270 +170,63 @@ class _SectionHeader extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _HeroSection extends StatelessWidget {
+  final ButtonStyle primaryStyle;
+  final ButtonStyle secondaryStyle;
+  final VoidCallback onExploreTap;
+  final VoidCallback onContactTap;
+
+  const _HeroSection({
+    required this.primaryStyle,
+    required this.secondaryStyle,
+    required this.onExploreTap,
+    required this.onContactTap,
+  });
+
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 40, 32, 60),
+      padding: const EdgeInsets.fromLTRB(28, 56, 28, 64),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF0C6372),
-            Color(0xFF2A7F62),
-          ],
+          colors: [Brand.primary, Brand.secondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          constraints: const BoxConstraints(maxWidth: 1120),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 900;
+              final heroCopy = _HeroCopy(
+                textTheme: textTheme,
+                onContactTap: onContactTap,
+                onExploreTap: onExploreTap,
+                primaryStyle: primaryStyle,
+                secondaryStyle: secondaryStyle,
+              );
+
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      'Consultoría ambiental, territorial y SIG',
-                      style: t.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'En Geodos ayudamos a organizaciones públicas y privadas a tomar decisiones sobre el territorio, integrando análisis ambiental, planificación y datos geoespaciales.',
-                      style: t.bodyLarge?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: () => Navigator.pushNamed(context, '/visor'),
-                      child: const Text('Explorar proyectos'),
-                    ),
+                    Expanded(flex: 3, child: heroCopy),
+                    const SizedBox(width: 28),
+                    const Expanded(flex: 2, child: _HeroCard()),
                   ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+                );
+              }
 
-// ---------------------------------------------------------------------------
-// SERVICIOS
-// ---------------------------------------------------------------------------
-
-class _ServicesSection extends StatelessWidget {
-  const _ServicesSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1100),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const _SectionHeader(
-                title: 'Servicios principales',
-                subtitle: 'Consultoría ambiental y territorial especializada en evaluación, planificación y sistemas de información geográfica.',
-                icon: Icons.miscellaneous_services,
-              ),
-              const SizedBox(height: 24),
-              Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                alignment: WrapAlignment.center,
-                children: const [
-                  _ServiceCard(
-                    icon: Icons.fact_check,
-                    title: 'Evaluación de Impacto Ambiental',
-                    subtitle: 'Estudios detallados para valorar los efectos de planes y proyectos sobre el medio.',
-                  ),
-                  _ServiceCard(
-                    icon: Icons.map,
-                    title: 'Ordenación del Territorio y Urbanismo',
-                    subtitle: 'Planes, informes y apoyo técnico a la planificación territorial y urbanística.',
-                  ),
-                  _ServiceCard(
-                    icon: Icons.terrain,
-                    title: 'Estudios de Paisaje',
-                    subtitle: 'Análisis visual y paisajístico para integración y mejora del entorno.',
-                  ),
-                  _ServiceCard(
-                    icon: Icons.account_balance,
-                    title: 'Patrimonio y Geodiversidad',
-                    subtitle: 'Identificación, valoración y divulgación de patrimonio natural y cultural.',
-                  ),
-                  _ServiceCard(
-                    icon: Icons.spatial_tracking,
-                    title: 'Sistemas de Información Geográfica (SIG)',
-                    subtitle: 'Modelización espacial, cartografía avanzada y cuadros de mando geográficos.',
-                  ),
-                  _ServiceCard(
-                    icon: Icons.analytics,
-                    title: 'Geomarketing y análisis socioterritorial',
-                    subtitle: 'Apoyo a la toma de decisiones en localización, movilidad y demografía.',
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ServiceCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _ServiceCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return SizedBox(
-      width: 260,
-      child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            Container(
-              height: 90,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary.withOpacity(0.18),
-                    Theme.of(context).colorScheme.primary.withOpacity(0.04),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    style: t.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
+                  heroCopy,
+                  const SizedBox(height: 20),
+                  const _HeroCard(),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// PROYECTOS POR CATEGORÍA – MINI VISOR
-// ---------------------------------------------------------------------------
-
-class _ProjectsByCategorySection extends StatelessWidget {
-  const _ProjectsByCategorySection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final filters = FiltersController.instance;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1100),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: FutureBuilder<List<String>>(
-            future: ProjectService.getCategories(),
-            builder: (context, snapshot) {
-              final categories = snapshot.data ?? [];
-              return AnimatedBuilder(
-                animation: filters,
-                builder: (ctx, _) {
-                  final st = filters.state;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const _SectionHeader(
-                        title: 'Proyectos por categoría',
-                        subtitle:
-                            'Algunos de los proyectos georreferenciados desarrollados por GEODOS en diferentes ámbitos.',
-                        icon: Icons.location_on_outlined,
-                      ),
-                      const SizedBox(height: 24),
-                      Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              const Text('Categoría'),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: DropdownButtonFormField<String?>(
-                                  value: st.category,
-                                  decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  items: [
-                                    const DropdownMenuItem<String?>(
-                                      value: null,
-                                      child: Text('Todas'),
-                                    ),
-                                    ...categories.map(
-                                      (c) => DropdownMenuItem<String?>(
-                                        value: c,
-                                        child: Text(c),
-                                      ),
-                                    ),
-                                  ],
-                                  onChanged: filters.setCategory,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const VisorEmbed(startExpanded: false),
-                    ],
-                  );
-                },
               );
             },
           ),
@@ -487,99 +236,173 @@ class _ProjectsByCategorySection extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// CÓMO TRABAJAMOS
-// ---------------------------------------------------------------------------
+class _HeroCopy extends StatelessWidget {
+  final TextTheme textTheme;
+  final ButtonStyle primaryStyle;
+  final ButtonStyle secondaryStyle;
+  final VoidCallback onExploreTap;
+  final VoidCallback onContactTap;
 
-class _WorkflowSection extends StatelessWidget {
+  const _HeroCopy({
+    required this.textTheme,
+    required this.primaryStyle,
+    required this.secondaryStyle,
+    required this.onExploreTap,
+    required this.onContactTap,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1100),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const _SectionHeader(
-                title: 'Cómo trabajamos',
-                subtitle:
-                'Metodología basada en el análisis, la participación y la implementación rigurosa.',
-                icon: Icons.route,
-              ),
-              const SizedBox(height: 24),
-              Wrap(
-                spacing: 32,
-                runSpacing: 16,
-                alignment: WrapAlignment.center,
-                children: const [
-                  _WorkflowStep(
-                    icon: Icons.search,
-                    title: '1. Análisis inicial',
-                    description:
-                    'Revisión de contexto, normativa y actores implicados. Identificación de necesidades.',
-                  ),
-                  _WorkflowStep(
-                    icon: Icons.science,
-                    title: '2. Estudio técnico',
-                    description:
-                    'Trabajo de campo, análisis espacial y elaboración de propuestas.',
-                  ),
-                  _WorkflowStep(
-                    icon: Icons.handshake,
-                    title: '3. Soluciones personalizadas',
-                    description:
-                    'Diseño de alternativas adaptadas al territorio y a cada organización.',
-                  ),
-                  _WorkflowStep(
-                    icon: Icons.task_alt,
-                    title: '4. Implementación y seguimiento',
-                    description:
-                    'Acompañamiento en la ejecución, indicadores y mejora continua.',
-                  ),
-                ],
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Decisiones territoriales con datos, rigor y visión ambiental.',
+          style: textTheme.headlineMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            height: 1.15,
           ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'GEODOS integra consultoría ambiental, planificación y sistemas de información geográfica para impulsar proyectos sostenibles y bien fundamentados.',
+          style: textTheme.bodyLarge?.copyWith(color: Colors.white.withOpacity(0.92), height: 1.5),
+        ),
+        const SizedBox(height: 24),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            FilledButton(
+              style: primaryStyle,
+              onPressed: onExploreTap,
+              child: const Text('Explorar visor'),
+            ),
+            OutlinedButton(
+              style: secondaryStyle.copyWith(
+                foregroundColor: MaterialStateProperty.all(Colors.white),
+                side: const MaterialStatePropertyAll(BorderSide(color: Colors.white, width: 1.4)),
+              ),
+              onPressed: onContactTap,
+              child: const Text('Contactar'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: const [
+            _Pill(text: 'Consultoría ambiental'),
+            _Pill(text: 'SIG y cartografía'),
+            _Pill(text: 'Planificación territorial'),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroCard extends StatelessWidget {
+  const _HeroCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Card(
+      color: Colors.white,
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Brand.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.public, color: Brand.primary, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Acompañamos a administraciones y empresas en todo el ciclo del proyecto, desde el diagnóstico hasta la implementación.',
+              style: textTheme.bodyMedium?.copyWith(height: 1.5),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: const [
+                _Metric(title: '150+', subtitle: 'Proyectos territoriales'),
+                SizedBox(width: 12),
+                _Metric(title: '15 años', subtitle: 'Expertos en SIG y medio ambiente'),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _WorkflowStep extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
+class _Pill extends StatelessWidget {
+  final String text;
 
-  const _WorkflowStep({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
+  const _Pill({required this.text});
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return SizedBox(
-      width: 240,
-      child: Column(
-        children: [
-          Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            description,
-            style: t.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _Metric({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Brand.mist,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: textTheme.titleLarge?.copyWith(
+                color: Brand.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: textTheme.bodyMedium?.copyWith(color: Colors.grey.shade800, height: 1.4),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -594,354 +417,267 @@ class _AboutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    const officeImageUrl =
-        'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1200';
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1100),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const _SectionHeader(
-                title: 'Quiénes somos',
-                subtitle:
-                'Un equipo especializado en medio ambiente, territorio y sistemas de información geográfica.',
-                icon: Icons.people_outline,
-              ),
-              const SizedBox(height: 24),
-              LayoutBuilder(
-                builder: (ctx, constraints) {
-                  final isWide = constraints.maxWidth > 800;
-                  final image = Expanded(
-                    flex: 1,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: AspectRatio(
-                        aspectRatio: 4 / 3,
-                        child: Image.network(
-                          officeImageUrl,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  );
-                  final text = Expanded(
-                    flex: 2,
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        left: isWide ? 32 : 0,
-                        top: isWide ? 0 : 16,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Geodos es una consultora especializada en estudios medioambientales, manejo SIG, ordenación del territorio, patrimonio, paisaje, urbanismo y divulgación. Trabajamos con administraciones públicas, empresas y entidades sociales para integrar la variable espacial en la toma de decisiones.',
-                            style: t.bodyMedium,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Desde Canarias, pero con vocación nacional e internacional, combinamos experiencia técnica y capacidad de comunicación para que los resultados sean comprensibles y útiles para todos los agentes implicados.',
-                            style: t.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [image, text],
-                    );
-                  } else {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [image, text],
-                    );
-                  }
-                },
-              ),
-            ],
+    return _SectionShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          _SectionHeader(
+            title: 'Quiénes somos',
+            subtitle: 'GEODOS es un equipo multidisciplinar especializado en territorio, medio ambiente y datos geoespaciales. Colaboramos con administraciones, ingenierías y consultoras para diseñar soluciones sólidas y accionables.',
           ),
-        ),
+          SizedBox(height: 18),
+          _AboutHighlights(),
+        ],
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// BLOG / NOTICIAS – CARRUSEL ESTÁTICO
-// ---------------------------------------------------------------------------
-
-class _BlogPost {
-  final String title;
-  final String description;
-  final String imageUrl;
-  const _BlogPost({required this.title, required this.description, required this.imageUrl});
-}
-
-class _BlogSection extends StatefulWidget {
-  const _BlogSection({super.key});
-  @override
-  State<_BlogSection> createState() => _BlogSectionState();
-}
-
-class _BlogSectionState extends State<_BlogSection> {
-  final _pageCtrl = PageController(viewportFraction: 0.9);
-  int _current = 0;
-  Timer? _timer;
-
-  final List<_BlogPost> _posts = const [
-    _BlogPost(
-      title: 'Nuevas metodologías para la evaluación ambiental estratégica',
-      description: 'Cómo integrar variables territoriales y climáticas en la planificación a largo plazo.',
-      imageUrl:
-      'https://images.pexels.com/photos/3137064/pexels-photo-3137064.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-    _BlogPost(
-      title: 'Cartografía colaborativa para la gestión del patrimonio',
-      description: 'Proyectos donde ciudadanía y administraciones construyen mapas de patrimonio compartidos.',
-      imageUrl:
-      'https://images.pexels.com/photos/1181467/pexels-photo-1181467.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-    _BlogPost(
-      title: 'El papel del SIG en la adaptación al cambio climático',
-      description: 'Uso de datos geoespaciales para identificar riesgos y priorizar actuaciones.',
-      imageUrl:
-      'https://images.pexels.com/photos/7571043/pexels-photo-7571043.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-    _BlogPost(
-      title: 'Participación ciudadana en proyectos territoriales',
-      description: 'Herramientas digitales para recoger aportaciones y mejorar la toma de decisiones.',
-      imageUrl:
-      'https://images.pexels.com/photos/3861964/pexels-photo-3861964.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-    _BlogPost(
-      title: 'Tendencias en planificación urbana sostenible',
-      description: 'Movilidad, renaturalización de espacios y resiliencia climática en las ciudades.',
-      imageUrl:
-      'https://images.pexels.com/photos/2486168/pexels-photo-2486168.jpeg?auto=compress&cs=tinysrgb&w=1200',
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    // Carrusel automático: avanza cada 7 segundos.
-    _timer = Timer.periodic(const Duration(seconds: 7), (_) {
-      if (!mounted) return;
-      final next = (_current + 1) % _posts.length;
-      _pageCtrl.animateToPage(
-        next,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    _pageCtrl.dispose();
-    super.dispose();
-  }
-
-  void _goTo(int index) {
-    final target = index.clamp(0, _posts.length - 1);
-    _pageCtrl.animateToPage(
-      target,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
-  }
+class _AboutHighlights extends StatelessWidget {
+  const _AboutHighlights();
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1100),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const _SectionHeader(
-                title: 'Blog y actualidad',
-                subtitle:
-                'Reflexiones, proyectos y noticias relacionadas con la planificación territorial y el medio ambiente.',
-                icon: Icons.article_outlined,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 280,
-                child: PageView.builder(
-                  controller: _pageCtrl,
-                  itemCount: _posts.length,
-                  onPageChanged: (i) => setState(() => _current = i),
-                  itemBuilder: (ctx, index) {
-                    final p = _posts[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
-                      child: Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              height: 130,
-                              width: double.infinity,
-                              child: Image.network(
-                                p.imageUrl,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    p.title,
-                                    style: t.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    p.description,
-                                    style: t.bodySmall,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Solo admin podrá editar estas noticias en la versión conectada a Firebase.',
-                                    style: t.labelSmall?.copyWith(
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: () => _goTo(_current - 1),
-                    icon: const Icon(Icons.chevron_left),
-                  ),
-                  const SizedBox(width: 8),
-                  ...List.generate(_posts.length, (i) {
-                    final selected = i == _current;
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: selected ? 12 : 8,
-                      height: selected ? 12 : 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: selected
-                            ? Theme.of(context).colorScheme.primary
-                            : Colors.grey.shade400,
-                      ),
-                    );
-                  }),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => _goTo(_current + 1),
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+    final items = [
+      'Evaluaciones ambientales con enfoque estratégico.',
+      'Planificación y ordenación del territorio apoyada en datos.',
+      'Cartografía y dashboards para comunicar con claridad.',
+      'Metodologías participativas y acompañamiento en la implementación.',
+    ];
 
-// ---------------------------------------------------------------------------
-// CTA FINAL
-// ---------------------------------------------------------------------------
-
-class _FinalCtaSection extends StatelessWidget {
-  const _FinalCtaSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0C6372), Color(0xFF2A7F62)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '¿Hablamos de tu territorio?',
-                      style: t.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Cuéntanos tu proyecto y te ayudamos a definir la mejor solución técnica y ambiental.',
-                      style: t.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                    const Icon(Icons.check_circle, color: Brand.secondary, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.5),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 24),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                    ),
-                    onPressed: () => Navigator.pushNamed(context, '/contacto'),
-                    child: const Text('Habla con un experto'),
-                  ),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white),
-                    ),
-                    onPressed: () => Navigator.pushNamed(context, '/contacto'),
-                    child: const Text('Pídenos un presupuesto'),
-                  ),
-                ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CÓMO TRABAJAMOS
+// ---------------------------------------------------------------------------
+
+class _WorkflowSection extends StatelessWidget {
+  const _WorkflowSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Cómo trabajamos',
+            subtitle: 'Metodología clara para acompañarte desde la detección de necesidades hasta la entrega y el seguimiento.',
+          ),
+          const SizedBox(height: 22),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: const [
+              _WorkflowCard(
+                icon: Icons.explore,
+                title: '1. Descubrimiento',
+                description: 'Reunimos a los equipos, analizamos el contexto y definimos objetivos comunes con enfoque ambiental.',
+              ),
+              _WorkflowCard(
+                icon: Icons.analytics_outlined,
+                title: '2. Análisis y datos',
+                description: 'Modelizamos el territorio con SIG, teledetección y trabajo de campo para obtener insights accionables.',
+              ),
+              _WorkflowCard(
+                icon: Icons.design_services,
+                title: '3. Propuesta',
+                description: 'Diseñamos alternativas, visualizamos escenarios y priorizamos junto a los decisores.',
+              ),
+              _WorkflowCard(
+                icon: Icons.check_circle_outline,
+                title: '4. Entrega y seguimiento',
+                description: 'Implementamos, formamos equipos y desplegamos indicadores para medir el impacto.',
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkflowCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _WorkflowCard({required this.icon, required this.title, required this.description});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return SizedBox(
+      width: 250,
+      child: Card(
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Brand.secondary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Brand.secondary, size: 28),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                description,
+                style: textTheme.bodyMedium?.copyWith(height: 1.45, color: Colors.grey.shade800),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// VISOR PREVIEW
+// ---------------------------------------------------------------------------
+
+class _VisorPreviewSection extends StatelessWidget {
+  const _VisorPreviewSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionShell(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(
+            title: 'Visor geoespacial',
+            subtitle: 'Explora proyectos georreferenciados y filtra por ámbito desde un visor rápido y accesible.',
+          ),
+          const SizedBox(height: 18),
+          Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text('Vista previa interactiva', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  SizedBox(height: 12),
+                  VisorEmbed(startExpanded: false),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CONTACTO
+// ---------------------------------------------------------------------------
+
+class _ContactSection extends StatelessWidget {
+  final ButtonStyle primaryStyle;
+  final ButtonStyle secondaryStyle;
+
+  const _ContactSection({super.key, required this.primaryStyle, required this.secondaryStyle});
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return _SectionShell(
+      child: Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth > 860;
+              final content = [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Conversemos sobre tu proyecto',
+                        style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800, color: Brand.primary),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Cuéntanos tus retos y diseñaremos la mejor manera de acompañarte con soluciones técnicas, ambientales y geoespaciales.',
+                        style: textTheme.bodyLarge?.copyWith(height: 1.5),
+                      ),
+                      const SizedBox(height: 18),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          FilledButton(
+                            style: primaryStyle,
+                            onPressed: () => Navigator.pushNamed(context, '/visor'),
+                            child: const Text('Ver proyectos'),
+                          ),
+                          OutlinedButton(
+                            style: secondaryStyle,
+                            onPressed: () => Navigator.pushNamed(context, '/contact'),
+                            child: const Text('Contactar'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 22, height: 22),
+                const Expanded(
+                  child: ContactForm(),
+                ),
+              ];
+
+              if (isWide) return Row(crossAxisAlignment: CrossAxisAlignment.start, children: content);
+              return Column(crossAxisAlignment: CrossAxisAlignment.start, children: content);
+            },
           ),
         ),
       ),
@@ -954,29 +690,31 @@ class _FinalCtaSection extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _FooterSection extends StatelessWidget {
-  const _FooterSection({super.key});
+  const _FooterSection();
+
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       color: const Color(0xFF0B1F26),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 '© ${DateTime.now().year} GEODOS · Consultoría ambiental y territorial',
-                style: t.bodySmall?.copyWith(color: Colors.white70),
+                style: textTheme.bodySmall?.copyWith(color: Colors.white70),
               ),
               Wrap(
                 spacing: 16,
                 children: const [
-                  _FooterLink('Aviso legal'),
-                  _FooterLink('Política de privacidad'),
-                  _FooterLink('Política de cookies'),
+                  _FooterLink(label: 'Aviso legal', route: '/about'),
+                  _FooterLink(label: 'Política de privacidad', route: '/privacy'),
+                  _FooterLink(label: 'Política de cookies', route: '/cookies'),
                 ],
               ),
             ],
@@ -989,14 +727,20 @@ class _FooterSection extends StatelessWidget {
 
 class _FooterLink extends StatelessWidget {
   final String label;
-  const _FooterLink(this.label);
+  final String route;
+
+  const _FooterLink({required this.label, required this.route});
+
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Colors.white,
-        decoration: TextDecoration.underline,
+    return InkWell(
+      onTap: () => Navigator.pushNamed(context, route),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              decoration: TextDecoration.underline,
+            ),
       ),
     );
   }
