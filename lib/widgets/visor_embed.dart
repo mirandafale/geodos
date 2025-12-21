@@ -104,7 +104,11 @@ class _ProjectsMap extends StatelessWidget {
   final FiltersController filters;
   final GlobalKey legendKey;
 
-  const _ProjectsMap({required this.mapCtrl, required this.filters, required this.legendKey});
+  const _ProjectsMap({
+    required this.mapCtrl,
+    required this.filters,
+    required this.legendKey,
+  });
 
   @override
   Widget build(BuildContext context) {
