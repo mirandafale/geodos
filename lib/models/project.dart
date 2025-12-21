@@ -16,6 +16,7 @@ class Project {
   final ProjectScope scope; // campo `cat` en el JSON
   final bool enRedaccion;
   final String? description; // opcional, para proyectos añadidos vía admin
+  final DateTime? updatedAt;
 
   Project({
     required this.id,
@@ -29,6 +30,7 @@ class Project {
     required this.scope,
     required this.enRedaccion,
     this.description,
+    this.updatedAt,
   });
 
   /// Atajo para compatibilidad con código antiguo que usaba `categories`.
@@ -43,19 +45,30 @@ class Project {
 
   Project copyWith({
     String? description,
+    String? title,
+    String? category,
+    String? municipality,
+    ProjectScope? scope,
+    String? island,
+    int? year,
+    double? lat,
+    double? lon,
+    bool? enRedaccion,
+    DateTime? updatedAt,
   }) {
     return Project(
       id: id,
-      title: title,
-      municipality: municipality,
-      year: year,
-      category: category,
-      lat: lat,
-      lon: lon,
-      island: island,
-      scope: scope,
-      enRedaccion: enRedaccion,
+      title: title ?? this.title,
+      municipality: municipality ?? this.municipality,
+      year: year ?? this.year,
+      category: category ?? this.category,
+      lat: lat ?? this.lat,
+      lon: lon ?? this.lon,
+      island: island ?? this.island,
+      scope: scope ?? this.scope,
+      enRedaccion: enRedaccion ?? this.enRedaccion,
       description: description ?? this.description,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -118,6 +131,7 @@ class Project {
       scope: scope,
       enRedaccion: json['enRedaccion'] == true || enRedaccion,
       description: json['description']?.toString(),
+      updatedAt: _dateFromJson(json['updatedAt']),
     );
   }
 
@@ -135,6 +149,7 @@ class Project {
       'enRedaccion': enRedaccion,
       if (description != null && description!.trim().isNotEmpty)
         'description': description,
+      if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
     };
   }
 
@@ -168,5 +183,12 @@ class Project {
       case ProjectScope.unknown:
         return 'UNKNOWN';
     }
+  }
+
+  static DateTime? _dateFromJson(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
   }
 }

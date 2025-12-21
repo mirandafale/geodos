@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 /// Envuelve FirebaseAuth y expone un estado sencillo (usuario + esAdmin).
 class AuthService extends ChangeNotifier {
   AuthService._internal() {
+    _user = _auth.currentUser;
     // Escuchamos cambios de sesión (login / logout / expiración de token...)
     _auth.authStateChanges().listen((user) {
       _user = user;
@@ -20,6 +21,8 @@ class AuthService extends ChangeNotifier {
 
   User? get user => _user;
   bool get isLoggedIn => _user != null;
+
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   /// Lista de correos que consideramos "admins".
   /// ⚠️ Cambia estos por los vuestros reales.
