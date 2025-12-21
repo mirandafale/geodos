@@ -1,5 +1,6 @@
 // visor_embed.dart adaptado con mejoras funcionales y leyenda de categorías
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -201,10 +202,25 @@ class _ProjectsMap extends StatelessWidget {
                   ],
                 ),
                 if (projects.isEmpty)
-                  const Center(
+                  Center(
                     child: Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: Text('No hay proyectos visibles con los filtros actuales.'),
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('No hay proyectos visibles con los filtros actuales.'),
+                          const SizedBox(height: 10),
+                          ElevatedButton.icon(
+                            onPressed: filters.reset,
+                            icon: const Icon(Icons.visibility),
+                            label: const Text('Ver todos'),
+                          ),
+                          if (kDebugMode) ...[
+                            const SizedBox(height: 14),
+                            _DebugEmptyPanel(filtersState: st),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 Positioned(
@@ -316,5 +332,57 @@ class _Legend extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _DebugEmptyPanel extends StatelessWidget {
+  final FiltersState filtersState;
+
+  const _DebugEmptyPanel({
+    required this.filtersState,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final remoteCount = ProjectService.lastRemoteCount;
+    final usingFallback = ProjectService.usingLocalFallback;
+    final fallbackCount = ProjectService.localFallbackCount;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade400),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Diagnóstico (debug)',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 6),
+            Text('Proyectos recibidos de Firestore: $remoteCount'),
+            if (usingFallback)
+              Text('Fallback local activo: $fallbackCount proyectos'),
+            Text('Filtros actuales: ${_filtersSummary(filtersState)}'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _filtersSummary(FiltersState st) {
+    final parts = <String>[
+      'categoría: ${st.category?.toLowerCase() ?? 'todas'}',
+      'isla: ${st.island ?? 'todas'}',
+      'ámbito: ${st.scope?.name ?? 'todos'}',
+      'año: ${st.year?.toString() ?? 'todos'}',
+      'búsqueda: ${st.search.isEmpty ? 'ninguna' : '"${st.search}"'}',
+    ];
+    return parts.join(' · ');
   }
 }
