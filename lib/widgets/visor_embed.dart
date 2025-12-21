@@ -21,6 +21,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
   late bool _expanded;
   OverlayEntry? _backdrop;
   final _mapCtrl = MapController();
+  final _legendKey = GlobalKey(debugLabel: 'visor_legend');
 
   @override
   void initState() {
@@ -91,19 +92,19 @@ class _VisorEmbedState extends State<VisorEmbed> {
         child: _ProjectsMap(
           mapCtrl: _mapCtrl,
           filters: filters,
+          legendKey: _legendKey,
         ),
       ),
     );
   }
 }
 
-final GlobalKey _legendKey = GlobalKey(debugLabel: 'visor_legend');
-
 class _ProjectsMap extends StatelessWidget {
   final MapController mapCtrl;
   final FiltersController filters;
+  final GlobalKey legendKey;
 
-  const _ProjectsMap({required this.mapCtrl, required this.filters});
+  const _ProjectsMap({required this.mapCtrl, required this.filters, required this.legendKey});
 
   @override
   Widget build(BuildContext context) {
@@ -193,7 +194,7 @@ class _ProjectsMap extends StatelessWidget {
                   bottom: 12,
                   right: 12,
                   child: _Legend(
-                    key: _legendKey,
+                    key: legendKey,
                     categories: projects.map((e) => e.category).toSet().toList(),
                     total: projects.length,
                     colorForCategory: (c) => _colorForCategory(context, c),
