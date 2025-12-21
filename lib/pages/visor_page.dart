@@ -5,6 +5,7 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/widgets/contact_form.dart';
 import 'package:geodos/widgets/visor_embed.dart';
 
 class VisorPage extends StatefulWidget {
@@ -50,23 +51,6 @@ class _VisorPageState extends State<VisorPage> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final vertical = constraints.maxWidth < 1100;
-          final content = [
-            _FiltersPanel(
-              filters: filters,
-              yearsFuture: _yearsFuture,
-              categoriesFuture: _categoriesFuture,
-              scopesFuture: _scopesFuture,
-              islandsFuture: _islandsFuture,
-              searchController: _searchCtrl,
-            ),
-            const SizedBox(width: 20, height: 20),
-            const Expanded(
-              child: Padding(
-                padding: EdgeInsets.all(12.0),
-                child: VisorEmbed(startExpanded: true),
-              ),
-            ),
-          ];
 
           return Container(
             color: Brand.mist,
@@ -74,17 +58,48 @@ class _VisorPageState extends State<VisorPage> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1400),
-                child: vertical
-                    ? Column(
-                        children: content,
-                      )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(width: 360, child: content.first),
-                          ...content.sublist(1),
-                        ],
-                      ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      vertical
+                          ? Column(
+                              children: [
+                                _FiltersPanel(
+                                  filters: filters,
+                                  yearsFuture: _yearsFuture,
+                                  categoriesFuture: _categoriesFuture,
+                                  scopesFuture: _scopesFuture,
+                                  islandsFuture: _islandsFuture,
+                                  searchController: _searchCtrl,
+                                ),
+                                const SizedBox(height: 16),
+                                _MapCard(child: const VisorEmbed(startExpanded: true)),
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: 360,
+                                  child: _FiltersPanel(
+                                    filters: filters,
+                                    yearsFuture: _yearsFuture,
+                                    categoriesFuture: _categoriesFuture,
+                                    scopesFuture: _scopesFuture,
+                                    islandsFuture: _islandsFuture,
+                                    searchController: _searchCtrl,
+                                  ),
+                                ),
+                                const SizedBox(width: 20),
+                                Expanded(child: _MapCard(child: const VisorEmbed(startExpanded: true))),
+                              ],
+                            ),
+                      const SizedBox(height: 24),
+                      _ContactSection(),
+                    ],
+                  ),
+                ),
               ),
             ),
           );
@@ -256,5 +271,45 @@ class _FiltersPanel extends StatelessWidget {
       case ProjectScope.unknown:
         return 'Otro';
     }
+  }
+}
+
+class _MapCard extends StatelessWidget {
+  final Widget child;
+  const _MapCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 6,
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        height: 560,
+        child: child,
+      ),
+    );
+  }
+}
+
+class _ContactSection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('¿Tienes una consulta sobre los proyectos?', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary)),
+            const SizedBox(height: 6),
+            Text('Escríbenos y el equipo de Geodos te contactará. El formulario se guarda automáticamente en Firebase para su seguimiento.', style: t.bodyMedium),
+            const SizedBox(height: 14),
+            const ContactForm(originSection: 'visor'),
+          ],
+        ),
+      ),
+    );
   }
 }

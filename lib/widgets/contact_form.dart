@@ -9,7 +9,8 @@ import 'package:geodos/services/lead_service.dart';
 /// Firebase mediante `LeadService`. Se puede incluir en cualquier
 /// pantalla de la aplicación.
 class ContactForm extends StatefulWidget {
-  const ContactForm({super.key});
+  final String originSection;
+  const ContactForm({super.key, this.originSection = 'home'});
 
   @override
   State<ContactForm> createState() => _ContactFormState();
@@ -100,7 +101,8 @@ class _ContactFormState extends State<ContactForm> {
                 style: FilledButton.styleFrom(
                   backgroundColor: Brand.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 icon: _submitting
                     ? const SizedBox(
@@ -132,6 +134,7 @@ class _ContactFormState extends State<ContactForm> {
         email: _emailController.text.trim(),
         company: _companyController.text.trim(),
         message: _messageController.text.trim(),
+        originSection: widget.originSection,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
