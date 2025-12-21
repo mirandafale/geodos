@@ -429,6 +429,8 @@ class _ProjectsByCategorySection extends StatelessWidget {
                 animation: filters,
                 builder: (ctx, _) {
                   final st = filters.state;
+                  final selectedCategory =
+                      categories.contains(st.category) ? st.category : null;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -450,7 +452,7 @@ class _ProjectsByCategorySection extends StatelessWidget {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: DropdownButtonFormField<String?>(
-                                  value: st.category,
+                                  value: selectedCategory,
                                   decoration: const InputDecoration(
                                     border: OutlineInputBorder(),
                                   ),
