@@ -13,6 +13,7 @@ import 'package:geodos/pages/home_page.dart';
 import 'package:geodos/pages/login_admin_page.dart';
 import 'package:geodos/pages/privacy_page.dart';
 import 'package:geodos/pages/visor_page.dart';
+import 'package:geodos/pages/terms_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,7 @@ class GeodosApp extends StatelessWidget {
         '/cookies': (context) => const CookiesPolicyPage(),
         '/data-privacy': (context) => const DataPrivacySettingsPage(),
         '/privacy': (context) => const PrivacyPolicyPage(),
+        '/terms': (context) => const TermsConditionsPage(),
       },
     );
   }

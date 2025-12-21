@@ -972,11 +972,14 @@ class _FooterSection extends StatelessWidget {
                 style: t.bodySmall?.copyWith(color: Colors.white70),
               ),
               Wrap(
-                spacing: 16,
+                spacing: 12,
+                runSpacing: 8,
                 children: const [
-                  _FooterLink('Aviso legal'),
-                  _FooterLink('Política de privacidad'),
-                  _FooterLink('Política de cookies'),
+                  _FooterLink(label: 'Accesibilidad', route: '/accessibility'),
+                  _FooterLink(label: 'Política de cookies', route: '/cookies'),
+                  _FooterLink(label: 'Política de privacidad', route: '/privacy'),
+                  _FooterLink(label: 'Configuración de privacidad', route: '/data-privacy'),
+                  _FooterLink(label: 'Aviso legal', route: '/terms'),
                 ],
               ),
             ],
@@ -989,14 +992,22 @@ class _FooterSection extends StatelessWidget {
 
 class _FooterLink extends StatelessWidget {
   final String label;
-  const _FooterLink(this.label);
+  final String route;
+  const _FooterLink({required this.label, required this.route});
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Colors.white,
-        decoration: TextDecoration.underline,
+    return TextButton(
+      onPressed: () => Navigator.pushNamed(context, route),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        foregroundColor: Colors.white,
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white,
+              decoration: TextDecoration.underline,
+            ),
       ),
     );
   }
