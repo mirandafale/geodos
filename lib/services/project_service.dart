@@ -1,6 +1,5 @@
-﻿// lib/services/project_service.dart
+// lib/services/project_service.dart
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -98,17 +97,17 @@ class ProjectService {
 
   /// Crear un nuevo proyecto en memoria (modo admin sin backend).
   static Future<void> createAdminProject(Project project) async {
-    await _firestore.doc(project.id).set({
-      ...project.toJson(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    await _firestore.doc(project.id).set(_projectToFirestoreMap(
+      project,
+      includeCreatedAt: true,
+    ));
   }
 
   static Future<void> updateProject(Project project) async {
-    await _firestore.doc(project.id).update({
-      ...project.toJson(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    await _firestore.doc(project.id).update(_projectToFirestoreMap(
+      project,
+      includeCreatedAt: true,
+    ));
   }
 
   static Future<void> deleteProject(String id) async {
@@ -128,7 +127,8 @@ class ProjectService {
       scope: ProjectScope.unknown,
       enRedaccion: false,
       description: '',
-      updatedAt: DateTime.now(),
+      createdAt: null,
+      updatedAt: null,
     );
   }
 
@@ -191,10 +191,36 @@ class ProjectService {
       scope: scope,
       enRedaccion: data['enRedaccion'] == true,
       description: (data['description'] ?? '') as String?,
+      createdAt: (data['createdAt'] is Timestamp)
+          ? (data['createdAt'] as Timestamp).toDate()
+          : null,
       updatedAt: (data['updatedAt'] is Timestamp)
           ? (data['updatedAt'] as Timestamp).toDate()
-          : DateTime.now(),
+          : null,
     );
+  }
+
+  static Map<String, dynamic> _projectToFirestoreMap(
+    Project project, {
+    required bool includeCreatedAt,
+  }) {
+    return {
+      'title': project.title,
+      'category': project.category,
+      'scope': Project.scopeToString(project.scope),
+      'island': project.island,
+      'municipality': project.municipality,
+      'year': project.year,
+      'lat': project.lat,
+      'lon': project.lon,
+      'description': project.description,
+      'enRedaccion': project.enRedaccion,
+      if (includeCreatedAt)
+        'createdAt': project.createdAt != null
+            ? Timestamp.fromDate(project.createdAt!)
+            : FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
   }
 
   static String _scopeLabel(ProjectScope scope) {

@@ -145,8 +145,10 @@ class _FiltersPanel extends StatelessWidget {
                   future: categoriesFuture,
                   builder: (context, snapshot) {
                     final items = snapshot.data ?? [];
+                    final selectedCategory =
+                        items.contains(st.category) ? st.category : null;
                     return DropdownButtonFormField<String?>(
-                      value: st.category,
+                      value: selectedCategory,
                       decoration: const InputDecoration(labelText: 'Categoría'),
                       items: [
                         const DropdownMenuItem<String?>(value: null, child: Text('Todas')),
@@ -184,8 +186,9 @@ class _FiltersPanel extends StatelessWidget {
                   future: islandsFuture,
                   builder: (context, snapshot) {
                     final items = snapshot.data ?? [];
+                    final selectedIsland = items.contains(st.island) ? st.island : null;
                     return DropdownButtonFormField<String?>(
-                      value: st.island,
+                      value: selectedIsland,
                       decoration: const InputDecoration(labelText: 'Isla'),
                       items: [
                         const DropdownMenuItem<String?>(value: null, child: Text('Todas las islas')),

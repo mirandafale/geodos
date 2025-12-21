@@ -5,12 +5,7 @@ import 'package:flutter/foundation.dart';
 /// Envuelve FirebaseAuth y expone un estado sencillo (usuario + esAdmin).
 class AuthService extends ChangeNotifier {
   AuthService._internal() {
-    _user = _auth.currentUser;
-    // Escuchamos cambios de sesión (login / logout / expiración de token...)
-    _auth.authStateChanges().listen((user) {
-      _user = user;
-      notifyListeners();
-    });
+    _initialize();
   }
 
   /// Instancia singleton
@@ -26,7 +21,7 @@ class AuthService extends ChangeNotifier {
 
   /// Lista de correos que consideramos "admins".
   /// ⚠️ Cambia estos por los vuestros reales.
-  static const Set<String> _adminEmails = {
+  static const Set<String> adminEmails = {
     'admin@geodos.es',
     'geodos.admin@gmail.com',
   };
@@ -34,7 +29,7 @@ class AuthService extends ChangeNotifier {
   bool get isAdmin {
     final email = _user?.email?.toLowerCase();
     if (email == null) return false;
-    return _adminEmails.contains(email);
+    return adminEmails.contains(email);
   }
 
   Future<void> signIn(String email, String password) async {
@@ -42,11 +37,27 @@ class AuthService extends ChangeNotifier {
       email: email.trim(),
       password: password.trim(),
     );
+    _user = _auth.currentUser;
+    notifyListeners();
     // authStateChanges ya actualizará _user y notificará.
   }
 
   Future<void> signOut() async {
     await _auth.signOut();
+    _user = null;
+    notifyListeners();
     // authStateChanges deja _user a null y notifica.
+  }
+
+  void _initialize() {
+    if (kIsWeb) {
+      _auth.setPersistence(Persistence.LOCAL);
+    }
+    _user = _auth.currentUser;
+    // Escuchamos cambios de sesión (login / logout / expiración de token...)
+    _auth.authStateChanges().listen((user) {
+      _user = user;
+      notifyListeners();
+    });
   }
 }

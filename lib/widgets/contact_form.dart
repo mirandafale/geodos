@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:geodos/brand/brand.dart';
-import 'package:geodos/services/firebase_service.dart';
+import 'package:geodos/services/lead_service.dart';
 
 /// Formulario de contacto reutilizable para GEODOS.
 ///
 /// Este widget se utiliza para capturar la información de contacto
 /// (nombre, correo electrónico, empresa y mensaje) y enviarla a
-/// Firebase mediante `FirebaseService`. Se puede incluir en cualquier
-/// pantalla de la aplicación y permite indicar la sección de origen
-/// del envío.
+/// Firebase mediante `LeadService`. Se puede incluir en cualquier
+/// pantalla de la aplicación.
 class ContactForm extends StatefulWidget {
-  final String originSection;
-
-  const ContactForm({super.key, this.originSection = 'home'});
+  const ContactForm({super.key});
 
   @override
   State<ContactForm> createState() => _ContactFormState();
@@ -130,12 +127,12 @@ class _ContactFormState extends State<ContactForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
     try {
-      await FirebaseService.submitContactMessage(
+      await LeadService.submit(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         company: _companyController.text.trim(),
         message: _messageController.text.trim(),
-        originSection: widget.originSection,
+        originSection: 'contact_page',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

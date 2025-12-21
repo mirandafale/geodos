@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geodos/models/news_item.dart';
+import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/news_service.dart';
+import 'package:provider/provider.dart';
 
 // Menú lateral con las diferentes opciones de navegación.
 import '../widgets/app_drawer.dart';
@@ -429,6 +432,8 @@ class _ProjectsByCategorySection extends StatelessWidget {
                 animation: filters,
                 builder: (ctx, _) {
                   final st = filters.state;
+                  final selectedCategory =
+                      categories.contains(st.category) ? st.category : null;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -450,7 +455,7 @@ class _ProjectsByCategorySection extends StatelessWidget {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: DropdownButtonFormField<String?>(
-                                  value: st.category,
+                                  value: selectedCategory,
                                   decoration: const InputDecoration(
                                     border: OutlineInputBorder(),
                                   ),
@@ -684,6 +689,8 @@ class _BlogSection extends StatefulWidget {
 class _BlogSectionState extends State<_BlogSection> {
   final _pageCtrl = PageController(viewportFraction: 0.9);
   int _current = 0;
+  bool _sampleSeeded = false;
+  bool _isSeeding = false;
 
   @override
   void dispose() {
@@ -701,14 +708,105 @@ class _BlogSectionState extends State<_BlogSection> {
     );
   }
 
+  Future<void> _maybeSeedDebugNews() async {
+    if (_sampleSeeded || _isSeeding || !kDebugMode) return;
+    setState(() {
+      _isSeeding = true;
+    });
+
+    final now = DateTime.now();
+    final samples = [
+      NewsItem(
+        id: '',
+        title: 'Bienvenida a GEODOS',
+        body: 'Descubre cómo acercamos la variable espacial a tus proyectos con soluciones digitales sencillas.',
+        imageUrl: '',
+        createdAt: now,
+        updatedAt: now,
+        published: true,
+      ),
+      NewsItem(
+        id: '',
+        title: 'Nuevos proyectos territoriales',
+        body: 'Impulsamos diagnósticos participativos y mapas interactivos para la toma de decisiones.',
+        imageUrl: '',
+        createdAt: now.subtract(const Duration(days: 3)),
+        updatedAt: now.subtract(const Duration(days: 3)),
+        published: true,
+      ),
+      NewsItem(
+        id: '',
+        title: 'Innovación y sostenibilidad',
+        body: 'Aplicamos SIG, teledetección y análisis ambiental para proyectos más eficientes y transparentes.',
+        imageUrl: '',
+        createdAt: now.subtract(const Duration(days: 7)),
+        updatedAt: now.subtract(const Duration(days: 7)),
+        published: true,
+      ),
+    ];
+
+    try {
+      for (final item in samples) {
+        await NewsService.create(item);
+      }
+      _sampleSeeded = true;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSeeding = false;
+        });
+      } else {
+        _isSeeding = false;
+      }
+    }
+  }
+
+  String _excerpt(String text, {int maxLength = 200}) {
+    final clean = text.trim();
+    if (clean.length <= maxLength) return clean;
+    return '${clean.substring(0, maxLength).trimRight()}…';
+  }
+
+  Widget _newsImage(String url) {
+    final hasImage = url.trim().isNotEmpty;
+    if (!hasImage) {
+      return Container(
+        height: 140,
+        width: double.infinity,
+        color: Colors.grey.shade200,
+        alignment: Alignment.center,
+        child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+      );
+    }
+    return SizedBox(
+      height: 140,
+      width: double.infinity,
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey.shade200,
+            alignment: Alignment.center,
+            child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final auth = context.watch<AuthService>();
     return StreamBuilder<List<NewsItem>>(
       stream: NewsService.publishedStream(),
       builder: (context, snapshot) {
         final posts = snapshot.data ?? [];
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        if (!isLoading && posts.isEmpty) {
+          _maybeSeedDebugNews();
+        }
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1100),
@@ -724,19 +822,49 @@ class _BlogSectionState extends State<_BlogSection> {
                     icon: Icons.article_outlined,
                   ),
                   const SizedBox(height: 24),
-                  if (isLoading)
+                  if (isLoading || _isSeeding)
                     const Padding(
                       padding: EdgeInsets.all(16.0),
                       child: CircularProgressIndicator(),
                     )
                   else if (posts.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('Pronto encontrarás aquí las últimas noticias publicadas.'),
+                    Card(
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.article_outlined, color: Colors.grey.shade600, size: 32),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Aún no hay noticias',
+                              style: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Cuando haya novedades las verás aquí. Vuelve pronto para conocer la actualidad de GEODOS.',
+                              textAlign: TextAlign.center,
+                              style: t.bodyMedium?.copyWith(color: Colors.grey.shade700),
+                            ),
+                            if (auth.isAdmin) ...[
+                              const SizedBox(height: 16),
+                              FilledButton.icon(
+                                icon: const Icon(Icons.add),
+                                onPressed: () => Navigator.pushNamed(context, '/admin'),
+                                label: const Text('Publicar noticia'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     )
                   else
                     SizedBox(
-                      height: 280,
+                      height: 300,
                       child: PageView.builder(
                         controller: _pageCtrl,
                         itemCount: posts.length,
@@ -753,14 +881,7 @@ class _BlogSectionState extends State<_BlogSection> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(
-                                    height: 130,
-                                    width: double.infinity,
-                                    child: Image.network(
-                                      p.imageUrl,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
+                                  _newsImage(p.imageUrl),
                                   Padding(
                                     padding: const EdgeInsets.all(16),
                                     child: Column(
@@ -773,7 +894,7 @@ class _BlogSectionState extends State<_BlogSection> {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          p.body,
+                                          _excerpt(p.body),
                                           style: t.bodySmall,
                                         ),
                                         const SizedBox(height: 8),

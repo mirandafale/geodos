@@ -4,7 +4,10 @@ import 'package:geodos/models/project.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/news_service.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/widgets/coordinate_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 
 class AdminDashboardPage extends StatelessWidget {
   const AdminDashboardPage({super.key});
@@ -19,7 +22,7 @@ class AdminDashboardPage extends StatelessWidget {
           actions: [
             IconButton(
               tooltip: 'Cerrar sesión',
-              onPressed: () => AuthService.instance.signOut(),
+              onPressed: () => context.read<AuthService>().signOut(),
               icon: const Icon(Icons.logout),
             ),
           ],
@@ -128,7 +131,18 @@ class _ProjectsTabState extends State<_ProjectsTab> {
       ),
     );
     if (confirm == true) {
-      await ProjectService.deleteProject(project.id);
+      try {
+        await ProjectService.deleteProject(project.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Proyecto "${project.title}" eliminado')),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar el proyecto: $e')),
+        );
+      }
     }
   }
 
@@ -143,10 +157,14 @@ class _ProjectsTabState extends State<_ProjectsTab> {
     final islandCtrl = TextEditingController(text: data.island);
     final municipalityCtrl = TextEditingController(text: data.municipality);
     final yearCtrl = TextEditingController(text: data.year?.toString() ?? '');
-    final latCtrl = TextEditingController(text: data.lat.toString());
-    final lonCtrl = TextEditingController(text: data.lon.toString());
+    final latCtrl =
+        TextEditingController(text: data.lat == 0 ? '' : data.lat.toStringAsFixed(6));
+    final lonCtrl =
+        TextEditingController(text: data.lon == 0 ? '' : data.lon.toStringAsFixed(6));
     final descCtrl = TextEditingController(text: data.description ?? '');
     final enRedaccion = ValueNotifier<bool>(data.enRedaccion);
+    final initialPoint =
+        data.lat != 0 && data.lon != 0 ? LatLng(data.lat, data.lon) : null;
 
     await showDialog(
       context: context,
@@ -211,17 +229,29 @@ class _ProjectsTabState extends State<_ProjectsTab> {
                           decoration: const InputDecoration(labelText: 'Año (opcional)'),
                         ),
                         const SizedBox(height: 8),
+                        CoordinatePicker(
+                          latCtrl: latCtrl,
+                          lonCtrl: lonCtrl,
+                          initialPoint: initialPoint,
+                        ),
+                        const SizedBox(height: 8),
                         TextFormField(
                           controller: latCtrl,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Latitud'),
+                          decoration: const InputDecoration(
+                            labelText: 'Latitud',
+                            helperText: 'Selecciona el punto en el mapa',
+                          ),
                           validator: (v) => double.tryParse(v ?? '') == null ? 'Introduce una coordenada válida' : null,
                         ),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: lonCtrl,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Longitud'),
+                          decoration: const InputDecoration(
+                            labelText: 'Longitud',
+                            helperText: 'Selecciona el punto en el mapa',
+                          ),
                           validator: (v) => double.tryParse(v ?? '') == null ? 'Introduce una coordenada válida' : null,
                         ),
                         const SizedBox(height: 8),
@@ -265,18 +295,35 @@ class _ProjectsTabState extends State<_ProjectsTab> {
                   island: islandCtrl.text.trim(),
                   municipality: municipalityCtrl.text.trim(),
                   year: yearCtrl.text.trim().isEmpty ? null : int.tryParse(yearCtrl.text.trim()),
-                  lat: double.parse(latCtrl.text.trim()),
-                  lon: double.parse(lonCtrl.text.trim()),
+                  lat: double.parse(latCtrl.text.trim().replaceAll(',', '.')),
+                  lon: double.parse(lonCtrl.text.trim().replaceAll(',', '.')),
                   description: descCtrl.text.trim(),
                   enRedaccion: enRedaccion.value,
+                  createdAt: data.createdAt ?? DateTime.now(),
                   updatedAt: DateTime.now(),
                 );
-                if (isEditing) {
-                  await ProjectService.updateProject(projectUpdated);
-                } else {
-                  await ProjectService.createAdminProject(projectUpdated);
+                try {
+                  if (isEditing) {
+                    await ProjectService.updateProject(projectUpdated);
+                  } else {
+                    await ProjectService.createAdminProject(projectUpdated);
+                  }
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEditing
+                            ? 'Proyecto actualizado'
+                            : 'Proyecto creado'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al guardar: $e')),
+                  );
                 }
-                if (context.mounted) Navigator.pop(context);
               },
               child: Text(isEditing ? 'Guardar cambios' : 'Crear'),
             ),
@@ -381,7 +428,18 @@ class _NewsTabState extends State<_NewsTab> {
       ),
     );
     if (confirm == true) {
-      await NewsService.delete(item.id);
+      try {
+        await NewsService.delete(item.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Noticia "${item.title}" eliminada')),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar la noticia: $e')),
+        );
+      }
     }
   }
 
@@ -481,12 +539,27 @@ class _NewsTabState extends State<_NewsTab> {
                   updatedAt: now,
                   published: published.value,
                 );
-                if (isEditing) {
-                  await NewsService.update(news, image: pickedFile);
-                } else {
-                  await NewsService.create(news, image: pickedFile);
+                try {
+                  if (isEditing) {
+                    await NewsService.update(news, image: pickedFile);
+                  } else {
+                    await NewsService.create(news, image: pickedFile);
+                  }
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            isEditing ? 'Noticia actualizada' : 'Noticia creada'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al guardar la noticia: $e')),
+                  );
                 }
-                if (context.mounted) Navigator.pop(context);
               },
               child: Text(isEditing ? 'Guardar cambios' : 'Crear'),
             ),
