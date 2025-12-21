@@ -33,7 +33,7 @@ class AdminGate extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     FilledButton(
-                      onPressed: () => AuthService.instance.signOut(),
+                      onPressed: () => auth.signOut(),
                       child: const Text('Cerrar sesión'),
                     ),
                   ],

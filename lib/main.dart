@@ -14,6 +14,7 @@ import 'package:geodos/pages/home_page.dart';
 import 'package:geodos/pages/login_admin_page.dart';
 import 'package:geodos/pages/privacy_page.dart';
 import 'package:geodos/pages/visor_page.dart';
+import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/widgets/admin_gate.dart';
 import 'package:provider/provider.dart';
 
@@ -28,8 +29,8 @@ class GeodosApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: AuthService.instance,
+    return ChangeNotifierProvider<AuthService>(
+      create: (_) => AuthService.instance,
       child: MaterialApp(
         title: 'Geodos',
         debugShowCheckedModeBanner: false,
