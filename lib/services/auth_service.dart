@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
@@ -6,7 +8,7 @@ import 'package:flutter/foundation.dart';
 class AuthService extends ChangeNotifier {
   AuthService._() {
     _user = _auth.currentUser;
-    _auth.authStateChanges().listen((user) {
+    _authSubscription = _auth.authStateChanges().listen((user) {
       _user = user;
       notifyListeners();
     });
@@ -16,6 +18,7 @@ class AuthService extends ChangeNotifier {
   static final AuthService instance = AuthService._();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final StreamSubscription<User?> _authSubscription;
   User? _user;
 
   User? get user => _user;
@@ -46,5 +49,11 @@ class AuthService extends ChangeNotifier {
   Future<void> signOut() async {
     await _auth.signOut();
     // authStateChanges deja _user a null y notifica.
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
   }
 }
