@@ -15,6 +15,7 @@ import 'package:geodos/pages/privacy_page.dart';
 import 'package:geodos/pages/visor_page.dart';
 import 'package:geodos/pages/terms_page.dart';
 import 'package:geodos/services/auth_service.dart';
+import 'package:geodos/widgets/admin_gate.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
@@ -40,10 +41,13 @@ class GeodosApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const HomePage(),
+        '/home': (context) => const HomePage(),
+        '/quienes': (context) => const AboutPage(),
         '/visor': (context) => const VisorPage(),
         '/contact': (context) => const ContactPage(),
         '/contacto': (context) => const ContactPage(),
         '/login': (context) => const LoginAdminPage(),
+        '/admin': (context) => const AdminGate(child: LoginAdminPage()),
         '/about': (context) => const AboutPage(),
         '/accessibility': (context) => const AccessibilityStatementPage(),
         '/cookies': (context) => const CookiesPolicyPage(),
