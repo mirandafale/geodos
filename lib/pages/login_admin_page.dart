@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../widgets/app_drawer.dart';
 import '../services/auth_service.dart';
@@ -36,12 +37,16 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
     });
 
     try {
-      await AuthService.instance
-          .signIn(_emailCtrl.text, _passwordCtrl.text);
+      final auth = context.read<AuthService>();
+
+      await auth.signIn(
+        _emailCtrl.text,
+        _passwordCtrl.text,
+      );
 
       if (!mounted) return;
 
-      final isAdmin = AuthService.instance.isAdmin;
+      final isAdmin = auth.isAdmin;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -79,7 +84,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
   }
 
   Future<void> _logout() async {
-    await AuthService.instance.signOut();
+    await context.read<AuthService>().signOut();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Sesión cerrada.')),
@@ -89,7 +94,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = AuthService.instance;
+    final auth = context.watch<AuthService>();
     final theme = Theme.of(context);
     final t = theme.textTheme;
 

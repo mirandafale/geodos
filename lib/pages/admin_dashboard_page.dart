@@ -5,6 +5,7 @@ import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/news_service.dart';
 import 'package:geodos/services/project_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 
 class AdminDashboardPage extends StatelessWidget {
   const AdminDashboardPage({super.key});
@@ -19,7 +20,7 @@ class AdminDashboardPage extends StatelessWidget {
           actions: [
             IconButton(
               tooltip: 'Cerrar sesión',
-              onPressed: () => AuthService.instance.signOut(),
+              onPressed: () => context.read<AuthService>().signOut(),
               icon: const Icon(Icons.logout),
             ),
           ],
