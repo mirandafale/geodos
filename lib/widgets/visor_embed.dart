@@ -97,10 +97,11 @@ class _VisorEmbedState extends State<VisorEmbed> {
   }
 }
 
+final GlobalKey _legendKey = GlobalKey(debugLabel: 'visor_legend');
+
 class _ProjectsMap extends StatelessWidget {
   final MapController mapCtrl;
   final FiltersController filters;
-  static final _legendKey = GlobalKey();
 
   const _ProjectsMap({required this.mapCtrl, required this.filters});
 

@@ -107,7 +107,7 @@ class Project {
     final municipality = (json['municipality'] ?? '').toString();
 
     return Project(
-      id: (json['id'] ?? '${title}||${municipality}').toString(),
+        id: (json['id'] ?? '$title||$municipality').toString(),
       title: title,
       municipality: municipality,
       year: year,

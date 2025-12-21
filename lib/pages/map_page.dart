@@ -22,13 +22,15 @@ class MapPage extends StatelessWidget {
         actions: const [SessionActionWidget()],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => showDialog(
-          context: context,
-          builder: (_) => ProjectFormDialog(
-            categories: app.distinctCategories,
-            onSubmit: (project) => app.addProject(project),
-          ),
-        ),
+        onPressed: () async {
+          final project = await showDialog<Project>(
+            context: context,
+            builder: (_) => ProjectFormDialog(
+              categories: app.distinctCategories,
+            ),
+          );
+          if (project != null) app.addProject(project);
+        },
         child: const Icon(Icons.add),
       ),
       body: ListView(
