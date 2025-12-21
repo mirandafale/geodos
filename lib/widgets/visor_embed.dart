@@ -92,6 +92,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
         child: _ProjectsMap(
           mapCtrl: _mapCtrl,
           filters: filters,
+          legendKey: _legendKey,
         ),
       ),
     );
@@ -101,8 +102,13 @@ class _VisorEmbedState extends State<VisorEmbed> {
 class _ProjectsMap extends StatelessWidget {
   final MapController mapCtrl;
   final FiltersController filters;
+  final GlobalKey legendKey;
 
-  const _ProjectsMap({required this.mapCtrl, required this.filters});
+  const _ProjectsMap({
+    required this.mapCtrl,
+    required this.filters,
+    required this.legendKey,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +198,7 @@ class _ProjectsMap extends StatelessWidget {
                   bottom: 12,
                   right: 12,
                   child: _Legend(
-                    key: _legendKey,
+                    key: legendKey,
                     categories: projects.map((e) => e.category).toSet().toList(),
                     total: projects.length,
                     colorForCategory: (c) => _colorForCategory(context, c),
