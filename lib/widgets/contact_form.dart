@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/lead_service.dart';
+import 'package:geodos/brand/brand.dart';
+import 'package:geodos/services/lead_service.dart';
 
 /// Formulario de contacto reutilizable para GEODOS.
 ///
@@ -24,81 +25,100 @@ class _ContactFormState extends State<ContactForm> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextFormField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'Nombre',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Por favor, introduzca su nombre';
-              }
-              return null;
-            },
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Envíanos tu consulta',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor, introduzca su nombre';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Correo electrónico',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor, introduzca su correo electrónico';
+                  }
+                  final emailRegex = RegExp('^[\\w\\-.]+@([\\w-]+\\.)+[\\w-]{2,}\$');
+                  if (!emailRegex.hasMatch(value)) {
+                    return 'Introduzca un correo válido';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _companyController,
+                decoration: const InputDecoration(
+                  labelText: 'Empresa (opcional)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _messageController,
+                decoration: const InputDecoration(
+                  labelText: 'Mensaje',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 4,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Por favor, escriba su mensaje';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: _submitting ? null : _submit,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Brand.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                icon: _submitting
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.send),
+                label: Text(_submitting ? 'Enviando...' : 'Enviar'),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Tus datos se almacenan de forma segura en Firebase al enviar el formulario.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Por favor, introduzca su correo electrónico';
-              }
-              final emailRegex = RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}\$');
-              if (!emailRegex.hasMatch(value)) {
-                return 'Introduzca un correo válido';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _companyController,
-            decoration: const InputDecoration(
-              labelText: 'Empresa (opcional)',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _messageController,
-            decoration: const InputDecoration(
-              labelText: 'Mensaje',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 4,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Por favor, escriba su mensaje';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _submitting ? null : _submit,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-            ),
-            child: _submitting
-                ? const SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-                : const Text('Enviar'),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -115,7 +135,8 @@ class _ContactFormState extends State<ContactForm> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitud enviada correctamente')),);
+        const SnackBar(content: Text('Solicitud enviada correctamente')),
+      );
       _formKey.currentState!.reset();
       _nameController.clear();
       _emailController.clear();

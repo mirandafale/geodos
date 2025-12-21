@@ -421,67 +421,63 @@ class _ProjectsByCategorySection extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 1100),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: AnimatedBuilder(
-            animation: filters,
-            builder: (ctx, _) {
-              final st = filters.state;
-              // Obtenemos las categorías disponibles desde ProjectService. En nuestro
-              // proyecto, las categorías se exponen a través de `scopes` y
-              // corresponden a las categorías de los proyectos.
-              final cats = ProjectService.scopes;
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const _SectionHeader(
-                    title: 'Proyectos por categoría',
-                    subtitle:
-                    'Algunos de los proyectos georreferenciados desarrollados por GEODOS en diferentes ámbitos.',
-                    icon: Icons.location_on_outlined,
-                  ),
-                  const SizedBox(height: 24),
-                  Card(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          const Text('Categoría'),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: st.scope,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                              ),
-                              items: [
-                                const DropdownMenuItem<String>(
-                                  value: 'Todos',
-                                  child: Text('Todas'),
-                                ),
-                                ...cats.map(
-                                      (c) => DropdownMenuItem<String>(
-                                    value: c,
-                                    child: Text(c),
-                                  ),
-                                ),
-                              ],
-                              onChanged: filters.setScope,
-                            ),
-                          ),
-                        ],
+          child: FutureBuilder<List<String>>(
+            future: ProjectService.getCategories(),
+            builder: (context, snapshot) {
+              final categories = snapshot.data ?? [];
+              return AnimatedBuilder(
+                animation: filters,
+                builder: (ctx, _) {
+                  final st = filters.state;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const _SectionHeader(
+                        title: 'Proyectos por categoría',
+                        subtitle:
+                            'Algunos de los proyectos georreferenciados desarrollados por GEODOS en diferentes ámbitos.',
+                        icon: Icons.location_on_outlined,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // Incrustamos el visor con el mapa. Se usa `startExpanded: false` para
-                  // evitar que ocupe toda la pantalla al inicializar. No pasamos
-                  // parámetros adicionales porque la implementación actual de
-                  // VisorEmbed no los admite.
-                  const VisorEmbed(startExpanded: false),
-                ],
+                      const SizedBox(height: 24),
+                      Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              const Text('Categoría'),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: DropdownButtonFormField<String?>(
+                                  value: st.category,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: [
+                                    const DropdownMenuItem<String?>(
+                                      value: null,
+                                      child: Text('Todas'),
+                                    ),
+                                    ...categories.map(
+                                      (c) => DropdownMenuItem<String?>(
+                                        value: c,
+                                        child: Text(c),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: filters.setCategory,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const VisorEmbed(startExpanded: false),
+                    ],
+                  );
+                },
               );
             },
           ),
