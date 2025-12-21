@@ -275,65 +275,58 @@ class _Legend extends StatelessWidget {
     final sorted = [...categories]..sort();
     const shadow = [Shadow(color: Colors.black38, blurRadius: 2, offset: Offset(0, 1))];
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 280),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 300),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              child: Text(
                 'Proyectos visibles: $total',
                 style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700, shadows: shadow),
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                children: sorted
-                    .map(
-                      (c) => ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 240),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: colorForCategory(c),
-                                shape: BoxShape.circle,
-                                boxShadow: const [
-                                  BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-                                ],
-                              ),
+            ),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              children: sorted
+                  .map(
+                    (c) => ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 240),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: colorForCategory(c),
+                              shape: BoxShape.circle,
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black38, blurRadius: 4, offset: Offset(0, 2)),
+                              ],
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                c.toUpperCase(),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: t.bodySmall?.copyWith(letterSpacing: 0.2, shadows: shadow),
-                              ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              c.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: t.bodySmall?.copyWith(letterSpacing: 0.2, shadows: shadow),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    )
-                    .toList(),
-              ),
-            ],
-          ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ),
       ),
     );

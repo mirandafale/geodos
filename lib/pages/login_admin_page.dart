@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../widgets/app_drawer.dart';
+import 'package:geodos/widgets/app_shell.dart';
 import '../services/auth_service.dart';
 
 class LoginAdminPage extends StatefulWidget {
@@ -100,30 +100,12 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
     final isAdmin = auth.isAdmin;
     final userEmail = auth.user?.email ?? '';
 
-    return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF0C6372),
-                Color(0xFF2A7F62),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        title: Text(
-          'GEODOS · Acceso administrador',
-          style: t.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+    return AppShell(
+      titleWidget: Text(
+        'GEODOS · Acceso administrador',
+        style: t.titleLarge?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
         ),
       ),
       body: Center(
@@ -132,8 +114,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
           child: Card(
             elevation: 4,
             margin: const EdgeInsets.all(24),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: isLoggedIn

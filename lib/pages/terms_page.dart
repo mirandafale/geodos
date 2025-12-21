@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_drawer.dart';
+import 'package:geodos/widgets/app_shell.dart';
 
 class TermsConditionsPage extends StatelessWidget {
   const TermsConditionsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Términos y Condiciones'),
-      ),
-      body: const SingleChildScrollView(
+    return const AppShell(
+      title: 'Términos y Condiciones',
+      body: SingleChildScrollView(
         padding: EdgeInsets.all(24),
         child: _TermsContent(),
       ),
