@@ -5,7 +5,9 @@ import '../widgets/app_drawer.dart';
 import '../services/auth_service.dart';
 
 class LoginAdminPage extends StatefulWidget {
-  const LoginAdminPage({super.key});
+  const LoginAdminPage({super.key, this.redirectTo = '/home'});
+
+  final String redirectTo;
 
   @override
   State<LoginAdminPage> createState() => _LoginAdminPageState();
@@ -49,8 +51,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
         ),
       );
 
-      // Volvemos a la home o a donde prefieras
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, widget.redirectTo);
     } on FirebaseAuthException catch (e) {
       String msg = 'No se ha podido iniciar sesión.';
       if (e.code == 'user-not-found') {
@@ -279,7 +280,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
         Row(
           children: [
             FilledButton(
-              onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+              onPressed: () => Navigator.pushReplacementNamed(context, '/'),
               child: const Text('Volver a inicio'),
             ),
             const SizedBox(width: 12),
