@@ -132,6 +132,7 @@ class _ContactFormState extends State<ContactForm> {
         email: _emailController.text.trim(),
         company: _companyController.text.trim(),
         message: _messageController.text.trim(),
+        originSection: 'contact_page',
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
