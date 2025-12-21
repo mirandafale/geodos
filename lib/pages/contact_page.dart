@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geodos/widgets/app_shell.dart';
 
 import '../widgets/contact_form.dart';
 
@@ -12,11 +13,9 @@ class ContactPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Contacto'),
-      ),
-      body: const Padding(
+    return const AppShell(
+      title: Text('Contacto'),
+      body: Padding(
         padding: EdgeInsets.all(24),
         child: ContactForm(),
       ),

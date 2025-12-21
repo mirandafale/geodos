@@ -13,6 +13,7 @@ import 'package:geodos/pages/data_privacy_page.dart';
 import 'package:geodos/pages/home_page.dart';
 import 'package:geodos/pages/login_admin_page.dart';
 import 'package:geodos/pages/privacy_page.dart';
+import 'package:geodos/pages/terms_page.dart';
 import 'package:geodos/pages/visor_page.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/widgets/admin_gate.dart';
@@ -47,6 +48,7 @@ class GeodosApp extends StatelessWidget {
           '/cookies': (context) => const CookiesPolicyPage(),
           '/data-privacy': (context) => const DataPrivacySettingsPage(),
           '/privacy': (context) => const PrivacyPolicyPage(),
+          '/terms': (context) => const TermsPage(),
           '/admin': (context) => const AdminGate(child: AdminDashboardPage()),
         },
       ),

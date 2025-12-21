@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_drawer.dart';
+import 'package:geodos/widgets/app_shell.dart';
 
 class CookiesPolicyPage extends StatelessWidget {
   const CookiesPolicyPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Política de cookies'),
-      ),
-      body: const SingleChildScrollView(
+    return const AppShell(
+      title: Text('Política de cookies'),
+      body: SingleChildScrollView(
         padding: EdgeInsets.all(24),
         child: _CookiesContent(),
       ),
