@@ -1,57 +1,132 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_drawer.dart';
+
+import '../brand/brand.dart';
+import '../widgets/legal_scaffold.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Política de Privacidad'),
-      ),
-      body: const SingleChildScrollView(
-        padding: EdgeInsets.all(24),
-        child: _PrivacyContent(),
-      ),
+    final t = Theme.of(context).textTheme;
+
+    return LegalPageScaffold(
+      title: 'Política de privacidad',
+      children: [
+        Text(
+          'Esta política explica qué datos personales tratamos, para qué los'
+          ' utilizamos y qué derechos puedes ejercer. Aplicamos medidas técnicas y'
+          ' organizativas acordes a las mejores prácticas del sector.',
+          style: t.bodyLarge,
+        ),
+        const SizedBox(height: 20),
+        _SectionTitle('Datos que podemos tratar'),
+        const SizedBox(height: 8),
+        _BulletList(items: const [
+          'Datos identificativos y de contacto facilitados en formularios (nombre,'
+              ' correo, teléfono).',
+          'Información sobre proyectos o solicitudes que nos remitas.',
+          'Datos de navegación anonimizados para mejorar la calidad del servicio.',
+        ]),
+        const SizedBox(height: 20),
+        _SectionTitle('Finalidades y legitimación'),
+        const SizedBox(height: 8),
+        _BulletList(items: const [
+          'Responder consultas y enviar presupuestos a petición del usuario.',
+          'Prestar los servicios contratados y mantener la relación profesional.',
+          'Cumplir obligaciones legales y de seguridad de la información.',
+          'Enviar comunicaciones informativas cuando tengamos tu consentimiento.',
+        ]),
+        const SizedBox(height: 20),
+        _SectionTitle('Plazos de conservación'),
+        const SizedBox(height: 8),
+        Text(
+          'Conservamos los datos solo durante el tiempo necesario para gestionar la'
+          ' solicitud o prestar el servicio y para cumplir obligaciones legales.'
+          ' Una vez finalizados esos plazos, los datos se bloquean y eliminan de'
+          ' forma segura.',
+          style: t.bodyMedium,
+        ),
+        const SizedBox(height: 20),
+        Card(
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ejercicio de derechos',
+                  style: t.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: Brand.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Puedes solicitar el acceso, rectificación, supresión, oposición,'
+                  ' limitación o portabilidad de tus datos escribiendo a'
+                  ' privacidad@geodos.es. Indicaremos el estado de la petición y el'
+                  ' plazo estimado de respuesta.',
+                  style: t.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Si consideras que no hemos atendido correctamente tu solicitud,'
+                  ' puedes presentar una reclamación ante la autoridad de control'
+                  ' competente.',
+                  style: t.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _PrivacyContent extends StatelessWidget {
-  const _PrivacyContent();
+class _SectionTitle extends StatelessWidget {
+  final String text;
+
+  const _SectionTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: Brand.primary,
+          ),
+    );
+  }
+}
+
+class _BulletList extends StatelessWidget {
+  final List<String> items;
+
+  const _BulletList({required this.items});
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Política de Privacidad', style: t.headlineSmall),
-        const SizedBox(height: 16),
-        Text(
-          'Esta página describe cómo GEODOS trata los datos personales que se '
-              'recogen a través de los formularios de contacto y del uso de la web.',
-          style: t.bodyMedium,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'La información que facilitan los usuarios se utiliza exclusivamente '
-              'para gestionar las consultas, solicitudes de información y la '
-              'relación profesional con nuestros clientes.',
-          style: t.bodyMedium,
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'GEODOS cumple con la normativa vigente en materia de protección de '
-              'datos personales. Los usuarios pueden ejercer sus derechos de acceso, '
-              'rectificación, supresión y otros derechos reconocidos por la ley '
-              'dirigiéndose a la dirección de contacto indicada en esta web.',
-          style: t.bodyMedium,
-        ),
-      ],
+      children: items
+          .map(
+            (text) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('• '),
+                  Expanded(child: Text(text, style: t.bodyMedium)),
+                ],
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }
