@@ -5,6 +5,7 @@ import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/news_service.dart';
 import 'package:geodos/services/project_service.dart';
 import 'package:geodos/widgets/coordinate_picker.dart';
+import 'package:geodos/widgets/app_shell.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -16,22 +17,20 @@ class AdminDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Panel de administración'),
-          actions: [
-            IconButton(
-              tooltip: 'Cerrar sesión',
-              onPressed: () => context.read<AuthService>().signOut(),
-              icon: const Icon(Icons.logout),
-            ),
-          ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Proyectos'),
-              Tab(text: 'Noticias'),
-            ],
+      child: AppShell(
+        title: 'Panel de administración',
+        actions: [
+          IconButton(
+            tooltip: 'Cerrar sesión',
+            onPressed: () => context.read<AuthService>().signOut(),
+            icon: const Icon(Icons.logout),
           ),
+        ],
+        bottom: const TabBar(
+          tabs: [
+            Tab(text: 'Proyectos'),
+            Tab(text: 'Noticias'),
+          ],
         ),
         body: const TabBarView(
           children: [

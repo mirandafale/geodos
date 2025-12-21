@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_drawer.dart';
+import 'package:geodos/widgets/app_shell.dart';
 
 class AccessibilityStatementPage extends StatelessWidget {
   const AccessibilityStatementPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        title: const Text('Declaración de Accesibilidad'),
-      ),
-      body: const SingleChildScrollView(
+    return const AppShell(
+      title: 'Declaración de Accesibilidad',
+      body: SingleChildScrollView(
         padding: EdgeInsets.all(24),
         child: _AccessibilityContent(),
       ),

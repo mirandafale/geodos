@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:geodos/models/news_item.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/news_service.dart';
+import 'package:geodos/widgets/app_shell.dart';
 import 'package:provider/provider.dart';
 
 // Menú lateral con las diferentes opciones de navegación.
-import '../widgets/app_drawer.dart';
 // Visor incrustado para mostrar los proyectos georreferenciados.
 import '../widgets/visor_embed.dart';
 // Controlador de filtros para mantener el estado de ámbito (categoría), año, etc.
@@ -57,52 +57,34 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      drawer: const AppDrawer(),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF0C6372),
-                Color(0xFF2A7F62),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+    return AppShell(
+      titleWidget: Text(
+        'GEODOS',
+        style: theme.textTheme.titleLarge?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
         ),
-        title: Text(
-          'GEODOS',
-          style: theme.textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => _scrollTo(_servicesKey),
-            child: const Text('Servicios', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pushNamed(context, '/visor'),
-            child: const Text('Proyectos', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => _scrollTo(_aboutKey),
-            child: const Text('Quiénes somos', style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () => _scrollTo(_ctaKey),
-            child: const Text('Contacto', style: TextStyle(color: Colors.white)),
-          ),
-          const SizedBox(width: 16),
-        ],
       ),
+      actions: [
+        TextButton(
+          onPressed: () => _scrollTo(_servicesKey),
+          child: const Text('Servicios', style: TextStyle(color: Colors.white)),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pushNamed(context, '/visor'),
+          child: const Text('Proyectos', style: TextStyle(color: Colors.white)),
+        ),
+        TextButton(
+          onPressed: () => _scrollTo(_aboutKey),
+          child: const Text('Quiénes somos', style: TextStyle(color: Colors.white)),
+        ),
+        TextButton(
+          onPressed: () => _scrollTo(_ctaKey),
+          child: const Text('Contacto', style: TextStyle(color: Colors.white)),
+        ),
+        const SizedBox(width: 16),
+      ],
       body: ListView(
         controller: _scrollCtrl,
         padding: EdgeInsets.zero,

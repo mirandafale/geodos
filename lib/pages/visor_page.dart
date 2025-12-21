@@ -5,6 +5,7 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/widgets/app_shell.dart';
 import 'package:geodos/widgets/visor_embed.dart';
 
 class VisorPage extends StatefulWidget {
@@ -40,13 +41,9 @@ class _VisorPageState extends State<VisorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Visor de proyectos'),
-        flexibleSpace: Container(decoration: const BoxDecoration(gradient: Brand.appBarGradient)),
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.transparent,
-      ),
+    return AppShell(
+      title: 'Visor de proyectos',
+      backgroundColor: Brand.mist,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final vertical = constraints.maxWidth < 1100;
@@ -68,8 +65,7 @@ class _VisorPageState extends State<VisorPage> {
             ),
           ];
 
-          return Container(
-            color: Brand.mist,
+          return Padding(
             padding: const EdgeInsets.all(16),
             child: Center(
               child: ConstrainedBox(
