@@ -1,4 +1,5 @@
 // lib/services/news_service.dart
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +14,13 @@ class NewsService {
       _db.collection('news');
   static final _storage = FirebaseStorage.instance;
 
+  static Query<Map<String, dynamic>> _publishedQuery({required String orderByField}) {
+    return _col
+        .where('published', isEqualTo: true)
+        .orderBy(orderByField, descending: true)
+        .limit(10);
+  }
+
   /// Stream de noticias ordenadas por fecha (recientes primero)
   static Stream<List<NewsItem>> stream() {
     return _col
@@ -24,12 +32,37 @@ class NewsService {
 
   /// Noticias publicadas para la web pública.
   static Stream<List<NewsItem>> publishedStream() {
-    return _col
-        .where('published', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) =>
-        snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList());
+    Stream<QuerySnapshot<Map<String, dynamic>>> primaryStream;
+    Stream<QuerySnapshot<Map<String, dynamic>>> fallbackStream;
+
+    primaryStream = _publishedQuery(orderByField: 'createdAt').snapshots();
+    fallbackStream = _publishedQuery(orderByField: 'updatedAt').snapshots();
+
+    List<NewsItem> _toItems(QuerySnapshot<Map<String, dynamic>> snapshot) {
+      return snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList();
+    }
+
+    return Stream.multi((controller) {
+      StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? sub;
+
+      void listenTo(Stream<QuerySnapshot<Map<String, dynamic>>> stream) {
+        sub = stream.listen(
+          (snapshot) => controller.add(_toItems(snapshot)),
+          onError: (error, stackTrace) {
+            if (error is FirebaseException && error.code == 'failed-precondition') {
+              sub?.cancel();
+              listenTo(fallbackStream);
+            } else {
+              controller.addError(error, stackTrace);
+            }
+          },
+          onDone: controller.close,
+        );
+      }
+
+      listenTo(primaryStream);
+      controller.onCancel = () => sub?.cancel();
+    });
   }
 
   /// Crea una noticia nueva
@@ -56,6 +89,23 @@ class NewsService {
   /// Borra una noticia
   static Future<void> delete(String id) async {
     await _col.doc(id).delete();
+  }
+
+  /// Inserta noticias de ejemplo en modo debug si aún no existen.
+  static Future<void> seedDebugSamples(List<NewsItem> items) async {
+    for (final item in items) {
+      if (item.id.isEmpty) continue;
+      final doc = _col.doc(item.id);
+      final snapshot = await doc.get();
+      if (snapshot.exists) continue;
+      await doc.set({
+        ...item.toMap(),
+        'imageUrl': item.imageUrl,
+        'createdAt': Timestamp.fromDate(item.createdAt),
+        'updatedAt': Timestamp.fromDate(item.updatedAt),
+        'published': true,
+      });
+    }
   }
 
   static Future<String> _uploadImage(XFile file) async {

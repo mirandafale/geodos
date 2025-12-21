@@ -9,7 +9,21 @@ import 'package:geodos/services/lead_service.dart';
 /// Firebase mediante `LeadService`. Se puede incluir en cualquier
 /// pantalla de la aplicación.
 class ContactForm extends StatefulWidget {
-  const ContactForm({super.key});
+  const ContactForm({
+    super.key,
+    this.originSection = 'contact_page',
+    this.showCompanyField = true,
+    this.title = 'Envíanos tu consulta',
+    this.helperText =
+        'Tus datos se almacenan de forma segura en Firebase al enviar el formulario.',
+    this.successMessage = 'Solicitud enviada correctamente',
+  });
+
+  final String originSection;
+  final bool showCompanyField;
+  final String title;
+  final String helperText;
+  final String successMessage;
 
   @override
   State<ContactForm> createState() => _ContactFormState();
@@ -24,6 +38,15 @@ class _ContactFormState extends State<ContactForm> {
   bool _submitting = false;
 
   @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _companyController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Card(
       elevation: 6,
@@ -36,7 +59,7 @@ class _ContactFormState extends State<ContactForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Envíanos tu consulta',
+                widget.title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary),
               ),
               const SizedBox(height: 12),
@@ -71,14 +94,16 @@ class _ContactFormState extends State<ContactForm> {
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _companyController,
-                decoration: const InputDecoration(
-                  labelText: 'Empresa (opcional)',
-                  border: OutlineInputBorder(),
+              if (widget.showCompanyField) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _companyController,
+                  decoration: const InputDecoration(
+                    labelText: 'Empresa (opcional)',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _messageController,
@@ -113,7 +138,7 @@ class _ContactFormState extends State<ContactForm> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Tus datos se almacenan de forma segura en Firebase al enviar el formulario.',
+                widget.helperText,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -132,11 +157,11 @@ class _ContactFormState extends State<ContactForm> {
         email: _emailController.text.trim(),
         company: _companyController.text.trim(),
         message: _messageController.text.trim(),
-        originSection: 'contact_page',
+        originSection: widget.originSection,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Solicitud enviada correctamente')),
+        SnackBar(content: Text(widget.successMessage)),
       );
       _formKey.currentState!.reset();
       _nameController.clear();
