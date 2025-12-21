@@ -100,6 +100,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
 class _ProjectsMap extends StatelessWidget {
   final MapController mapCtrl;
   final FiltersController filters;
+  static final _legendKey = GlobalKey();
 
   const _ProjectsMap({required this.mapCtrl, required this.filters});
 
@@ -191,6 +192,7 @@ class _ProjectsMap extends StatelessWidget {
                   bottom: 12,
                   right: 12,
                   child: _Legend(
+                    key: _legendKey,
                     categories: projects.map((e) => e.category).toSet().toList(),
                     total: projects.length,
                     colorForCategory: (c) => _colorForCategory(context, c),
