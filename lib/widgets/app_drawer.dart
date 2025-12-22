@@ -53,8 +53,23 @@ class AppDrawer extends StatelessWidget {
             _item(context, Icons.map_rounded, 'Visor', '/visor'),
             _item(context, Icons.article_outlined, 'Blog / Actualidad', '/home'),
             _item(context, Icons.mail_rounded, 'Contacto', '/contact'),
-            if (auth.isLoggedIn)
-              _item(context, Icons.admin_panel_settings_rounded, 'Admin', '/admin'),
+            _item(context, Icons.login_rounded, 'Acceso admin', '/login-admin'),
+            if (auth.isLoggedIn && auth.isAdmin) ...[
+              _item(
+                context,
+                Icons.admin_panel_settings_rounded,
+                'Panel admin',
+                '/admin',
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Cerrar sesión'),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await auth.signOut();
+                },
+              ),
+            ],
             const Divider(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
