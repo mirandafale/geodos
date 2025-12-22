@@ -36,7 +36,10 @@ class AppState extends ChangeNotifier {
 
   Future<bool> signIn({String? user, String? pass, String? email, String? password}) async {
     try {
-      await AuthService.instance.signIn(email ?? user ?? '', password ?? pass ?? '');
+      await AuthService.instance.signIn(
+        email: email ?? user ?? '',
+        password: password ?? pass ?? '',
+      );
       _isAdmin = AuthService.instance.isAdmin;
       notifyListeners();
       return true;

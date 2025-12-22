@@ -43,6 +43,7 @@ class GeodosApp extends StatelessWidget {
           '/visor': (context) => const VisorPage(),
           '/contact': (context) => const ContactPage(),
           '/login': (context) => const LoginAdminPage(),
+          '/login-admin': (context) => const LoginAdminPage(),
           '/about': (context) => const AboutPage(),
           '/accessibility': (context) => const AccessibilityStatementPage(),
           '/cookies': (context) => const CookiesPolicyPage(),
