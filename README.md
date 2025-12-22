@@ -52,5 +52,23 @@ service firebase.storage {
 - Home muestra el carrusel de noticias publicadas y el visor sigue siendo público con filtros.
 - Sesión de admin persistente gracias a Firebase Auth y el guardián de ruta `AdminGate`.
 
+## Checklist rápido antes de merge
+- Revisa que no queden marcadores de conflicto en `lib`:
+  ```bash
+  git grep -n "<<<<<<<" lib || true
+  git grep -n "=======" lib || true
+  git grep -n ">>>>>>>" lib || true
+  ```
+- Comprueba que los archivos críticos no tengan `...` u otros textos incompletos (por ejemplo en `pubspec.yaml` o en formularios):
+  ```bash
+  rg "\\.\\.\\.$" lib pubspec.yaml || true
+  ```
+- Valida que `pubspec.yaml` siga siendo correcto tras los cambios:
+  ```bash
+  flutter pub get --dry-run
+  ```
+
+Validación recomendada: `flutter analyze` y `flutter run -d chrome` deben completarse sin errores ni marcadores de conflicto.
+
 ## Archivos generados
 `flutter pub get` vuelve a crear `pubspec.lock` y los registradores de plugins de Linux/macOS/Windows. Se excluyen del repositorio para evitar ruido en los diffs; ejecútalo localmente antes de compilar en cada plataforma.
