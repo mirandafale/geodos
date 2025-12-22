@@ -38,8 +38,8 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
 
     try {
       await context.read<AuthService>().signIn(
-            _emailCtrl.text,
-            _passwordCtrl.text,
+            email: _emailCtrl.text,
+            password: _passwordCtrl.text,
           );
 
       if (!mounted) return;
