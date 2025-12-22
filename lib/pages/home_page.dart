@@ -671,6 +671,13 @@ class _BlogSectionState extends State<_BlogSection> {
   int _current = 0;
   bool _sampleSeeded = false;
   bool _isSeeding = false;
+  late Future<List<NewsItem>> _newsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNews();
+  }
 
   @override
   void dispose() {
@@ -688,8 +695,14 @@ class _BlogSectionState extends State<_BlogSection> {
     );
   }
 
-  Future<void> _maybeSeedDebugNews() async {
+  void _loadNews() {
+    _newsFuture = NewsService.fetchPublishedOnce();
+  }
+
+  Future<void> _maybeSeedDebugNews(List<NewsItem> posts) async {
     if (_sampleSeeded || _isSeeding || !kDebugMode) return;
+    if (posts.length >= 3) return;
+
     setState(() {
       _isSeeding = true;
     });
@@ -697,30 +710,23 @@ class _BlogSectionState extends State<_BlogSection> {
     final now = DateTime.now();
     final samples = [
       NewsItem(
-        id: 'debug-news-1',
-        title: 'Bienvenida a GEODOS',
-        body: 'Descubre cómo acercamos la variable espacial a tus proyectos con soluciones digitales sencillas.',
+        id: 'sample_1',
+        title: 'Ejemplo de noticia (solo debug)',
+        body:
+            'Crea tus noticias desde el panel de administración para que aparezcan aquí.',
         imageUrl: '',
         createdAt: now,
         updatedAt: now,
         published: true,
       ),
       NewsItem(
-        id: 'debug-news-2',
-        title: 'Nuevos proyectos territoriales',
-        body: 'Impulsamos diagnósticos participativos y mapas interactivos para la toma de decisiones.',
+        id: 'sample_2',
+        title: 'Noticias con imagen opcional',
+        body:
+            'Puedes adjuntar imágenes destacadas o dejar el espacio en blanco si no las necesitas.',
         imageUrl: '',
-        createdAt: now.subtract(const Duration(days: 3)),
-        updatedAt: now.subtract(const Duration(days: 3)),
-        published: true,
-      ),
-      NewsItem(
-        id: 'debug-news-3',
-        title: 'Innovación y sostenibilidad',
-        body: 'Aplicamos SIG, teledetección y análisis ambiental para proyectos más eficientes y transparentes.',
-        imageUrl: '',
-        createdAt: now.subtract(const Duration(days: 7)),
-        updatedAt: now.subtract(const Duration(days: 7)),
+        createdAt: now.subtract(const Duration(days: 2)),
+        updatedAt: now.subtract(const Duration(days: 2)),
         published: true,
       ),
     ];
@@ -728,6 +734,9 @@ class _BlogSectionState extends State<_BlogSection> {
     try {
       await NewsService.seedDebugSamples(samples);
       _sampleSeeded = true;
+      if (mounted) {
+        setState(_loadNews);
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -777,17 +786,19 @@ class _BlogSectionState extends State<_BlogSection> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final auth = context.watch<AuthService>();
-    return StreamBuilder<List<NewsItem>>(
-      stream: NewsService.publishedStream(),
+    return FutureBuilder<List<NewsItem>>(
+      future: _newsFuture,
       builder: (context, snapshot) {
         final posts = snapshot.data ?? [];
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
         final hasError = snapshot.hasError;
         final errorMessage = snapshot.error?.toString();
 
-        if (!isLoading && !hasError && posts.isEmpty) {
-          _maybeSeedDebugNews();
+        if (!isLoading && !hasError && !_isSeeding && posts.length < 3) {
+          WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _maybeSeedDebugNews(posts));
         }
+
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1100),
