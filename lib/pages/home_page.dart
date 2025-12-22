@@ -688,8 +688,12 @@ class _BlogSectionState extends State<_BlogSection> {
     );
   }
 
-  Future<void> _maybeSeedDebugNews() async {
-    if (_sampleSeeded || _isSeeding || !kDebugMode) return;
+  Future<void> _maybeSeedDebugNews(List<NewsItem> currentPosts) async {
+    if (_sampleSeeded || _isSeeding || !kDebugMode || currentPosts.length >= 3) {
+      _sampleSeeded = _sampleSeeded || currentPosts.length >= 3;
+      return;
+    }
+
     setState(() {
       _isSeeding = true;
     });
@@ -697,36 +701,36 @@ class _BlogSectionState extends State<_BlogSection> {
     final now = DateTime.now();
     final samples = [
       NewsItem(
-        id: 'debug-news-1',
-        title: 'Bienvenida a GEODOS',
-        body: 'Descubre cómo acercamos la variable espacial a tus proyectos con soluciones digitales sencillas.',
+        id: 'sample_news_1',
+        title: 'Ejemplo de noticia: Participación ciudadana',
+        body: 'Exploramos cómo la cartografía colaborativa mejora la gestión territorial y la transparencia.',
         imageUrl: '',
         createdAt: now,
         updatedAt: now,
         published: true,
+        hasCreatedAt: false,
       ),
       NewsItem(
-        id: 'debug-news-2',
-        title: 'Nuevos proyectos territoriales',
-        body: 'Impulsamos diagnósticos participativos y mapas interactivos para la toma de decisiones.',
+        id: 'sample_news_2',
+        title: 'Ejemplo de noticia: Innovación ambiental',
+        body: 'Nuevas herramientas digitales para medir el impacto ambiental y tomar decisiones informadas.',
         imageUrl: '',
-        createdAt: now.subtract(const Duration(days: 3)),
-        updatedAt: now.subtract(const Duration(days: 3)),
+        createdAt: now.subtract(const Duration(days: 2)),
+        updatedAt: now.subtract(const Duration(days: 2)),
         published: true,
-      ),
-      NewsItem(
-        id: 'debug-news-3',
-        title: 'Innovación y sostenibilidad',
-        body: 'Aplicamos SIG, teledetección y análisis ambiental para proyectos más eficientes y transparentes.',
-        imageUrl: '',
-        createdAt: now.subtract(const Duration(days: 7)),
-        updatedAt: now.subtract(const Duration(days: 7)),
-        published: true,
+        hasCreatedAt: false,
       ),
     ];
 
     try {
-      await NewsService.seedDebugSamples(samples);
+      final existingIds = currentPosts.map((e) => e.id).toSet();
+      final missingSamples = samples
+          .where((s) => !existingIds.contains(s.id))
+          .take(3 - currentPosts.length)
+          .toList();
+      if (missingSamples.isNotEmpty) {
+        await NewsService.seedDebugSamples(missingSamples);
+      }
       _sampleSeeded = true;
     } finally {
       if (mounted) {
@@ -785,9 +789,10 @@ class _BlogSectionState extends State<_BlogSection> {
         final hasError = snapshot.hasError;
         final errorMessage = snapshot.error?.toString();
 
-        if (!isLoading && !hasError && posts.isEmpty) {
-          _maybeSeedDebugNews();
+        if (!isLoading && !hasError) {
+          _maybeSeedDebugNews(posts);
         }
+
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1100),
@@ -824,7 +829,7 @@ class _BlogSectionState extends State<_BlogSection> {
                         ),
                       ),
                     )
-                  else if (isLoading || _isSeeding)
+                  else if (isLoading)
                     _NewsSkeleton(textTheme: t)
                   else if (posts.isEmpty)
                     Card(
@@ -898,13 +903,15 @@ class _BlogSectionState extends State<_BlogSection> {
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          "Actualizado: ${p.updatedAt.toLocal().toIso8601String().split('T').first}",
-                                          style: t.labelSmall?.copyWith(
-                                            color: Colors.grey.shade600,
+                                        if (p.hasCreatedAt) ...[
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            "Publicado: ${p.createdAt.toLocal().toIso8601String().split('T').first}",
+                                            style: t.labelSmall?.copyWith(
+                                              color: Colors.grey.shade600,
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                       ],
                                     ),
                                   ),
