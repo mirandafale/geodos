@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geodos/widgets/app_shell.dart';
 
-class TermsConditionsPage extends StatelessWidget {
-  const TermsConditionsPage({super.key});
+class TermsPage extends StatelessWidget {
+  const TermsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
