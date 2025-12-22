@@ -44,14 +44,21 @@ class NewsService {
 
     return Stream.multi((controller) {
       StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? sub;
+      var isUsingFallback = false;
 
       void listenTo(Stream<QuerySnapshot<Map<String, dynamic>>> stream) {
         sub = stream.listen(
           (snapshot) => controller.add(_toItems(snapshot)),
           onError: (error, stackTrace) {
-            if (error is FirebaseException && error.code == 'failed-precondition') {
-              sub?.cancel();
-              listenTo(fallbackStream);
+            if (error is FirebaseException &&
+                (error.code == 'failed-precondition' || error.code == 'invalid-argument')) {
+              if (!isUsingFallback) {
+                isUsingFallback = true;
+                sub?.cancel();
+                listenTo(fallbackStream);
+              } else {
+                controller.addError(error, stackTrace);
+              }
             } else {
               controller.addError(error, stackTrace);
             }
@@ -99,10 +106,12 @@ class NewsService {
       final snapshot = await doc.get();
       if (snapshot.exists) continue;
       await doc.set({
-        ...item.toMap(),
+        'title': item.title,
+        'body': item.body,
+        'summary': item.body,
         'imageUrl': item.imageUrl,
-        'createdAt': Timestamp.fromDate(item.createdAt),
-        'updatedAt': Timestamp.fromDate(item.updatedAt),
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
         'published': true,
       });
     }
