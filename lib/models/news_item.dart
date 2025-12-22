@@ -9,6 +9,7 @@ class NewsItem {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool published;
+  final bool hasCreatedAt;
 
   NewsItem({
     required this.id,
@@ -18,10 +19,14 @@ class NewsItem {
     required this.createdAt,
     required this.updatedAt,
     required this.published,
+    this.hasCreatedAt = true,
   });
 
   factory NewsItem.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
+    final createdAtRaw = data['createdAt'];
+    final updatedAtRaw = data['updatedAt'];
+    final hasCreatedAt = createdAtRaw is Timestamp;
     return NewsItem(
       id: doc.id,
       title: (data['title'] ?? '') as String,
@@ -29,13 +34,13 @@ class NewsItem {
       imageUrl: (data['imageUrl'] ??
           'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1200')
       as String,
-      createdAt: (data['createdAt'] is Timestamp)
-          ? (data['createdAt'] as Timestamp).toDate()
-          : DateTime.now(),
-      updatedAt: (data['updatedAt'] is Timestamp)
-          ? (data['updatedAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      createdAt:
+          hasCreatedAt ? (createdAtRaw as Timestamp).toDate() : DateTime.now(),
+      updatedAt: (updatedAtRaw is Timestamp)
+          ? updatedAtRaw.toDate()
+          : (hasCreatedAt ? (createdAtRaw as Timestamp).toDate() : DateTime.now()),
       published: data['published'] == true,
+      hasCreatedAt: hasCreatedAt,
     );
   }
 
