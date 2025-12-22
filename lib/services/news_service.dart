@@ -14,6 +14,12 @@ class NewsService {
       _db.collection('news');
   static final _storage = FirebaseStorage.instance;
 
+  static Future<List<NewsItem>> _fetchPublished(
+      {required String orderByField}) async {
+    final snapshot = await _publishedQuery(orderByField: orderByField).get();
+    return snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList();
+  }
+
   static Query<Map<String, dynamic>> _publishedQuery({required String orderByField}) {
     return _col
         .where('published', isEqualTo: true)
@@ -63,6 +69,18 @@ class NewsService {
       listenTo(primaryStream);
       controller.onCancel = () => sub?.cancel();
     });
+  }
+
+  /// Noticias publicadas para la web pública (consulta única con fallback).
+  static Future<List<NewsItem>> fetchPublishedOnce() async {
+    try {
+      return await _fetchPublished(orderByField: 'createdAt');
+    } on FirebaseException catch (error) {
+      if (error.code == 'failed-precondition') {
+        return _fetchPublished(orderByField: 'updatedAt');
+      }
+      rethrow;
+    }
   }
 
   /// Crea una noticia nueva
