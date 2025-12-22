@@ -30,8 +30,8 @@ class GeodosApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<AuthService>(
-      create: (_) => AuthService.instance,
+    return ChangeNotifierProvider<AuthService>.value(
+      value: AuthService.instance,
       child: MaterialApp(
         title: 'Geodos',
         debugShowCheckedModeBanner: false,

@@ -43,6 +43,7 @@ class NewsItem {
     return {
       'title': title,
       'body': body,
+      'summary': body,
       'imageUrl': imageUrl,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
