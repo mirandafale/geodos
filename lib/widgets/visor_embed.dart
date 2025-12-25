@@ -124,7 +124,9 @@ class _ProjectsMap extends StatefulWidget {
 
 class _ProjectsMapState extends State<_ProjectsMap> {
   final _distance = const Distance();
+  final List<VoidCallback> _pendingCameraActions = [];
   double _zoom = 7;
+  bool _mapReady = false;
 
   @override
   void initState() {
@@ -136,9 +138,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   Widget build(BuildContext context) {
     final mapCtrl = widget.mapCtrl;
     final filters = widget.filters;
-
-  @override
-  Widget build(BuildContext context) {
     const center = LatLng(28.2916, -16.6291);
 
     return AnimatedBuilder(
@@ -218,25 +217,29 @@ class _ProjectsMapState extends State<_ProjectsMap> {
             }).toList();
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (projects.isNotEmpty) {
-                final latLngs = projects.map((p) => LatLng(p.lat, p.lon)).toList();
-                var swLat = latLngs.first.latitude;
-                var swLng = latLngs.first.longitude;
-                var neLat = swLat;
-                var neLng = swLng;
+              _enqueueCameraAction(() {
+                if (projects.isNotEmpty) {
+                  final latLngs = projects.map((p) => LatLng(p.lat, p.lon)).toList();
+                  var swLat = latLngs.first.latitude;
+                  var swLng = latLngs.first.longitude;
+                  var neLat = swLat;
+                  var neLng = swLng;
 
-                for (final ll in latLngs) {
-                  if (ll.latitude < swLat) swLat = ll.latitude;
-                  if (ll.longitude < swLng) swLng = ll.longitude;
-                  if (ll.latitude > neLat) neLat = ll.latitude;
-                  if (ll.longitude > neLng) neLng = ll.longitude;
+                  for (final ll in latLngs) {
+                    if (ll.latitude < swLat) swLat = ll.latitude;
+                    if (ll.longitude < swLng) swLng = ll.longitude;
+                    if (ll.latitude > neLat) neLat = ll.latitude;
+                    if (ll.longitude > neLng) neLng = ll.longitude;
+                  }
+
+                  final bounds = LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
+                  mapCtrl.fitCamera(
+                    CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60)),
+                  );
+                } else {
+                  mapCtrl.move(center, 7);
                 }
-
-                final bounds = LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
-                mapCtrl.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60)));
-              } else {
-                mapCtrl.move(center, 7);
-              }
+              });
             });
 
             return Stack(
@@ -246,6 +249,11 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   options: MapOptions(
                     initialCenter: center,
                     initialZoom: 7,
+                    onMapReady: () {
+                      if (!mounted) return;
+                      _mapReady = true;
+                      _flushCameraActions();
+                    },
                     onMapEvent: (event) {
                       if (!mounted) return;
                       if (_zoom != event.camera.zoom) {
@@ -306,6 +314,23 @@ class _ProjectsMapState extends State<_ProjectsMap> {
         );
       },
     );
+  }
+
+  void _enqueueCameraAction(VoidCallback action) {
+    if (_mapReady) {
+      action();
+      return;
+    }
+    _pendingCameraActions.add(action);
+  }
+
+  void _flushCameraActions() {
+    if (_pendingCameraActions.isEmpty) return;
+    final pending = List<VoidCallback>.from(_pendingCameraActions);
+    _pendingCameraActions.clear();
+    for (final action in pending) {
+      action();
+    }
   }
 
   List<_ProjectCluster> _buildClusters(List<Project> projects, double zoom) {
@@ -386,9 +411,11 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   TextButton(
                     onPressed: () {
                       Navigator.of(sheetContext).pop();
-                      final target = LatLng(project.lat, project.lon);
-                      final nextZoom = math.max(widget.mapCtrl.camera.zoom, 13);
-                      widget.mapCtrl.move(target, nextZoom);
+                      _enqueueCameraAction(() {
+                        final target = LatLng(project.lat, project.lon);
+                        final nextZoom = math.max(widget.mapCtrl.camera.zoom, 13);
+                        widget.mapCtrl.move(target, nextZoom);
+                      });
                     },
                     child: const Text('Ver'),
                   ),
