@@ -216,7 +216,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
             }).toList();
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              _enqueueCameraAction(() {
+              runWhenMapReady(() {
                 if (projects.isNotEmpty) {
                   final latLngs = projects.map((p) => LatLng(p.lat, p.lon)).toList();
                   var swLat = latLngs.first.latitude;
@@ -316,7 +316,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     );
   }
 
-  void _enqueueCameraAction(VoidCallback action) {
+  void runWhenMapReady(VoidCallback action) {
     if (_mapReady) {
       action();
       return;
@@ -411,7 +411,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   TextButton(
                     onPressed: () {
                       Navigator.of(sheetContext).pop();
-                      _enqueueCameraAction(() {
+                      runWhenMapReady(() {
                         final target = LatLng(project.lat, project.lon);
                         final nextZoom = math.max(_zoom, 13);
                         widget.mapCtrl.move(target, nextZoom);
