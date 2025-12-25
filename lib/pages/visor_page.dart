@@ -44,6 +44,19 @@ class _VisorPageState extends State<VisorPage> {
   Widget build(BuildContext context) {
     return AppShell(
       title: const Text('Visor de proyectos'),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          final navigator = Navigator.of(context);
+          if (navigator.canPop()) {
+            navigator.maybePop();
+          } else {
+            navigator.pushNamed('/');
+          }
+        },
+        icon: const Icon(Icons.arrow_back),
+        label: const Text('Volver'),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final vertical = constraints.maxWidth < 1100;
