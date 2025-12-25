@@ -34,8 +34,13 @@ class _VisorEmbedState extends State<VisorEmbed> {
 
   void _showBackdrop() {
     if (_backdrop != null) return;
+    final topOffset = MediaQuery.of(context).padding.top + kToolbarHeight;
     _backdrop = OverlayEntry(
-      builder: (_) => Positioned.fill(
+      builder: (_) => Positioned(
+        top: topOffset,
+        left: 0,
+        right: 0,
+        bottom: 0,
         child: GestureDetector(
           behavior: HitTestBehavior.translucent,
           onTap: _collapse,
@@ -135,25 +140,18 @@ class _ProjectsMap extends StatelessWidget {
               final color = _colorForCategory(context, p.category);
               return Marker(
                 point: LatLng(p.lat, p.lon),
-                width: 40,
-                height: 40,
+                width: 24,
+                height: 24,
                 child: Tooltip(
                   message: '${p.title}\n${p.category} · ${p.year ?? 's/f'}',
                   child: Center(
                     child: Container(
-                      width: 15,
-                      height: 15,
+                      width: 12,
+                      height: 12,
                       decoration: BoxDecoration(
                         color: color,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.25),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        border: Border.all(color: Colors.white, width: 1),
                       ),
                     ),
                   ),
@@ -285,10 +283,10 @@ class _Legend extends StatelessWidget {
             'Proyectos visibles: $total',
             style: t.labelLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Wrap(
-            spacing: 10,
-            runSpacing: 8,
+            spacing: 8,
+            runSpacing: 6,
             children: sorted
                 .map(
                   (raw) => ConstrainedBox(
