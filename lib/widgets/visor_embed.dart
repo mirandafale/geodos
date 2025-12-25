@@ -131,7 +131,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   @override
   void initState() {
     super.initState();
-    _zoom = widget.mapCtrl.camera.zoom;
   }
 
   @override
@@ -252,6 +251,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     onMapReady: () {
                       if (!mounted) return;
                       _mapReady = true;
+                      _zoom = widget.mapCtrl.camera.zoom;
                       _flushCameraActions();
                     },
                     onMapEvent: (event) {
@@ -413,7 +413,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                       Navigator.of(sheetContext).pop();
                       _enqueueCameraAction(() {
                         final target = LatLng(project.lat, project.lon);
-                        final nextZoom = math.max(widget.mapCtrl.camera.zoom, 13);
+                        final nextZoom = math.max(_zoom, 13);
                         widget.mapCtrl.move(target, nextZoom);
                       });
                     },
