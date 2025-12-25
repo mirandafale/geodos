@@ -11,6 +11,7 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/widgets/project_info_dialog.dart';
 
 class VisorEmbed extends StatefulWidget {
   final bool startExpanded;
@@ -181,34 +182,61 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   ),
                 );
               }
+              final clusterCategories = _clusterCategories(cluster.items);
+              final clusterColor = _clusterColor(context, clusterCategories);
               return Marker(
                 point: cluster.center,
-                width: 36,
-                height: 36,
+                width: 30,
+                height: 30,
                 child: Tooltip(
                   message: '${cluster.items.length} proyectos',
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => _openClusterSheet(context, cluster.items),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black87, width: 1.5),
-                        boxShadow: const [
-                          BoxShadow(color: Colors.black26, blurRadius: 4),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${cluster.items.length}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: Colors.black87,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: clusterColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 3),
+                            ],
                           ),
                         ),
-                      ),
+                        Text(
+                          '${cluster.items.length}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                            color: Colors.white,
+                          ),
+                        ),
+                        if (clusterCategories.length > 1)
+                          Positioned(
+                            bottom: 4,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: clusterCategories
+                                  .take(3)
+                                  .map(
+                                    (category) => Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                                      width: 5,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: _colorForCategory(context, category),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 0.6),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -366,59 +394,100 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   void _openClusterSheet(BuildContext context, List<Project> projects) {
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      enableDrag: true,
       showDragHandle: true,
       builder: (sheetContext) {
+        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.55;
         return SafeArea(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            itemCount: projects.length,
-            separatorBuilder: (_, __) => const Divider(height: 24),
-            itemBuilder: (_, index) {
-              final project = projects[index];
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: _colorForCategory(context, project.category),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          project.title,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 12, 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Proyectos del cluster (${projects.length})',
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${_normalizeCategory(project.category)} · ${project.year ?? 's/f'}',
-                          style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        child: const Text('Cerrar'),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    itemCount: projects.length,
+                    separatorBuilder: (_, __) => const Divider(height: 24),
+                    itemBuilder: (_, index) {
+                      final project = projects[index];
+                      return InkWell(
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          runWhenMapReady(() {
+                            final target = LatLng(project.lat, project.lon);
+                            widget.mapCtrl.move(target, 13.5);
+                          });
+                        },
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.only(top: 6),
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: _colorForCategory(context, project.category),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    project.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.titleSmall,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${_normalizeCategory(project.category)} · ${project.year ?? 's/f'} · ${project.municipality}',
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            TextButton(
+                              onPressed: () {
+                                showDialog<void>(
+                                  context: sheetContext,
+                                  builder: (_) => ProjectInfoDialog(project: project),
+                                );
+                              },
+                              child: const Text('Ver'),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(sheetContext).pop();
-                      runWhenMapReady(() {
-                        final target = LatLng(project.lat, project.lon);
-                        final nextZoom = math.max(_zoom, 13);
-                        widget.mapCtrl.move(target, nextZoom);
-                      });
+                      );
                     },
-                    child: const Text('Ver'),
                   ),
-                ],
-              );
-            },
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -460,6 +529,19 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       hash = (hash * 0x01000193) & 0x7fffffff;
     }
     return hash;
+  }
+
+  List<String> _clusterCategories(List<Project> projects) {
+    final categories = projects.map((project) => project.category).toSet().toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return categories;
+  }
+
+  Color _clusterColor(BuildContext context, List<String> categories) {
+    if (categories.length == 1) {
+      return _colorForCategory(context, categories.first);
+    }
+    return Brand.primary;
   }
 
   String _normalizeCategory(String raw) {
