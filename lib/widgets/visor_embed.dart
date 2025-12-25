@@ -124,6 +124,11 @@ class _ProjectsMap extends StatefulWidget {
 
 class _ProjectsMapState extends State<_ProjectsMap> {
   final _distance = const Distance();
+  final FiltersController filters = FiltersController.instance;
+  bool _mapReady = false;
+  VoidCallback? _pendingCameraAction;
+
+
   double _zoom = 7;
 
   @override
@@ -131,12 +136,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     super.initState();
     _zoom = widget.mapCtrl.camera.zoom;
   }
-
-  @override
-  Widget build(BuildContext context) {
-    final mapCtrl = widget.mapCtrl;
-    final filters = widget.filters;
-
   @override
   Widget build(BuildContext context) {
     const center = LatLng(28.2916, -16.6291);
@@ -168,7 +167,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   height: 24,
                   child: Tooltip(
                     message:
-                        '${project.title}\n${project.category} · ${project.year ?? 's/f'}',
+                    '${project.title}\n${project.category} · ${project.year ?? 's/f'}',
                     child: Center(
                       child: Container(
                         width: 12,
@@ -233,16 +232,23 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                 }
 
                 final bounds = LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
-                mapCtrl.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60)));
+                widget.mapCtrl.fitCamera(
+                  CameraFit.bounds(
+                    bounds: bounds,
+                    padding: const EdgeInsets.all(60),
+                  ),
+                );
+
               } else {
-                mapCtrl.move(center, 7);
+                widget.mapCtrl.move(center, 7);
+
               }
             });
 
             return Stack(
               children: [
                 FlutterMap(
-                  mapController: mapCtrl,
+                  mapController: widget.mapCtrl,
                   options: MapOptions(
                     initialCenter: center,
                     initialZoom: 7,
@@ -388,7 +394,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                       Navigator.of(sheetContext).pop();
                       final target = LatLng(project.lat, project.lon);
                       final nextZoom = math.max(widget.mapCtrl.camera.zoom, 13);
-                      widget.mapCtrl.move(target, nextZoom);
+                      widget.mapCtrl.move(target, nextZoom.toDouble());
                     },
                     child: const Text('Ver'),
                   ),
@@ -460,9 +466,9 @@ class _Legend extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final titleStyle = t.labelSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 10,
-        ) ??
+      fontWeight: FontWeight.w600,
+      fontSize: 10,
+    ) ??
         const TextStyle(fontWeight: FontWeight.w600, fontSize: 10);
     final itemStyle =
         t.labelSmall?.copyWith(fontSize: 9) ?? const TextStyle(fontSize: 9);
@@ -488,31 +494,31 @@ class _Legend extends StatelessWidget {
                 children: sorted
                     .map(
                       (raw) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: colorForCategory(raw),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                _normalizeCategory(raw),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: itemStyle,
-                              ),
-                            ),
-                          ],
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.max,
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: colorForCategory(raw),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                    )
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _normalizeCategory(raw),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: itemStyle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
                     .toList(),
               ),
             ),
