@@ -124,7 +124,7 @@ class _ProjectsMap extends StatefulWidget {
 
 class _ProjectsMapState extends State<_ProjectsMap> {
   final _distance = const Distance();
-  final List<VoidCallback> _pendingCameraActions = [];
+  VoidCallback? _pendingCameraAction;
   double _zoom = 7;
   bool _mapReady = false;
 
@@ -321,16 +321,13 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       action();
       return;
     }
-    _pendingCameraActions.add(action);
+    _pendingCameraAction = action;
   }
 
   void _flushCameraActions() {
-    if (_pendingCameraActions.isEmpty) return;
-    final pending = List<VoidCallback>.from(_pendingCameraActions);
-    _pendingCameraActions.clear();
-    for (final action in pending) {
-      action();
-    }
+    final pending = _pendingCameraAction;
+    _pendingCameraAction = null;
+    pending?.call();
   }
 
   List<_ProjectCluster> _buildClusters(List<Project> projects, double zoom) {
