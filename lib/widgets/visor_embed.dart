@@ -183,11 +183,11 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                 );
               }
               final clusterCategories = _clusterCategories(cluster.items);
-              final clusterColor = _clusterColor(context, clusterCategories);
+              final clusterColor = _dominantClusterColor(context, cluster.items);
               return Marker(
                 point: cluster.center,
-                width: 30,
-                height: 30,
+                width: 28,
+                height: 28,
                 child: Tooltip(
                   message: '${cluster.items.length} proyectos',
                   child: GestureDetector(
@@ -399,15 +399,23 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       enableDrag: true,
       showDragHandle: true,
       builder: (sheetContext) {
-        final maxHeight = MediaQuery.of(sheetContext).size.height * 0.55;
+        final screenHeight = MediaQuery.of(sheetContext).size.height;
+        final minHeight = 180.0;
+        final maxHeight = screenHeight * 0.6;
+        const headerHeight = 52.0;
+        const itemHeight = 78.0;
+        final listPadding = projects.isEmpty ? 24.0 : 36.0;
+        final desiredHeight =
+            headerHeight + (projects.length * itemHeight) + listPadding + 1;
+        final sheetHeight =
+            desiredHeight.clamp(minHeight, maxHeight).toDouble();
         return SafeArea(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
+          child: SizedBox(
+            height: sheetHeight,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 12, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
                   child: Row(
                     children: [
                       Expanded(
@@ -416,15 +424,16 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                       ),
-                      TextButton(
+                      IconButton(
                         onPressed: () => Navigator.of(sheetContext).pop(),
-                        child: const Text('Cerrar'),
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Cerrar',
                       ),
                     ],
                   ),
                 ),
                 const Divider(height: 1),
-                Flexible(
+                Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                     itemCount: projects.length,
@@ -542,6 +551,22 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       return _colorForCategory(context, categories.first);
     }
     return Brand.primary;
+  }
+
+  Color _dominantClusterColor(BuildContext context, List<Project> projects) {
+    final counts = <String, int>{};
+    var bestCategory = projects.first.category;
+    var bestCount = 0;
+    for (final project in projects) {
+      final category = project.category;
+      final nextCount = (counts[category] ?? 0) + 1;
+      counts[category] = nextCount;
+      if (nextCount > bestCount) {
+        bestCount = nextCount;
+        bestCategory = category;
+      }
+    }
+    return _colorForCategory(context, bestCategory);
   }
 
   String _normalizeCategory(String raw) {
