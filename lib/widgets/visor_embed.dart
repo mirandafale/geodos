@@ -244,7 +244,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
             }).toList();
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              runWhenMapReady(() {
+              _runWhenMapReady(() {
                 if (projects.isNotEmpty) {
                   final latLngs = projects.map((p) => LatLng(p.lat, p.lon)).toList();
                   var swLat = latLngs.first.latitude;
@@ -344,7 +344,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     );
   }
 
-  void runWhenMapReady(VoidCallback action) {
+  void _runWhenMapReady(VoidCallback action) {
     if (_mapReady) {
       action();
       return;
@@ -443,7 +443,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                       return InkWell(
                         onTap: () {
                           Navigator.of(sheetContext).pop();
-                          runWhenMapReady(() {
+                          _runWhenMapReady(() {
                             final target = LatLng(project.lat, project.lon);
                             widget.mapCtrl.move(target, 13.5);
                           });
