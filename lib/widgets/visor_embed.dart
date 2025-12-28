@@ -279,7 +279,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     onMapReady: () {
                       if (!mounted) return;
                       _mapReady = true;
-                      _zoom = widget.mapCtrl.camera.zoom;
                       _flushCameraActions();
                     },
                     onMapEvent: (event) {
