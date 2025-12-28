@@ -1,7 +1,3 @@
-// visor_embed.dart adaptado con mejoras funcionales y leyenda de categorías
-
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -22,7 +18,7 @@ class VisorEmbed extends StatefulWidget {
 }
 
 class _VisorEmbedState extends State<VisorEmbed> {
-  late bool _expanded;
+  bool _expanded = false;
   OverlayEntry? _backdrop;
   final _mapCtrl = MapController();
   final _legendKey = GlobalKey();
@@ -33,7 +29,8 @@ class _VisorEmbedState extends State<VisorEmbed> {
     _expanded = widget.startExpanded;
   }
 
-  double get _targetHeight => _expanded ? MediaQuery.of(context).size.height * 0.8 : 360;
+  double get _targetHeight =>
+      _expanded ? MediaQuery.of(context).size.height * 0.8 : 360;
 
   void _showBackdrop() {
     if (_backdrop != null) return;
@@ -130,11 +127,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   bool _mapReady = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final mapCtrl = widget.mapCtrl;
     final filters = widget.filters;
@@ -143,7 +135,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     return AnimatedBuilder(
       animation: filters,
       builder: (ctx, _) {
-        final st = filters.state;
+        final FiltersState st = filters.state;
 
         return StreamBuilder<List<Project>>(
           stream: ProjectService.stream(
@@ -160,7 +152,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
             final markers = clusters.map((cluster) {
               if (cluster.items.length == 1) {
                 final project = cluster.items.first;
-                final color = _colorForCategory(context, project.category);
+                final color = _categoryColor(context, project.category);
                 return Marker(
                   point: cluster.center,
                   width: 24,
@@ -183,7 +175,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                 );
               }
               final clusterCategories = _clusterCategories(cluster.items);
-              final clusterColor = _dominantClusterColor(context, cluster.items);
+              final clusterColor =
+                  _dominantClusterColor(context, cluster.items);
               return Marker(
                 point: cluster.center,
                 width: 28,
@@ -223,13 +216,16 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                                   .take(3)
                                   .map(
                                     (category) => Container(
-                                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                                      margin:
+                                          const EdgeInsets.symmetric(horizontal: 1),
                                       width: 5,
                                       height: 5,
                                       decoration: BoxDecoration(
-                                        color: _colorForCategory(context, category),
+                                        color:
+                                            _categoryColor(context, category),
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: Colors.white, width: 0.6),
+                                        border: Border.all(
+                                            color: Colors.white, width: 0.6),
                                       ),
                                     ),
                                   )
@@ -246,7 +242,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _runWhenMapReady(() {
                 if (projects.isNotEmpty) {
-                  final latLngs = projects.map((p) => LatLng(p.lat, p.lon)).toList();
+                  final latLngs =
+                      projects.map((p) => LatLng(p.lat, p.lon)).toList();
                   var swLat = latLngs.first.latitude;
                   var swLng = latLngs.first.longitude;
                   var neLat = swLat;
@@ -259,15 +256,21 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     if (ll.longitude > neLng) neLng = ll.longitude;
                   }
 
-                  final bounds = LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
+                  final bounds =
+                      LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
                   mapCtrl.fitCamera(
-                    CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60)),
+                    CameraFit.bounds(
+                        bounds: bounds, padding: const EdgeInsets.all(60)),
                   );
                 } else {
                   mapCtrl.move(center, 7);
                 }
               });
             });
+
+            final emptyMessage = snap.hasError
+                ? snap.error.toString()
+                : 'No hay proyectos que coincidan con el filtro.';
 
             return Stack(
               children: [
@@ -287,11 +290,13 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                         setState(() => _zoom = event.camera.zoom);
                       }
                     },
-                    interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
+                    interactionOptions:
+                        InteractionOptions(flags: InteractiveFlag.all),
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
@@ -306,9 +311,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            ProjectService.lastRemoteCount == 0
-                                ? 'No hay proyectos disponibles desde Firestore. Añade un proyecto o ajusta los filtros.'
-                                : 'No hay proyectos visibles con los filtros actuales.',
+                            emptyMessage,
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 10),
@@ -330,9 +333,10 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   right: 12,
                   child: _Legend(
                     key: widget.legendKey,
-                    categories: projects.map((e) => e.category).toSet().toList(),
+                    categories:
+                        projects.map((e) => e.category).toSet().toList(),
                     total: projects.length,
-                    colorForCategory: (c) => _colorForCategory(context, c),
+                    colorForCategory: (c) => _categoryColor(context, c),
                   ),
                 ),
               ],
@@ -455,7 +459,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                               width: 10,
                               height: 10,
                               decoration: BoxDecoration(
-                                color: _colorForCategory(context, project.category),
+                                color:
+                                    _categoryColor(context, project.category),
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -483,7 +488,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                               onPressed: () {
                                 showDialog<void>(
                                   context: sheetContext,
-                                  builder: (_) => ProjectInfoDialog(project: project),
+                                  builder: (_) =>
+                                      ProjectInfoDialog(project: project),
                                 );
                               },
                               child: const Text('Ver'),
@@ -502,10 +508,12 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     );
   }
 
-  Color _colorForCategory(BuildContext context, String category) {
+  Color _categoryColor(BuildContext context, String category) {
     final c = category.toUpperCase();
     if (c.contains('MEDIOAMBIENTE')) return Colors.green.shade700;
-    if (c.contains('ORDENACION') || c.contains('ORDENACIÓN')) return Brand.primary;
+    if (c.contains('ORDENACION') || c.contains('ORDENACIÓN')) {
+      return Brand.primary;
+    }
     if (c.contains('PATRIMONIO')) return Colors.purple.shade700;
     if (c.contains('ESTUDIOS') || c.contains('DESARROLLO')) {
       return Colors.teal.shade700;
@@ -540,16 +548,10 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   }
 
   List<String> _clusterCategories(List<Project> projects) {
-    final categories = projects.map((project) => project.category).toSet().toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final categories =
+        projects.map((project) => project.category).toSet().toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return categories;
-  }
-
-  Color _clusterColor(BuildContext context, List<String> categories) {
-    if (categories.length == 1) {
-      return _colorForCategory(context, categories.first);
-    }
-    return Brand.primary;
   }
 
   Color _dominantClusterColor(BuildContext context, List<Project> projects) {
@@ -565,7 +567,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
         bestCategory = category;
       }
     }
-    return _colorForCategory(context, bestCategory);
+    return _categoryColor(context, bestCategory);
   }
 
   String _normalizeCategory(String raw) {
