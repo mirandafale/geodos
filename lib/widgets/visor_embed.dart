@@ -130,11 +130,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   bool _mapReady = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final mapCtrl = widget.mapCtrl;
     final filters = widget.filters;
@@ -278,8 +273,9 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     initialZoom: 7,
                     onMapReady: () {
                       if (!mounted) return;
-                      _mapReady = true;
-                      _zoom = widget.mapCtrl.camera.zoom;
+                      setState(() {
+                        _mapReady = true;
+                      });
                       _flushCameraActions();
                     },
                     onMapEvent: (event) {
