@@ -51,7 +51,8 @@ class _CoordinatePickerState extends State<CoordinatePicker> {
     if (widget.lonCtrl.text != lonText) widget.lonCtrl.text = lonText;
     setState(() => _selected = point);
     if (moveCamera) {
-      _mapCtrl.move(point, math.max(_mapCtrl.camera.zoom, 12));
+      _mapCtrl.move(point, 12);
+
     }
   }
 

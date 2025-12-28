@@ -11,112 +11,49 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/brand/brand.dart';
+
 
 class VisorEmbed extends StatefulWidget {
-  final bool startExpanded;
   const VisorEmbed({super.key, this.startExpanded = false});
+
+  final bool startExpanded;
 
   @override
   State<VisorEmbed> createState() => _VisorEmbedState();
 }
 
 class _VisorEmbedState extends State<VisorEmbed> {
-  late bool _expanded;
-  OverlayEntry? _backdrop;
-  final _mapCtrl = MapController();
-  final _legendKey = GlobalKey();
+  late final MapController _mapCtrl;
+  late final FiltersController filters;
 
   @override
   void initState() {
     super.initState();
-    _expanded = widget.startExpanded;
-  }
-
-  double get _targetHeight => _expanded ? MediaQuery.of(context).size.height * 0.8 : 360;
-
-  void _showBackdrop() {
-    if (_backdrop != null) return;
-    final topOffset = MediaQuery.of(context).padding.top + kToolbarHeight;
-    _backdrop = OverlayEntry(
-      builder: (_) => Positioned(
-        top: topOffset,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: _collapse,
-          child: Container(color: Colors.transparent),
-        ),
-      ),
-    );
-    Overlay.of(context, rootOverlay: true).insert(_backdrop!);
-  }
-
-  void _removeBackdrop() {
-    _backdrop?.remove();
-    _backdrop = null;
-  }
-
-  void _expand() {
-    if (!_expanded) {
-      setState(() => _expanded = true);
-      _showBackdrop();
-    }
-  }
-
-  void _collapse() {
-    if (_expanded) {
-      setState(() => _expanded = false);
-      _removeBackdrop();
-    }
-  }
-
-  @override
-  void dispose() {
-    _removeBackdrop();
-    super.dispose();
+    _mapCtrl = MapController();
+    filters = FiltersController.instance;
   }
 
   @override
   Widget build(BuildContext context) {
-    final filters = FiltersController.instance;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-      height: _targetHeight,
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 6)),
-        ],
-      ),
-      child: Listener(
-        onPointerDown: (_) => _expand(),
-        child: _ProjectsMap(
-          mapCtrl: _mapCtrl,
-          filters: filters,
-          legendKey: _legendKey,
-        ),
-      ),
+    return _ProjectsMap(
+      mapCtrl: _mapCtrl,
+      filters: filters,
+      startExpanded: widget.startExpanded,
     );
   }
 }
 
 class _ProjectsMap extends StatefulWidget {
-  final MapController mapCtrl;
-  final FiltersController filters;
-  final GlobalKey legendKey;
-
   const _ProjectsMap({
     required this.mapCtrl,
     required this.filters,
-    required this.legendKey,
+    required this.startExpanded,
   });
+
+  final MapController mapCtrl;
+  final FiltersController filters;
+  final bool startExpanded;
 
   @override
   State<_ProjectsMap> createState() => _ProjectsMapState();
@@ -124,26 +61,86 @@ class _ProjectsMap extends StatefulWidget {
 
 class _ProjectsMapState extends State<_ProjectsMap> {
   final _distance = const Distance();
-  final FiltersController filters = FiltersController.instance;
+
+  OverlayEntry? _backdrop;
+  bool _expanded = false;
+  double _zoom = 7;
+
+  // --- Map readiness gate (avoid using MapController before FlutterMap renders) ---
+
   bool _mapReady = false;
   VoidCallback? _pendingCameraAction;
 
 
-  double _zoom = 7;
+  Color _categoryColor(BuildContext context, String category) {
+    final c = category.trim().toLowerCase();
+
+    if (c.contains('impacto')) return Colors.green.shade700;
+    if (c.contains('urban')) return Colors.blue.shade700;
+    if (c.contains('paisaje')) return Colors.teal.shade700;
+    if (c.contains('patrimonio')) return Colors.brown.shade700;
+    if (c.contains('sig') || c.contains('información')) return Colors.indigo.shade700;
+    if (c.contains('geomarketing')) return Colors.deepPurple.shade700;
+
+    return Theme.of(context).colorScheme.primary;
+  }
+
+  void _runWhenMapReady(VoidCallback action) {
+    if (_mapReady) {
+      action();
+    } else {
+      _pendingCameraAction = action;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _zoom = widget.mapCtrl.camera.zoom;
+    _expanded = widget.startExpanded;
   }
+
+  @override
+  void dispose() {
+    _backdrop?.remove();
+    _backdrop = null;
+    super.dispose();
+  }
+
+  double get _targetHeight =>
+      _expanded ? MediaQuery.of(context).size.height * 0.8 : 360;
+
+  void _showBackdrop() {
+    if (_backdrop != null) return;
+    final topOffset = MediaQuery.of(context).padding.top + kToolbarHeight;
+    _backdrop = OverlayEntry(
+      builder: (_) => Positioned(
+        left: 0,
+        right: 0,
+        top: topOffset,
+        bottom: 0,
+        child: GestureDetector(
+          onTap: _hideBackdrop,
+          child: Container(color: Colors.black.withOpacity(0.15)),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_backdrop!);
+  }
+
+  void _hideBackdrop() {
+    _backdrop?.remove();
+    _backdrop = null;
+    if (_expanded) setState(() => _expanded = false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    const center = LatLng(28.2916, -16.6291);
+    final center = const LatLng(28.3, -15.5);
 
     return AnimatedBuilder(
-      animation: filters,
+      animation: widget.filters,
       builder: (ctx, _) {
-        final st = filters.state;
+        final st = widget.filters.state;
 
         return StreamBuilder<List<Project>>(
           stream: ProjectService.stream(
@@ -159,33 +156,32 @@ class _ProjectsMapState extends State<_ProjectsMap> {
             final clusters = _buildClusters(projects, _zoom);
             final markers = clusters.map((cluster) {
               if (cluster.items.length == 1) {
-                final project = cluster.items.first;
-                final color = _colorForCategory(context, project.category);
+                final proj = cluster.items.first;
                 return Marker(
                   point: cluster.center,
-                  width: 24,
-                  height: 24,
+                  width: 40,
+                  height: 40,
                   child: Tooltip(
-                    message:
-                    '${project.title}\n${project.category} · ${project.year ?? 's/f'}',
-                    child: Center(
+                    message: proj.title,
+                    child: InkWell(
+                      onTap: () => _openProjectDialog(context, proj),
                       child: Container(
-                        width: 12,
-                        height: 12,
                         decoration: BoxDecoration(
-                          color: color,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1),
+                          color: _categoryColor(context, category)
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
+                        child: const Icon(Icons.place, color: Colors.white),
                       ),
                     ),
                   ),
                 );
               }
+
               return Marker(
                 point: cluster.center,
-                width: 36,
-                height: 36,
+                width: 30,
+                height: 30,
                 child: Tooltip(
                   message: '${cluster.items.length} proyectos',
                   child: GestureDetector(
@@ -193,9 +189,12 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     onTap: () => _openClusterSheet(context, cluster.items),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Brand.categoryColor(
+                          context,
+                          _dominantCategory(cluster.items),
+                        ),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.black87, width: 1.5),
+                        border: Border.all(color: Colors.white, width: 1.5),
                         boxShadow: const [
                           BoxShadow(color: Colors.black26, blurRadius: 4),
                         ],
@@ -204,9 +203,9 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                         child: Text(
                           '${cluster.items.length}',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             fontSize: 12,
-                            color: Colors.black87,
+                            color: Colors.white,
                           ),
                         ),
                       ),
@@ -216,9 +215,13 @@ class _ProjectsMapState extends State<_ProjectsMap> {
               );
             }).toList();
 
+            // Ajuste de cámara: usar MapController solo cuando el mapa esté listo.
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+
               if (projects.isNotEmpty) {
-                final latLngs = projects.map((p) => LatLng(p.lat, p.lon)).toList();
+                final latLngs =
+                projects.map((p) => LatLng(p.lat, p.lon)).toList();
                 var swLat = latLngs.first.latitude;
                 var swLng = latLngs.first.longitude;
                 var neLat = swLat;
@@ -231,17 +234,21 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   if (ll.longitude > neLng) neLng = ll.longitude;
                 }
 
-                final bounds = LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
-                widget.mapCtrl.fitCamera(
-                  CameraFit.bounds(
-                    bounds: bounds,
-                    padding: const EdgeInsets.all(60),
-                  ),
-                );
+                final bounds =
+                LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
 
+                _runWhenMapReady(() {
+                  widget.mapCtrl.fitCamera(
+                    CameraFit.bounds(
+                      bounds: bounds,
+                      padding: const EdgeInsets.all(60),
+                    ),
+                  );
+                });
               } else {
-                widget.mapCtrl.move(center, 7);
-
+                _runWhenMapReady(() {
+                  widget.mapCtrl.move(center, 7);
+                });
               }
             });
 
@@ -252,22 +259,47 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   options: MapOptions(
                     initialCenter: center,
                     initialZoom: 7,
+                    onMapReady: () {
+                      if (!mounted) return;
+                      setState(() => _mapReady = true);
+
+                      final pending = _pendingCameraAction;
+                      _pendingCameraAction = null;
+                      pending?.call();
+                    },
                     onMapEvent: (event) {
                       if (!mounted) return;
                       if (_zoom != event.camera.zoom) {
                         setState(() => _zoom = event.camera.zoom);
                       }
                     },
-                    interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
+                    interactionOptions:
+                    const InteractionOptions(flags: InteractiveFlag.all),
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
                     MarkerLayer(markers: markers),
                   ],
+                ),
+                _LegendOverlay(
+                  expanded: _expanded,
+                  targetHeight: _targetHeight,
+                  onOpen: () {
+                    if (_expanded) return;
+                    setState(() => _expanded = true);
+                    _showBackdrop();
+                  },
+                  onClose: _hideBackdrop,
+                  category: st.category,
+                  scope: st.scope?.name,
+                  island: st.island,
+                  year: st.year,
+                  search: st.search,
                 ),
                 if (projects.isEmpty)
                   Center(
@@ -277,35 +309,13 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            ProjectService.lastRemoteCount == 0
-                                ? 'No hay proyectos disponibles desde Firestore. Añade un proyecto o ajusta los filtros.'
-                                : 'No hay proyectos visibles con los filtros actuales.',
+                            (snap.hasError ? snap.error.toString() : 'No hay proyectos que coincidan con el filtro.'),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 10),
-                          ElevatedButton.icon(
-                            onPressed: filters.reset,
-                            icon: const Icon(Icons.visibility),
-                            label: const Text('Ver todos'),
-                          ),
-                          if (kDebugMode) ...[
-                            const SizedBox(height: 14),
-                            _DebugEmptyPanel(filtersState: st),
-                          ],
                         ],
                       ),
                     ),
                   ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: _Legend(
-                    key: widget.legendKey,
-                    categories: projects.map((e) => e.category).toSet().toList(),
-                    total: projects.length,
-                    colorForCategory: (c) => _colorForCategory(context, c),
-                  ),
-                ),
               ],
             );
           },
@@ -314,91 +324,188 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     );
   }
 
-  List<_ProjectCluster> _buildClusters(List<Project> projects, double zoom) {
-    final threshold = _clusterThresholdMeters(zoom);
-    final clusters = <_ProjectCluster>[];
+  String _dominantCategory(List<Project> items) {
+    final counts = <String, int>{};
+    for (final p in items) {
+      counts[p.category] = (counts[p.category] ?? 0) + 1;
+    }
+    var bestKey = items.first.category;
+    var bestVal = -1;
+    for (final e in counts.entries) {
+      if (e.value > bestVal) {
+        bestVal = e.value;
+        bestKey = e.key;
+      }
+    }
+    return bestKey;
+  }
 
-    for (final project in projects) {
-      final point = LatLng(project.lat, project.lon);
-      _ProjectCluster? match;
-      for (final cluster in clusters) {
-        final distance = _distance.as(LengthUnit.Meter, point, cluster.center);
-        if (distance <= threshold) {
-          match = cluster;
+  List<_Cluster> _buildClusters(List<Project> projects, double zoom) {
+    final thresholdMeters = _thresholdForZoom(zoom);
+
+    final clusters = <_Cluster>[];
+    for (final p in projects) {
+      final point = LatLng(p.lat, p.lon);
+
+      _Cluster? found;
+      for (final c in clusters) {
+        final d = _distance.as(LengthUnit.Meter, c.center, point);
+        if (d <= thresholdMeters) {
+          found = c;
           break;
         }
       }
-      if (match == null) {
-        clusters.add(_ProjectCluster(point, [project]));
+
+      if (found == null) {
+        clusters.add(_Cluster(center: point, items: [p]));
       } else {
-        match.items.add(project);
-        match.recenter();
+        found.items.add(p);
+        found.center = _averageLatLng(found.items);
       }
     }
     return clusters;
   }
 
-  double _clusterThresholdMeters(double zoom) {
-    const minZoom = 11.0;
-    const maxZoom = 15.0;
-    const maxThreshold = 80.0;
-    const minThreshold = 40.0;
-    final t = ((zoom - minZoom) / (maxZoom - minZoom)).clamp(0.0, 1.0);
-    return maxThreshold + (minThreshold - maxThreshold) * t;
+  double _thresholdForZoom(double zoom) {
+    if (zoom >= 13) return 60;
+    if (zoom >= 11) return 120;
+    if (zoom >= 9) return 250;
+    return 450;
+  }
+
+  LatLng _averageLatLng(List<Project> items) {
+    var lat = 0.0;
+    var lng = 0.0;
+    for (final p in items) {
+      lat += p.lat;
+      lng += p.lon;
+    }
+    return LatLng(lat / items.length, lng / items.length);
+  }
+
+  void _openProjectDialog(BuildContext context, Project proj) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(proj.title),
+        content: Text(proj.description ?? ''),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _openClusterSheet(BuildContext context, List<Project> projects) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (sheetContext) {
         return SafeArea(
-          child: ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            itemCount: projects.length,
-            separatorBuilder: (_, __) => const Divider(height: 24),
-            itemBuilder: (_, index) {
-              final project = projects[index];
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: _colorForCategory(context, project.category),
-                      shape: BoxShape.circle,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              const headerH = 52.0;
+              const rowH = 64.0;
+              const paddingV = 24.0;
+
+              final desired = headerH + (projects.length * rowH) + paddingV;
+              final maxH = constraints.maxHeight * 0.60;
+              final sheetH = desired.clamp(160.0, maxH);
+
+              return SizedBox(
+                height: sheetH,
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: headerH,
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              'Proyectos (${projects.length})',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Cerrar',
+                            onPressed: () => Navigator.of(sheetContext).pop(),
+                            icon: const Icon(Icons.close),
+                          ),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          project.title,
-                          style: Theme.of(context).textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${_normalizeCategory(project.category)} · ${project.year ?? 's/f'}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
+                    const Divider(height: 1),
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        itemCount: projects.length,
+                        separatorBuilder: (_, __) =>
+                        const Divider(height: 24),
+                        itemBuilder: (_, index) {
+                          final project = projects[index];
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: _categoryColor(
+                                      context, _dominantCategory(cluster.items),)
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      project.title,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${project.category} · ${project.year ?? 's/f'}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(sheetContext).pop();
+                                  final target =
+                                  LatLng(project.lat, project.lon);
+                                  final nextZoom = math.max(_zoom, 13);
+
+                                  _runWhenMapReady(() {
+                                    widget.mapCtrl.move(
+                                        target, nextZoom.toDouble());
+                                  });
+                                },
+                                child: const Text('Ver'),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(sheetContext).pop();
-                      final target = LatLng(project.lat, project.lon);
-                      final nextZoom = math.max(widget.mapCtrl.camera.zoom, 13);
-                      widget.mapCtrl.move(target, nextZoom.toDouble());
-                    },
-                    child: const Text('Ver'),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
           ),
@@ -406,198 +513,125 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       },
     );
   }
-
-  Color _colorForCategory(BuildContext context, String category) {
-    final c = category.toUpperCase();
-    if (c.contains('MEDIOAMBIENTE')) return Colors.green.shade700;
-    if (c.contains('ORDENACION') || c.contains('ORDENACIÓN')) return Brand.primary;
-    if (c.contains('PATRIMONIO')) return Colors.purple.shade700;
-    if (c.contains('ESTUDIOS') || c.contains('DESARROLLO')) {
-      return Colors.teal.shade700;
-    }
-    if (c.contains('SIG') ||
-        c.contains('SISTEMA DE INFORMACION GEOGRAFICA') ||
-        c.contains('SISTEMA DE INFORMACIÓN GEOGRÁFICA')) {
-      return Colors.indigo.shade700;
-    }
-    if (c.contains('SISTEMAS')) return Colors.orange.shade800;
-    final palette = [
-      Colors.red.shade700,
-      Colors.blueGrey.shade700,
-      Colors.cyan.shade700,
-      Colors.lime.shade700,
-      Colors.pink.shade600,
-      Colors.amber.shade800,
-      Colors.deepPurple.shade600,
-      Colors.lightBlue.shade700,
-    ];
-    final index = _stableHash(c) % palette.length;
-    return palette[index];
-  }
-
-  int _stableHash(String input) {
-    var hash = 0x811c9dc5;
-    for (final codeUnit in input.codeUnits) {
-      hash ^= codeUnit;
-      hash = (hash * 0x01000193) & 0x7fffffff;
-    }
-    return hash;
-  }
-
-  String _normalizeCategory(String raw) {
-    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return normalized.isEmpty ? raw.trim() : normalized;
-  }
 }
 
-class _Legend extends StatelessWidget {
-  final List<String> categories;
-  final int total;
-  final Color Function(String) colorForCategory;
+class _Cluster {
+  _Cluster({required this.center, required this.items});
+  LatLng center;
+  final List<Project> items;
+}
 
-  const _Legend({
-    super.key,
-    required this.categories,
-    required this.total,
-    required this.colorForCategory,
+class _LegendOverlay extends StatelessWidget {
+  const _LegendOverlay({
+    required this.expanded,
+    required this.targetHeight,
+    required this.onOpen,
+    required this.onClose,
+    required this.category,
+    required this.scope,
+    required this.island,
+    required this.year,
+    required this.search,
   });
+
+  final bool expanded;
+  final double targetHeight;
+  final VoidCallback onOpen;
+  final VoidCallback onClose;
+
+  final String? category;
+  final String? scope;
+  final String? island;
+  final int? year;
+  final String? search;
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final titleStyle = t.labelSmall?.copyWith(
-      fontWeight: FontWeight.w600,
-      fontSize: 10,
-    ) ??
-        const TextStyle(fontWeight: FontWeight.w600, fontSize: 10);
-    final itemStyle =
-        t.labelSmall?.copyWith(fontSize: 9) ?? const TextStyle(fontSize: 9);
-    final sorted = [...categories]
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 200),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Proyectos visibles: $total',
-            style: titleStyle,
-          ),
-          const SizedBox(height: 6),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 140),
-            child: SingleChildScrollView(
-              child: Column(
+    return Positioned(
+      left: 12,
+      top: 12,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        width: 300,
+        height: expanded ? targetHeight : 48,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.95),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(color: Colors.black26, blurRadius: 10),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: expanded ? null : onOpen,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: expanded
+                  ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: sorted
-                    .map(
-                      (raw) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: colorForCategory(raw),
-                            shape: BoxShape.circle,
-                          ),
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Filtros activos',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall,
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            _normalizeCategory(raw),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: itemStyle,
-                          ),
-                        ),
-                      ],
+                      ),
+                      IconButton(
+                        tooltip: 'Cerrar',
+                        onPressed: onClose,
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _summaryText(),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Toca un marcador para ver detalles.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              )
+                  : Row(
+                children: [
+                  const Icon(Icons.filter_alt_outlined, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Filtros',
+                      style:
+                      Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
-                )
-                    .toList(),
+                  const Icon(Icons.expand_more),
+                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  String _normalizeCategory(String raw) {
-    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return normalized.isEmpty ? raw.trim() : normalized;
-  }
-}
-
-class _ProjectCluster {
-  _ProjectCluster(this.center, this.items);
-
-  LatLng center;
-  final List<Project> items;
-
-  void recenter() {
-    var lat = 0.0;
-    var lon = 0.0;
-    for (final project in items) {
-      lat += project.lat;
-      lon += project.lon;
-    }
-    center = LatLng(lat / items.length, lon / items.length);
-  }
-}
-
-class _DebugEmptyPanel extends StatelessWidget {
-  final FiltersState filtersState;
-
-  const _DebugEmptyPanel({
-    required this.filtersState,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final remoteCount = ProjectService.lastRemoteCount;
-    final usingFallback = ProjectService.usingLocalFallback;
-    final fallbackCount = ProjectService.localFallbackCount;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade400),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Diagnóstico (debug)',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 6),
-            Text('Proyectos recibidos de Firestore: $remoteCount'),
-            if (usingFallback)
-              Text('Fallback local activo: $fallbackCount proyectos'),
-            Text('Filtros actuales: ${_filtersSummary(filtersState)}'),
-          ],
         ),
       ),
     );
   }
 
-  String _filtersSummary(FiltersState st) {
+  String _summaryText() {
     final parts = <String>[
-      'categoría: ${st.category?.toLowerCase() ?? 'todas'}',
-      'isla: ${st.island ?? 'todas'}',
-      'ámbito: ${st.scope?.name ?? 'todos'}',
-      'año: ${st.year?.toString() ?? 'todos'}',
-      'búsqueda: ${st.search.isEmpty ? 'ninguna' : '"${st.search}"'}',
+      if ((category ?? '').isNotEmpty) 'categoría: $category',
+      if ((scope ?? '').isNotEmpty) 'ámbito: $scope',
+      if ((island ?? '').isNotEmpty) 'isla: $island',
+      if (year != null) 'año: $year',
+      if ((search ?? '').isNotEmpty) 'busca: "$search"',
     ];
     return parts.join(' · ');
   }
