@@ -240,6 +240,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
             }).toList();
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
               _runWhenMapReady(() {
                 if (projects.isNotEmpty) {
                   final latLngs =
