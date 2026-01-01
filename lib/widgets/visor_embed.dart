@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
@@ -331,13 +330,10 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   ),
                 Positioned(
                   top: 12,
-                  right: 12,
+                  left: 12,
                   child: _Legend(
                     key: widget.legendKey,
-                    categories:
-                        projects.map((e) => e.category).toSet().toList(),
-                    total: projects.length,
-                    colorForCategory: (c) => _categoryColor(context, c),
+                    filtersState: st,
                   ),
                 ),
               ],
@@ -511,41 +507,25 @@ class _ProjectsMapState extends State<_ProjectsMap> {
 
   Color _categoryColor(BuildContext context, String category) {
     final c = category.toUpperCase();
-    if (c.contains('MEDIOAMBIENTE')) return Colors.green.shade700;
-    if (c.contains('ORDENACION') || c.contains('ORDENACIÓN')) {
-      return Brand.primary;
+    if (c.contains('IMPACTO') ||
+        c.contains('AMBIENTAL') ||
+        c.contains('MEDIOAMBIENTE')) {
+      return Colors.green.shade800;
     }
-    if (c.contains('PATRIMONIO')) return Colors.purple.shade700;
-    if (c.contains('ESTUDIOS') || c.contains('DESARROLLO')) {
-      return Colors.teal.shade700;
+    if (c.contains('URBANISMO') || c.contains('ORDENACION') || c.contains('ORDENACIÓN')) {
+      return Colors.blue.shade700;
+    }
+    if (c.contains('PAISAJE')) return Colors.teal.shade700;
+    if (c.contains('PATRIMONIO') || c.contains('GEODIVERSIDAD')) {
+      return Colors.brown.shade700;
     }
     if (c.contains('SIG') ||
         c.contains('SISTEMA DE INFORMACION GEOGRAFICA') ||
         c.contains('SISTEMA DE INFORMACIÓN GEOGRÁFICA')) {
       return Colors.indigo.shade700;
     }
-    if (c.contains('SISTEMAS')) return Colors.orange.shade800;
-    final palette = [
-      Colors.red.shade700,
-      Colors.blueGrey.shade700,
-      Colors.cyan.shade700,
-      Colors.lime.shade700,
-      Colors.pink.shade600,
-      Colors.amber.shade800,
-      Colors.deepPurple.shade600,
-      Colors.lightBlue.shade700,
-    ];
-    final index = _stableHash(c) % palette.length;
-    return palette[index];
-  }
-
-  int _stableHash(String input) {
-    var hash = 0x811c9dc5;
-    for (final codeUnit in input.codeUnits) {
-      hash ^= codeUnit;
-      hash = (hash * 0x01000193) & 0x7fffffff;
-    }
-    return hash;
+    if (c.contains('GEOMARKETING')) return Colors.deepPurple.shade700;
+    return Theme.of(context).colorScheme.primary;
   }
 
   List<String> _clusterCategories(List<Project> projects) {
@@ -577,82 +557,163 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   }
 }
 
-class _Legend extends StatelessWidget {
-  final List<String> categories;
-  final int total;
-  final Color Function(String) colorForCategory;
+class _Legend extends StatefulWidget {
+  final FiltersState filtersState;
 
   const _Legend({
     super.key,
-    required this.categories,
-    required this.total,
-    required this.colorForCategory,
+    required this.filtersState,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final titleStyle = t.labelSmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: 10,
-        ) ??
-        const TextStyle(fontWeight: FontWeight.w600, fontSize: 10);
-    final itemStyle =
-        t.labelSmall?.copyWith(fontSize: 9) ?? const TextStyle(fontSize: 9);
-    final sorted = [...categories]
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  State<_Legend> createState() => _LegendState();
+}
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 200),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Proyectos visibles: $total',
-            style: titleStyle,
-          ),
-          const SizedBox(height: 6),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 140),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: sorted
-                    .map(
-                      (raw) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: colorForCategory(raw),
-                                shape: BoxShape.circle,
+class _LegendState extends State<_Legend> {
+  bool _expanded = false;
+
+  void _toggleExpanded() {
+    setState(() => _expanded = !_expanded);
+  }
+
+  void _collapse() {
+    if (_expanded) {
+      setState(() => _expanded = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final surfaceColor = theme.colorScheme.surface;
+    final outlineColor = theme.colorScheme.outlineVariant.withOpacity(0.5);
+    final secondaryText = textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontSize: 11,
+        ) ??
+        TextStyle(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontSize: 11,
+        );
+
+    final activeFilters = _activeFilters(widget.filtersState);
+
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      alignment: Alignment.topLeft,
+      curve: Curves.easeInOut,
+      child: Material(
+        color: surfaceColor,
+        elevation: 2,
+        shadowColor: Colors.black26,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: _expanded ? null : _toggleExpanded,
+          child: Container(
+            padding: _expanded
+                ? const EdgeInsets.fromLTRB(12, 10, 10, 10)
+                : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            constraints: _expanded
+                ? const BoxConstraints(maxWidth: 240, maxHeight: 240)
+                : const BoxConstraints(minHeight: 40),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: outlineColor),
+            ),
+            child: _expanded
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.map_outlined, size: 16),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Filtros activos',
+                              style: textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                _normalizeCategory(raw),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: itemStyle,
-                              ),
+                          ),
+                          IconButton(
+                            onPressed: _collapse,
+                            icon: const Icon(Icons.close, size: 16),
+                            tooltip: 'Cerrar',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 24,
+                              minHeight: 24,
                             ),
-                          ],
+                            splashRadius: 16,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: activeFilters.isEmpty
+                                ? [
+                                    Text('Sin filtros activos',
+                                        style: secondaryText),
+                                  ]
+                                : activeFilters
+                                    .map(
+                                      (filter) => Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 6),
+                                        child: Text(filter, style: secondaryText),
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
                         ),
                       ),
-                    )
-                    .toList(),
-              ),
-            ),
+                    ],
+                  )
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.map_outlined, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Filtros',
+                        style: textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.expand_more, size: 18),
+                    ],
+                  ),
           ),
-        ],
+        ),
       ),
     );
+  }
+
+  List<String> _activeFilters(FiltersState st) {
+    final filters = <String>[];
+    if (st.category != null && st.category!.trim().isNotEmpty) {
+      filters.add('Categoría: ${_normalizeCategory(st.category!)}');
+    }
+    if (st.island != null && st.island!.trim().isNotEmpty) {
+      filters.add('Isla: ${st.island}');
+    }
+    if (st.year != null) {
+      filters.add('Año: ${st.year}');
+    }
+    if (st.search.isNotEmpty) {
+      filters.add('Búsqueda: "${st.search}"');
+    }
+    return filters;
   }
 
   String _normalizeCategory(String raw) {
