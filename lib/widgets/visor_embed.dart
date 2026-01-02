@@ -510,21 +510,23 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     if (c.contains('IMPACTO') ||
         c.contains('AMBIENTAL') ||
         c.contains('MEDIOAMBIENTE')) {
-      return Colors.green.shade800;
+      return const Color(0xFF1B8A3D);
     }
-    if (c.contains('URBANISMO') || c.contains('ORDENACION') || c.contains('ORDENACIÓN')) {
-      return Colors.blue.shade700;
+    if (c.contains('URBANISMO') ||
+        c.contains('ORDENACION') ||
+        c.contains('ORDENACIÓN')) {
+      return const Color(0xFF1565C0);
     }
-    if (c.contains('PAISAJE')) return Colors.teal.shade700;
+    if (c.contains('PAISAJE')) return const Color(0xFF00897B);
     if (c.contains('PATRIMONIO') || c.contains('GEODIVERSIDAD')) {
-      return Colors.brown.shade700;
+      return const Color(0xFF6D4C41);
     }
     if (c.contains('SIG') ||
         c.contains('SISTEMA DE INFORMACION GEOGRAFICA') ||
         c.contains('SISTEMA DE INFORMACIÓN GEOGRÁFICA')) {
-      return Colors.indigo.shade700;
+      return const Color(0xFF3949AB);
     }
-    if (c.contains('GEOMARKETING')) return Colors.deepPurple.shade700;
+    if (c.contains('GEOMARKETING')) return const Color(0xFF8E24AA);
     return Theme.of(context).colorScheme.primary;
   }
 
@@ -572,13 +574,15 @@ class _Legend extends StatefulWidget {
 class _LegendState extends State<_Legend> {
   bool _expanded = false;
 
-  void _toggleExpanded() {
-    setState(() => _expanded = !_expanded);
-  }
-
   void _collapse() {
     if (_expanded) {
       setState(() => _expanded = false);
+    }
+  }
+
+  void _expand() {
+    if (!_expanded) {
+      setState(() => _expanded = true);
     }
   }
 
@@ -587,14 +591,16 @@ class _LegendState extends State<_Legend> {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final surfaceColor = theme.colorScheme.surface;
-    final outlineColor = theme.colorScheme.outlineVariant.withOpacity(0.5);
+    final outlineColor = theme.colorScheme.outlineVariant.withOpacity(0.45);
     final secondaryText = textTheme.labelSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
           fontSize: 11,
+          height: 1.2,
         ) ??
         TextStyle(
           color: theme.colorScheme.onSurfaceVariant,
           fontSize: 11,
+          height: 1.2,
         );
 
     final activeFilters = _activeFilters(widget.filtersState);
@@ -605,21 +611,21 @@ class _LegendState extends State<_Legend> {
       curve: Curves.easeInOut,
       child: Material(
         color: surfaceColor,
-        elevation: 2,
-        shadowColor: Colors.black26,
-        borderRadius: BorderRadius.circular(18),
+        elevation: 3,
+        shadowColor: Colors.black12,
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: _expanded ? null : _toggleExpanded,
+          borderRadius: BorderRadius.circular(16),
+          onTap: _expanded ? null : _expand,
           child: Container(
             padding: _expanded
                 ? const EdgeInsets.fromLTRB(12, 10, 10, 10)
-                : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             constraints: _expanded
                 ? const BoxConstraints(maxWidth: 240, maxHeight: 240)
-                : const BoxConstraints(minHeight: 40),
+                : const BoxConstraints(minHeight: 44),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: outlineColor),
             ),
             child: _expanded
@@ -629,13 +635,12 @@ class _LegendState extends State<_Legend> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.map_outlined, size: 16),
-                          const SizedBox(width: 6),
                           Expanded(
                             child: Text(
                               'Filtros activos',
-                              style: textTheme.labelMedium?.copyWith(
+                              style: textTheme.labelSmall?.copyWith(
                                 fontWeight: FontWeight.w600,
+                                fontSize: 12,
                               ),
                             ),
                           ),
@@ -653,40 +658,36 @@ class _LegendState extends State<_Legend> {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 200),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: activeFilters.isEmpty
-                                ? [
-                                    Text('Sin filtros activos',
-                                        style: secondaryText),
-                                  ]
-                                : activeFilters
-                                    .map(
-                                      (filter) => Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 6),
-                                        child: Text(filter, style: secondaryText),
-                                      ),
-                                    )
-                                    .toList(),
+                      if (activeFilters.isNotEmpty)
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: activeFilters
+                                  .map(
+                                    (filter) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: Text(filter, style: secondaryText),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.map_outlined, size: 16),
+                      const Icon(Icons.tune, size: 16),
                       const SizedBox(width: 6),
                       Text(
                         'Filtros',
-                        style: textTheme.labelMedium?.copyWith(
+                        style: textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
+                          fontSize: 12,
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -706,6 +707,9 @@ class _LegendState extends State<_Legend> {
     }
     if (st.island != null && st.island!.trim().isNotEmpty) {
       filters.add('Isla: ${st.island}');
+    }
+    if (st.scope != null) {
+      filters.add('Ámbito: ${st.scope!.name}');
     }
     if (st.year != null) {
       filters.add('Año: ${st.year}');
