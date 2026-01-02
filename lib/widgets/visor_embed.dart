@@ -121,9 +121,9 @@ class _ProjectsMap extends StatefulWidget {
 
 class _ProjectsMapState extends State<_ProjectsMap> {
   final _distance = const Distance();
+  bool _mapReady = false;
   VoidCallback? _pendingCameraAction;
   double _zoom = 7;
-  bool _mapReady = false;
 
   @override
   Widget build(BuildContext context) {
@@ -282,7 +282,9 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     onMapReady: () {
                       if (!mounted) return;
                       _mapReady = true;
-                      _flushCameraActions();
+                      final pending = _pendingCameraAction;
+                      _pendingCameraAction = null;
+                      pending?.call();
                     },
                     onMapEvent: (event) {
                       if (!mounted) return;
@@ -345,17 +347,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   }
 
   void _runWhenMapReady(VoidCallback action) {
-    if (_mapReady) {
-      action();
-      return;
-    }
-    _pendingCameraAction = action;
-  }
-
-  void _flushCameraActions() {
-    final pending = _pendingCameraAction;
-    _pendingCameraAction = null;
-    pending?.call();
+    if (_mapReady) action();
+    else _pendingCameraAction = action;
   }
 
   List<_ProjectCluster> _buildClusters(List<Project> projects, double zoom) {
