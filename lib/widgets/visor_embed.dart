@@ -6,7 +6,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
-import 'package:geodos/widgets/project_info_dialog.dart';
 
 class VisorEmbed extends StatefulWidget {
   final bool startExpanded;
@@ -376,12 +375,10 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   }
 
   double _clusterThresholdMeters(double zoom) {
-    const minZoom = 11.0;
-    const maxZoom = 15.0;
-    const maxThreshold = 80.0;
-    const minThreshold = 40.0;
-    final t = ((zoom - minZoom) / (maxZoom - minZoom)).clamp(0.0, 1.0);
-    return maxThreshold + (minThreshold - maxThreshold) * t;
+    if (zoom >= 13) return 60;
+    if (zoom >= 11) return 120;
+    if (zoom >= 9) return 250;
+    return 450;
   }
 
   void _openClusterSheet(BuildContext context, List<Project> projects) {
@@ -393,13 +390,13 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       showDragHandle: true,
       builder: (sheetContext) {
         final screenHeight = MediaQuery.of(sheetContext).size.height;
-        final minHeight = 180.0;
         final maxHeight = screenHeight * 0.6;
-        const headerHeight = 52.0;
-        const itemHeight = 78.0;
-        final listPadding = projects.isEmpty ? 24.0 : 36.0;
+        const headerHeight = 56.0;
+        const itemHeight = 60.0;
+        final listPadding = projects.isEmpty ? 24.0 : 28.0;
         final desiredHeight =
-            headerHeight + (projects.length * itemHeight) + listPadding + 1;
+            headerHeight + (projects.length * itemHeight) + listPadding;
+        final minHeight = headerHeight + listPadding;
         final sheetHeight =
             desiredHeight.clamp(minHeight, maxHeight).toDouble();
         return SafeArea(
@@ -413,7 +410,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Proyectos del cluster (${projects.length})',
+                          'Proyectos (${projects.length})',
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                       ),
@@ -433,59 +430,39 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     separatorBuilder: (_, __) => const Divider(height: 24),
                     itemBuilder: (_, index) {
                       final project = projects[index];
-                      return InkWell(
-                        onTap: () {
-                          Navigator.of(sheetContext).pop();
-                          _runWhenMapReady(() {
-                            final target = LatLng(project.lat, project.lon);
-                            widget.mapCtrl.move(target, 13.5);
-                          });
-                        },
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              margin: const EdgeInsets.only(top: 6),
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color:
-                                    _categoryColor(context, project.category),
-                                shape: BoxShape.circle,
-                              ),
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: _categoryColor(context, project.category),
+                              shape: BoxShape.circle,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    project.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.titleSmall,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${_normalizeCategory(project.category)} · ${project.year ?? 's/f'} · ${project.municipality}',
-                                    style: Theme.of(context).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              project.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall,
                             ),
-                            const SizedBox(width: 12),
-                            TextButton(
-                              onPressed: () {
-                                showDialog<void>(
-                                  context: sheetContext,
-                                  builder: (_) =>
-                                      ProjectInfoDialog(project: project),
-                                );
-                              },
-                              child: const Text('Ver'),
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 12),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(sheetContext).pop();
+                              _runWhenMapReady(() {
+                                final target = LatLng(project.lat, project.lon);
+                                final targetZoom = _zoom < 13 ? 13 : _zoom;
+                                widget.mapCtrl.move(target, targetZoom);
+                              });
+                            },
+                            child: const Text('Ver'),
+                          ),
+                        ],
                       );
                     },
                   ),
