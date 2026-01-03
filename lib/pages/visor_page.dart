@@ -23,6 +23,7 @@ class _VisorPageState extends State<VisorPage> {
   late Future<List<ProjectScope>> _scopesFuture;
   late Future<List<String>> _islandsFuture;
   final _searchCtrl = TextEditingController();
+  bool _filtersExpanded = true;
 
   @override
   void initState() {
@@ -38,6 +39,29 @@ class _VisorPageState extends State<VisorPage> {
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _openFiltersSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: _FiltersPanel(
+              filters: filters,
+              yearsFuture: _yearsFuture,
+              categoriesFuture: _categoriesFuture,
+              scopesFuture: _scopesFuture,
+              islandsFuture: _islandsFuture,
+              searchController: _searchCtrl,
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -60,39 +84,82 @@ class _VisorPageState extends State<VisorPage> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final vertical = constraints.maxWidth < 1100;
-          final content = [
-            _FiltersPanel(
-              filters: filters,
-              yearsFuture: _yearsFuture,
-              categoriesFuture: _categoriesFuture,
-              scopesFuture: _scopesFuture,
-              islandsFuture: _islandsFuture,
-              searchController: _searchCtrl,
-            ),
-            const SizedBox(width: 20, height: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: VisorEmbed(startExpanded: true),
+          final isMobile = constraints.maxWidth < 720;
+          final panelWidth = _filtersExpanded ? 300.0 : 56.0;
+          final filtersPanel = _FiltersPanel(
+            filters: filters,
+            yearsFuture: _yearsFuture,
+            categoriesFuture: _categoriesFuture,
+            scopesFuture: _scopesFuture,
+            islandsFuture: _islandsFuture,
+            searchController: _searchCtrl,
+            onToggle: () {
+              setState(() => _filtersExpanded = !_filtersExpanded);
+            },
+            showHeaderAction: !isMobile,
+          );
+
+          final visorContent = Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (isMobile)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openFiltersSheet(context),
+                      icon: const Icon(Icons.filter_alt),
+                      label: const Text('Filtros'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Brand.primary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        side: BorderSide(color: Brand.primary.withOpacity(0.3)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  ContactForm(
-                    originSection: 'visor',
-                    showCompanyField: false,
-                    title: '¿Quieres que te contactemos?',
-                    helperText:
-                        'Tus datos se almacenan de forma segura en Firebase al enviar el formulario.',
-                    successMessage: 'Mensaje enviado correctamente',
+                if (isMobile) const SizedBox(height: 12),
+                const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: VisorEmbed(startExpanded: true),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 16),
+                ContactForm(
+                  originSection: 'visor',
+                  showCompanyField: false,
+                  title: '¿Quieres que te contactemos?',
+                  helperText:
+                      'Tus datos se almacenan de forma segura en Firebase al enviar el formulario.',
+                  successMessage: 'Mensaje enviado correctamente',
+                ),
+              ],
             ),
-          ];
+          );
+
+          final sidePanel = AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            width: panelWidth,
+            child: _filtersExpanded
+                ? filtersPanel
+                : Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Center(
+                      child: IconButton(
+                        tooltip: 'Mostrar filtros',
+                        icon: const Icon(Icons.filter_alt),
+                        onPressed: () {
+                          setState(() => _filtersExpanded = true);
+                        },
+                      ),
+                    ),
+                  ),
+          );
 
           return Container(
             color: Brand.mist,
@@ -102,13 +169,18 @@ class _VisorPageState extends State<VisorPage> {
                 constraints: const BoxConstraints(maxWidth: 1400),
                 child: vertical
                     ? Column(
-                        children: content,
+                        children: [
+                          if (!isMobile) sidePanel,
+                          if (!isMobile) const SizedBox(height: 20),
+                          visorContent,
+                        ],
                       )
                     : Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(width: 360, child: content.first),
-                          ...content.sublist(1),
+                          visorContent,
+                          const SizedBox(width: 20),
+                          if (!isMobile) sidePanel,
                         ],
                       ),
               ),
@@ -127,6 +199,8 @@ class _FiltersPanel extends StatelessWidget {
   final Future<List<ProjectScope>> scopesFuture;
   final Future<List<String>> islandsFuture;
   final TextEditingController searchController;
+  final VoidCallback? onToggle;
+  final bool showHeaderAction;
 
   const _FiltersPanel({
     required this.filters,
@@ -135,6 +209,8 @@ class _FiltersPanel extends StatelessWidget {
     required this.scopesFuture,
     required this.islandsFuture,
     required this.searchController,
+    this.onToggle,
+    this.showHeaderAction = false,
   });
 
   @override
@@ -154,7 +230,21 @@ class _FiltersPanel extends StatelessWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Filtros', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Filtros',
+                      style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary),
+                    ),
+                    if (showHeaderAction)
+                      IconButton(
+                        tooltip: 'Contraer filtros',
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: onToggle,
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 Text('Refina los proyectos por categoría, ámbito, isla y año.', style: t.bodyMedium),
                 const Divider(height: 24),
