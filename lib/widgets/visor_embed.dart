@@ -358,11 +358,18 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       final point = LatLng(project.lat, project.lon);
       _ProjectCluster? match;
       for (final cluster in clusters) {
-        final distance = _distance.as(LengthUnit.Meter, point, cluster.center);
-        if (distance <= threshold) {
-          match = cluster;
-          break;
+        for (final item in cluster.items) {
+          final distance = _distance.as(
+            LengthUnit.Meter,
+            point,
+            LatLng(item.lat, item.lon),
+          );
+          if (distance <= threshold) {
+            match = cluster;
+            break;
+          }
         }
+        if (match != null) break;
       }
       if (match == null) {
         clusters.add(_ProjectCluster(point, [project]));
