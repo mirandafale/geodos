@@ -23,7 +23,7 @@ class _VisorPageState extends State<VisorPage> {
   late Future<List<ProjectScope>> _scopesFuture;
   late Future<List<String>> _islandsFuture;
   final _searchCtrl = TextEditingController();
-  bool _filtersExpanded = true;
+  bool _filtersCollapsed = false;
 
   @override
   void initState() {
@@ -84,8 +84,8 @@ class _VisorPageState extends State<VisorPage> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final vertical = constraints.maxWidth < 1100;
-          final isMobile = constraints.maxWidth < 720;
-          final panelWidth = _filtersExpanded ? 300.0 : 56.0;
+          final isMobile = constraints.maxWidth < 900;
+          final panelWidth = _filtersCollapsed ? 56.0 : 300.0;
           final filtersPanel = _FiltersPanel(
             filters: filters,
             yearsFuture: _yearsFuture,
@@ -94,7 +94,7 @@ class _VisorPageState extends State<VisorPage> {
             islandsFuture: _islandsFuture,
             searchController: _searchCtrl,
             onToggle: () {
-              setState(() => _filtersExpanded = !_filtersExpanded);
+              setState(() => _filtersCollapsed = !_filtersCollapsed);
             },
             showHeaderAction: !isMobile,
           );
@@ -144,9 +144,8 @@ class _VisorPageState extends State<VisorPage> {
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
             width: panelWidth,
-            child: _filtersExpanded
-                ? filtersPanel
-                : Card(
+            child: _filtersCollapsed
+                ? Card(
                     elevation: 3,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: Center(
@@ -154,11 +153,12 @@ class _VisorPageState extends State<VisorPage> {
                         tooltip: 'Mostrar filtros',
                         icon: const Icon(Icons.filter_alt),
                         onPressed: () {
-                          setState(() => _filtersExpanded = true);
+                          setState(() => _filtersCollapsed = false);
                         },
                       ),
                     ),
-                  ),
+                  )
+                : filtersPanel,
           );
 
           return Container(
@@ -179,7 +179,7 @@ class _VisorPageState extends State<VisorPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           visorContent,
-                          const SizedBox(width: 20),
+                          if (!isMobile) const SizedBox(width: 20),
                           if (!isMobile) sidePanel,
                         ],
                       ),
@@ -240,7 +240,14 @@ class _FiltersPanel extends StatelessWidget {
                     if (showHeaderAction)
                       IconButton(
                         tooltip: 'Contraer filtros',
-                        icon: const Icon(Icons.chevron_right),
+                        icon: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.filter_alt),
+                            SizedBox(width: 4),
+                            Icon(Icons.chevron_right),
+                          ],
+                        ),
                         onPressed: onToggle,
                       ),
                   ],
