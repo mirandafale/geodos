@@ -396,20 +396,13 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       enableDrag: true,
       showDragHandle: true,
       builder: (sheetContext) {
-        final screenHeight = MediaQuery.of(sheetContext).size.height;
-        final maxHeight = screenHeight * 0.6;
-        const headerHeight = 56.0;
-        const itemHeight = 60.0;
-        final listPadding = projects.isEmpty ? 24.0 : 28.0;
-        final desiredHeight =
-            headerHeight + (projects.length * itemHeight) + listPadding;
-        final minHeight = headerHeight + listPadding;
-        final sheetHeight =
-            desiredHeight.clamp(minHeight, maxHeight).toDouble();
         return SafeArea(
-          child: SizedBox(
-            height: sheetHeight,
-            child: Column(
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.55,
+            minChildSize: 0.35,
+            maxChildSize: 0.85,
+            expand: false,
+            builder: (context, scrollController) => Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
@@ -432,6 +425,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                 const Divider(height: 1),
                 Expanded(
                   child: ListView.separated(
+                    controller: scrollController,
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                     itemCount: projects.length,
                     separatorBuilder: (_, __) => const Divider(height: 24),
