@@ -389,86 +389,102 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   }
 
   void _openClusterSheet(BuildContext context, List<Project> projects) {
-    showModalBottomSheet<void>(
+    showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      isDismissible: true,
-      enableDrag: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: DraggableScrollableSheet(
-            initialChildSize: 0.55,
-            minChildSize: 0.35,
-            maxChildSize: 0.85,
-            expand: false,
-            builder: (context, scrollController) => Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Proyectos (${projects.length})',
-                          style: Theme.of(context).textTheme.titleSmall,
+      builder: (dialogContext) {
+        final size = MediaQuery.of(dialogContext).size;
+        final maxWidth = (size.width * 0.9) < 720 ? size.width * 0.9 : 720.0;
+        final maxHeight = size.height * 0.7;
+        final horizontalInset = (size.width - maxWidth) / 2;
+        final verticalInset = (size.height - maxHeight) / 2;
+
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: horizontalInset < 0 ? 0 : horizontalInset,
+            vertical: verticalInset < 0 ? 0 : verticalInset,
+          ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: maxWidth,
+              maxHeight: maxHeight,
+            ),
+            child: SizedBox(
+              width: maxWidth,
+              height: maxHeight,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Proyectos (${projects.length})',
+                            style: Theme.of(dialogContext).textTheme.titleSmall,
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(sheetContext).pop(),
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Cerrar',
-                      ),
-                    ],
+                        IconButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Cerrar',
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: ListView.separated(
-                    controller: scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    itemCount: projects.length,
-                    separatorBuilder: (_, __) => const Divider(height: 24),
-                    itemBuilder: (_, index) {
-                      final project = projects[index];
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: _categoryColor(context, project.category),
-                              shape: BoxShape.circle,
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                      itemCount: projects.length,
+                      separatorBuilder: (_, __) => const Divider(height: 24),
+                      itemBuilder: (_, index) {
+                        final project = projects[index];
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: _categoryColor(
+                                  dialogContext,
+                                  project.category,
+                                ),
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              project.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleSmall,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                project.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(dialogContext)
+                                    .textTheme
+                                    .titleSmall,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(sheetContext).pop();
-                              _runWhenMapReady(() {
-                                final target = LatLng(project.lat, project.lon);
-                                final targetZoom = _zoom < 13 ? 13 : _zoom;
-                                widget.mapCtrl.move(target, targetZoom);
-                              });
-                            },
-                            child: const Text('Ver'),
-                          ),
-                        ],
-                      );
-                    },
+                            const SizedBox(width: 12),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(dialogContext).pop();
+                                _runWhenMapReady(() {
+                                  final target =
+                                      LatLng(project.lat, project.lon);
+                                  final double targetZoom =
+                                      _zoom < 13.0 ? 13.0 : _zoom;
+                                  widget.mapCtrl.move(target, targetZoom);
+                                });
+                              },
+                              child: const Text('Ver'),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
