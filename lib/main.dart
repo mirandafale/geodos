@@ -17,6 +17,7 @@ import 'package:geodos/pages/terms_page.dart';
 import 'package:geodos/pages/visor_page.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/widgets/admin_gate.dart';
+import 'package:geodos/widgets/consent_gate.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main() async {
@@ -32,26 +33,28 @@ class GeodosApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider<AuthService>.value(
       value: AuthService.instance,
-      child: MaterialApp(
-        title: 'Geodos',
-        debugShowCheckedModeBanner: false,
-        theme: Brand.theme(),
-        initialRoute: '/',
-        routes: {
-          '/': (context) => const HomePage(),
-          '/home': (context) => const HomePage(),
-          '/visor': (context) => const VisorPage(),
-          '/contact': (context) => const ContactPage(),
-          '/login': (context) => const LoginAdminPage(),
-          '/login-admin': (context) => const LoginAdminPage(),
-          '/about': (context) => const AboutPage(),
-          '/accessibility': (context) => const AccessibilityStatementPage(),
-          '/cookies': (context) => const CookiesPolicyPage(),
-          '/data-privacy': (context) => const DataPrivacySettingsPage(),
-          '/privacy': (context) => const PrivacyPolicyPage(),
-          '/terms': (context) => const TermsPage(),
-          '/admin': (context) => const AdminGate(child: AdminDashboardPage()),
-        },
+      child: ConsentGate(
+        child: MaterialApp(
+          title: 'Geodos',
+          debugShowCheckedModeBanner: false,
+          theme: Brand.theme(),
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const HomePage(),
+            '/home': (context) => const HomePage(),
+            '/visor': (context) => const VisorPage(),
+            '/contact': (context) => const ContactPage(),
+            '/login': (context) => const LoginAdminPage(),
+            '/login-admin': (context) => const LoginAdminPage(),
+            '/about': (context) => const AboutPage(),
+            '/accessibility': (context) => const AccessibilityStatementPage(),
+            '/cookies': (context) => const CookiesPolicyPage(),
+            '/data-privacy': (context) => const DataPrivacySettingsPage(),
+            '/privacy': (context) => const PrivacyPolicyPage(),
+            '/terms': (context) => const TermsPage(),
+            '/admin': (context) => const AdminGate(child: AdminDashboardPage()),
+          },
+        ),
       ),
     );
   }
