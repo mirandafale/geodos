@@ -396,14 +396,64 @@ class _ProjectsMapState extends State<_ProjectsMap> {
       builder: (dialogContext) {
         final size = MediaQuery.of(dialogContext).size;
         final maxWidth = math.min(720.0, size.width * 0.9);
-        final maxHeight = size.height * 0.7;
+        final maxHeight = size.height * 0.75;
+        const minHeight = 220.0;
+        final desiredHeight = 56 + projects.length * 64 + 40;
+        final dialogHeight =
+            desiredHeight.clamp(minHeight, maxHeight).toDouble();
+        final isMaxHeight = dialogHeight >= maxHeight;
+        final listView = ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          itemCount: projects.length,
+          physics: const AlwaysScrollableScrollPhysics(),
+          shrinkWrap: !isMaxHeight,
+          separatorBuilder: (_, __) => const Divider(height: 24),
+          itemBuilder: (_, index) {
+            final project = projects[index];
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: _categoryColor(
+                      dialogContext,
+                      project.category,
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    project.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(dialogContext).textTheme.titleSmall,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    _runWhenMapReady(() {
+                      final target = LatLng(project.lat, project.lon);
+                      final double targetZoom = _zoom < 13.0 ? 13.0 : _zoom;
+                      widget.mapCtrl.move(target, targetZoom);
+                    });
+                  },
+                  child: const Text('Ver'),
+                ),
+              ],
+            );
+          },
+        );
 
         return Dialog(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: maxWidth,
-              maxHeight: maxHeight,
-            ),
+          child: SizedBox(
+            width: maxWidth,
+            height: dialogHeight,
             child: Column(
               children: [
                 Padding(
@@ -425,56 +475,10 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   ),
                 ),
                 const Divider(height: 1),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    itemCount: projects.length,
-                    separatorBuilder: (_, __) => const Divider(height: 24),
-                    itemBuilder: (_, index) {
-                      final project = projects[index];
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: _categoryColor(
-                                dialogContext,
-                                project.category,
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              project.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style:
-                                  Theme.of(dialogContext).textTheme.titleSmall,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(dialogContext).pop();
-                              _runWhenMapReady(() {
-                                final target =
-                                    LatLng(project.lat, project.lon);
-                                final double targetZoom =
-                                    _zoom < 13.0 ? 13.0 : _zoom;
-                                widget.mapCtrl.move(target, targetZoom);
-                              });
-                            },
-                            child: const Text('Ver'),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
+                if (isMaxHeight)
+                  Expanded(child: listView)
+                else
+                  Flexible(fit: FlexFit.loose, child: listView),
               ],
             ),
           ),
