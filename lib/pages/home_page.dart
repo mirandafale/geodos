@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geodos/models/news_item.dart';
@@ -667,26 +669,8 @@ class _BlogSection extends StatefulWidget {
 }
 
 class _BlogSectionState extends State<_BlogSection> {
-  final _pageCtrl = PageController(viewportFraction: 0.9);
-  int _current = 0;
   bool _sampleSeeded = false;
   bool _isSeeding = false;
-
-  @override
-  void dispose() {
-    _pageCtrl.dispose();
-    super.dispose();
-  }
-
-  void _goTo(int index, int total) {
-    if (total == 0) return;
-    final target = index.clamp(0, total - 1);
-    _pageCtrl.animateToPage(
-      target,
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-    );
-  }
 
   Future<void> _maybeSeedDebugNews(List<NewsItem> currentPosts) async {
     if (_sampleSeeded || _isSeeding || !kDebugMode || currentPosts.length >= 3) {
@@ -747,34 +731,6 @@ class _BlogSectionState extends State<_BlogSection> {
     final clean = text.trim();
     if (clean.length <= maxLength) return clean;
     return '${clean.substring(0, maxLength).trimRight()}…';
-  }
-
-  Widget _newsImage(String url) {
-    final hasImage = url.trim().isNotEmpty;
-    if (!hasImage) {
-      return Container(
-        height: 140,
-        width: double.infinity,
-        color: Colors.grey.shade200,
-        alignment: Alignment.center,
-        child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
-      );
-    }
-    return SizedBox(
-      height: 140,
-      width: double.infinity,
-      child: Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: Colors.grey.shade200,
-            alignment: Alignment.center,
-            child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
-          );
-        },
-      ),
-    );
   }
 
   @override
@@ -867,48 +823,269 @@ class _BlogSectionState extends State<_BlogSection> {
                       ),
                     )
                   else
-                    SizedBox(
-                      height: 320,
-                      child: PageView.builder(
-                        controller: _pageCtrl,
-                        itemCount: posts.length,
-                        onPageChanged: (i) => setState(() => _current = i),
-                        itemBuilder: (ctx, index) {
-                          final p = posts[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Card(
-                              elevation: 3,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              clipBehavior: Clip.antiAlias,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                    _NewsCarousel(items: posts, excerptBuilder: _excerpt),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _NewsCarousel extends StatefulWidget {
+  const _NewsCarousel({required this.items, required this.excerptBuilder});
+
+  final List<NewsItem> items;
+  final String Function(String text, {int maxLength}) excerptBuilder;
+
+  @override
+  State<_NewsCarousel> createState() => _NewsCarouselState();
+}
+
+class _NewsCarouselState extends State<_NewsCarousel> {
+  late final PageController _newsCtrl;
+  int _newsIndex = 0;
+  Timer? _autoTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _newsCtrl = PageController(viewportFraction: 0.92);
+    _restartAutoPlay();
+  }
+
+  @override
+  void didUpdateWidget(covariant _NewsCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.items.length != oldWidget.items.length && _newsIndex >= widget.items.length) {
+      setState(() {
+        _newsIndex = 0;
+      });
+      if (_newsCtrl.hasClients) {
+        _newsCtrl.jumpToPage(0);
+      }
+    }
+    if (widget.items.length != oldWidget.items.length) {
+      _restartAutoPlay();
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoTimer?.cancel();
+    _newsCtrl.dispose();
+    super.dispose();
+  }
+
+  void _restartAutoPlay() {
+    _autoTimer?.cancel();
+    if (widget.items.length <= 1) return;
+    _autoTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (!mounted || widget.items.isEmpty || !_newsCtrl.hasClients) return;
+      final nextIndex = _newsIndex + 1 >= widget.items.length ? 0 : _newsIndex + 1;
+      _newsCtrl.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _goTo(int index) {
+    if (widget.items.isEmpty) return;
+    final target = index.clamp(0, widget.items.length - 1);
+    _newsCtrl.animateToPage(
+      target,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeInOut,
+    );
+    _restartAutoPlay();
+  }
+
+  void _showNewsDialog(NewsItem item) {
+    final theme = Theme.of(context);
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 700),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (item.imageUrl.trim().isNotEmpty)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Image.network(
+                        item.imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey.shade200,
+                            alignment: Alignment.center,
+                            child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          item.body,
+                          style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
+                        ),
+                        const SizedBox(height: 24),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: FilledButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cerrar'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 900;
+        final height = constraints.maxWidth >= 900 ? 420.0 : 320.0;
+        final showNav = constraints.maxWidth >= 700 && widget.items.length > 1;
+
+        return Column(
+          children: [
+            SizedBox(
+              height: height,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PageView.builder(
+                    controller: _newsCtrl,
+                    physics: const PageScrollPhysics(),
+                    itemCount: widget.items.length,
+                    onPageChanged: (i) {
+                      setState(() => _newsIndex = i);
+                      _restartAutoPlay();
+                    },
+                    itemBuilder: (ctx, index) {
+                      final item = widget.items[index];
+                      final hasImage = item.imageUrl.trim().isNotEmpty;
+                      final subtitle = item.body.trim().isNotEmpty
+                          ? widget.excerptBuilder(item.body, maxLength: 80)
+                          : (item.hasCreatedAt
+                              ? "Publicado: ${item.createdAt.toLocal().toIso8601String().split('T').first}"
+                              : null);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: () => _showNewsDialog(item),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.12),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(22),
+                              child: Stack(
+                                fit: StackFit.expand,
                                 children: [
-                                  _newsImage(p.imageUrl),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16),
+                                  if (hasImage)
+                                    Image.network(
+                                      item.imageUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: Colors.grey.shade200,
+                                          alignment: Alignment.center,
+                                          child: const Icon(Icons.broken_image_outlined,
+                                              color: Colors.grey),
+                                        );
+                                      },
+                                    )
+                                  else
+                                    Container(
+                                      decoration: const BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [Color(0xFF0C6372), Color(0xFF2A7F62)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                      ),
+                                    ),
+                                  Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: Container(
+                                      height: height * 0.45,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Colors.transparent,
+                                            Colors.black.withOpacity(0.75),
+                                          ],
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 20,
+                                    right: 20,
+                                    bottom: 20,
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          p.title,
-                                          style: t.titleMedium?.copyWith(
-                                              fontWeight: FontWeight.w600),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          _excerpt(p.body),
-                                          style: t.bodySmall,
+                                          item.title,
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
+                                          style: t.titleLarge?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
-                                        if (p.hasCreatedAt) ...[
-                                          const SizedBox(height: 8),
+                                        if (subtitle != null) ...[
+                                          const SizedBox(height: 6),
                                           Text(
-                                            "Publicado: ${p.createdAt.toLocal().toIso8601String().split('T').first}",
-                                            style: t.labelSmall?.copyWith(
-                                              color: Colors.grey.shade600,
+                                            subtitle,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: t.bodySmall?.copyWith(
+                                              color: Colors.white70,
                                             ),
                                           ),
                                         ],
@@ -918,47 +1095,79 @@ class _BlogSectionState extends State<_BlogSection> {
                                 ],
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (showNav)
+                    Positioned(
+                      left: isWide ? 8 : 4,
+                      child: _NavButton(
+                        icon: Icons.chevron_left,
+                        onPressed: _newsIndex > 0 ? () => _goTo(_newsIndex - 1) : null,
                       ),
                     ),
-                  const SizedBox(height: 12),
-                  if (posts.isNotEmpty)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          onPressed: () => _goTo(_current - 1, posts.length),
-                          icon: const Icon(Icons.chevron_left),
-                        ),
-                        const SizedBox(width: 8),
-                        ...List.generate(posts.length, (i) {
-                          final selected = i == _current;
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 3),
-                            width: selected ? 12 : 8,
-                            height: selected ? 12 : 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: selected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Colors.grey.shade400,
-                            ),
-                          );
-                        }),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: () => _goTo(_current + 1, posts.length),
-                          icon: const Icon(Icons.chevron_right),
-                        ),
-                      ],
+                  if (showNav)
+                    Positioned(
+                      right: isWide ? 8 : 4,
+                      child: _NavButton(
+                        icon: Icons.chevron_right,
+                        onPressed: _newsIndex < widget.items.length - 1
+                            ? () => _goTo(_newsIndex + 1)
+                            : null,
+                      ),
                     ),
                 ],
               ),
             ),
-          ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(widget.items.length, (i) {
+                final selected = i == _newsIndex;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: selected ? 14 : 8,
+                  height: selected ? 14 : 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: selected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey.shade400,
+                  ),
+                );
+              }),
+            ),
+          ],
         );
       },
+    );
+  }
+}
+
+class _NavButton extends StatelessWidget {
+  const _NavButton({required this.icon, required this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDisabled = onPressed == null;
+    return AnimatedOpacity(
+      opacity: isDisabled ? 0.35 : 1,
+      duration: const Duration(milliseconds: 200),
+      child: Material(
+        color: Colors.white.withOpacity(0.85),
+        shape: const CircleBorder(),
+        child: IconButton(
+          onPressed: onPressed,
+          icon: Icon(icon, color: Colors.black87),
+          tooltip: icon == Icons.chevron_left ? 'Anterior' : 'Siguiente',
+        ),
+      ),
     );
   }
 }
