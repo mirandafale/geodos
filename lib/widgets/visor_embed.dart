@@ -125,6 +125,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   bool _mapReady = false;
   VoidCallback? _pendingCameraAction;
   double _zoom = 7;
+  bool _didInitialFit = false;
+  String _lastFitSig = '';
 
   @override
   Widget build(BuildContext context) {
@@ -241,6 +243,19 @@ class _ProjectsMapState extends State<_ProjectsMap> {
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
+              final fitSig = [
+                st.year,
+                st.category,
+                st.scope?.name,
+                st.island,
+                st.search,
+                projects.length,
+              ].join('|');
+              if (_didInitialFit && fitSig == _lastFitSig) {
+                return;
+              }
+              _didInitialFit = true;
+              _lastFitSig = fitSig;
               _runWhenMapReady(() {
                 if (projects.isNotEmpty) {
                   final latLngs =
