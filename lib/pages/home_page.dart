@@ -671,6 +671,13 @@ class _BlogSectionState extends State<_BlogSection> {
   int _current = 0;
   bool _sampleSeeded = false;
   bool _isSeeding = false;
+  late Future<List<NewsItem>> _newsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNews();
+  }
 
   @override
   void dispose() {
@@ -688,11 +695,13 @@ class _BlogSectionState extends State<_BlogSection> {
     );
   }
 
-  Future<void> _maybeSeedDebugNews(List<NewsItem> currentPosts) async {
-    if (_sampleSeeded || _isSeeding || !kDebugMode || currentPosts.length >= 3) {
-      _sampleSeeded = _sampleSeeded || currentPosts.length >= 3;
-      return;
-    }
+  void _loadNews() {
+    _newsFuture = NewsService.fetchPublishedOnce();
+  }
+
+  Future<void> _maybeSeedDebugNews(List<NewsItem> posts) async {
+    if (_sampleSeeded || _isSeeding || !kDebugMode) return;
+    if (posts.length >= 3) return;
 
     setState(() {
       _isSeeding = true;
@@ -701,37 +710,33 @@ class _BlogSectionState extends State<_BlogSection> {
     final now = DateTime.now();
     final samples = [
       NewsItem(
-        id: 'sample_news_1',
-        title: 'Ejemplo de noticia: Participación ciudadana',
-        body: 'Exploramos cómo la cartografía colaborativa mejora la gestión territorial y la transparencia.',
+        id: 'sample_1',
+        title: 'Ejemplo de noticia (solo debug)',
+        body:
+            'Crea tus noticias desde el panel de administración para que aparezcan aquí.',
         imageUrl: '',
         createdAt: now,
         updatedAt: now,
         published: true,
-        hasCreatedAt: false,
       ),
       NewsItem(
-        id: 'sample_news_2',
-        title: 'Ejemplo de noticia: Innovación ambiental',
-        body: 'Nuevas herramientas digitales para medir el impacto ambiental y tomar decisiones informadas.',
+        id: 'sample_2',
+        title: 'Noticias con imagen opcional',
+        body:
+            'Puedes adjuntar imágenes destacadas o dejar el espacio en blanco si no las necesitas.',
         imageUrl: '',
         createdAt: now.subtract(const Duration(days: 2)),
         updatedAt: now.subtract(const Duration(days: 2)),
         published: true,
-        hasCreatedAt: false,
       ),
     ];
 
     try {
-      final existingIds = currentPosts.map((e) => e.id).toSet();
-      final missingSamples = samples
-          .where((s) => !existingIds.contains(s.id))
-          .take(3 - currentPosts.length)
-          .toList();
-      if (missingSamples.isNotEmpty) {
-        await NewsService.seedDebugSamples(missingSamples);
-      }
+      await NewsService.seedDebugSamples(samples);
       _sampleSeeded = true;
+      if (mounted) {
+        setState(_loadNews);
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -781,16 +786,17 @@ class _BlogSectionState extends State<_BlogSection> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final auth = context.watch<AuthService>();
-    return StreamBuilder<List<NewsItem>>(
-      stream: NewsService.publishedStream(),
+    return FutureBuilder<List<NewsItem>>(
+      future: _newsFuture,
       builder: (context, snapshot) {
         final posts = snapshot.data ?? [];
         final isLoading = snapshot.connectionState == ConnectionState.waiting;
         final hasError = snapshot.hasError;
         final errorMessage = snapshot.error?.toString();
 
-        if (!isLoading && !hasError) {
-          _maybeSeedDebugNews(posts);
+        if (!isLoading && !hasError && !_isSeeding && posts.length < 3) {
+          WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _maybeSeedDebugNews(posts));
         }
 
         return Center(
@@ -829,7 +835,7 @@ class _BlogSectionState extends State<_BlogSection> {
                         ),
                       ),
                     )
-                  else if (isLoading)
+                  else if (isLoading || _isSeeding)
                     _NewsSkeleton(textTheme: t)
                   else if (posts.isEmpty)
                     Card(
@@ -903,15 +909,13 @@ class _BlogSectionState extends State<_BlogSection> {
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        if (p.hasCreatedAt) ...[
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            "Publicado: ${p.createdAt.toLocal().toIso8601String().split('T').first}",
-                                            style: t.labelSmall?.copyWith(
-                                              color: Colors.grey.shade600,
-                                            ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          "Actualizado: ${p.updatedAt.toLocal().toIso8601String().split('T').first}",
+                                          style: t.labelSmall?.copyWith(
+                                            color: Colors.grey.shade600,
                                           ),
-                                        ],
+                                        ),
                                       ],
                                     ),
                                   ),
