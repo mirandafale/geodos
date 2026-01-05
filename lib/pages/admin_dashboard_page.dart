@@ -15,6 +15,10 @@ class AdminDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final email = auth.user?.email ?? '';
+    final showAdminBanner = auth.isLoggedIn && email.isNotEmpty;
+
     return DefaultTabController(
       length: 2,
       child: AppShell(
@@ -26,11 +30,75 @@ class AdminDashboardPage extends StatelessWidget {
             icon: const Icon(Icons.logout),
           ),
         ],
-        bottom: const TabBar(
-          tabs: [
-            Tab(text: 'Proyectos'),
-            Tab(text: 'Noticias'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(showAdminBanner ? 112 : 56),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showAdminBanner)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white70),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.admin_panel_settings, color: Color(0xFF0C6372)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'MODO ADMINISTRADOR',
+                                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.6,
+                                      color: const Color(0xFF0C6372),
+                                    ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                email,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Colors.black54,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              TabBar(
+                isScrollable: true,
+                indicator: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                unselectedLabelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w500),
+                tabs: const [
+                  Tab(
+                    icon: Icon(Icons.folder_open),
+                    text: 'Proyectos',
+                  ),
+                  Tab(
+                    icon: Icon(Icons.article),
+                    text: 'Noticias',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         body: const TabBarView(
           children: [

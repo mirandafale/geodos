@@ -8,6 +8,7 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
+    final currentRoute = ModalRoute.of(context)?.settings.name;
 
     return Drawer(
       child: SafeArea(
@@ -49,17 +50,18 @@ class AppDrawer extends StatelessWidget {
                 ),
               ),
             ),
-            _item(context, Icons.home_rounded, 'Inicio', '/'),
-            _item(context, Icons.map_rounded, 'Visor', '/visor'),
-            _item(context, Icons.article_outlined, 'Blog / Actualidad', '/home'),
-            _item(context, Icons.mail_rounded, 'Contacto', '/contact'),
-            _item(context, Icons.login_rounded, 'Acceso admin', '/login-admin'),
+            _item(context, Icons.home_rounded, 'Inicio', '/', currentRoute),
+            _item(context, Icons.map_rounded, 'Visor', '/visor', currentRoute),
+            _item(context, Icons.article_outlined, 'Blog / Actualidad', '/home', currentRoute),
+            _item(context, Icons.mail_rounded, 'Contacto', '/contact', currentRoute),
+            _item(context, Icons.login_rounded, 'Acceso admin', '/login-admin', currentRoute),
             if (auth.isLoggedIn && auth.isAdmin) ...[
               _item(
                 context,
                 Icons.admin_panel_settings_rounded,
                 'Panel admin',
                 '/admin',
+                currentRoute,
               ),
               ListTile(
                 leading: const Icon(Icons.logout),
@@ -75,11 +77,11 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
               child: Text('Legal', style: Theme.of(context).textTheme.labelLarge),
             ),
-            _item(context, Icons.privacy_tip_outlined, 'Privacidad', '/privacy'),
-            _item(context, Icons.cookie_outlined, 'Cookies', '/cookies'),
-            _item(context, Icons.security_outlined, 'Ajustes de datos', '/data-privacy'),
-            _item(context, Icons.gavel_outlined, 'Términos de uso', '/terms'),
-            _item(context, Icons.accessibility_new_outlined, 'Accesibilidad', '/accessibility'),
+            _item(context, Icons.privacy_tip_outlined, 'Privacidad', '/privacy', currentRoute),
+            _item(context, Icons.cookie_outlined, 'Cookies', '/cookies', currentRoute),
+            _item(context, Icons.security_outlined, 'Ajustes de datos', '/data-privacy', currentRoute),
+            _item(context, Icons.gavel_outlined, 'Términos de uso', '/terms', currentRoute),
+            _item(context, Icons.accessibility_new_outlined, 'Accesibilidad', '/accessibility', currentRoute),
             const SizedBox(height: 16),
           ],
         ),
@@ -92,9 +94,15 @@ class AppDrawer extends StatelessWidget {
     IconData icon,
     String title,
     String route,
+    String? currentRoute,
   ) {
+    final isSelected = currentRoute == route;
+    final colorScheme = Theme.of(ctx).colorScheme;
+
     return ListTile(
-      leading: Icon(icon),
+      selected: isSelected,
+      selectedTileColor: colorScheme.primaryContainer.withOpacity(0.6),
+      leading: Icon(icon, color: isSelected ? colorScheme.primary : null),
       title: Text(title),
       onTap: () {
         Navigator.of(ctx).pop();
