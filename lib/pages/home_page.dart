@@ -996,7 +996,6 @@ class _NewsCarouselState extends State<_NewsCarousel> {
                     },
                     itemBuilder: (ctx, index) {
                       final item = widget.items[index];
-                      final hasImage = item.imageUrl.trim().isNotEmpty;
                       final subtitle = item.body.trim().isNotEmpty
                           ? widget.excerptBuilder(item.body, maxLength: 80)
                           : (item.hasCreatedAt
@@ -1018,80 +1017,29 @@ class _NewsCarouselState extends State<_NewsCarousel> {
                                 ),
                               ],
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(22),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  if (hasImage)
-                                    Image.network(
-                                      item.imageUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: Colors.grey.shade200,
-                                          alignment: Alignment.center,
-                                          child: const Icon(Icons.broken_image_outlined,
-                                              color: Colors.grey),
-                                        );
-                                      },
-                                    )
-                                  else
-                                    Container(
-                                      decoration: const BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [Color(0xFF0C6372), Color(0xFF2A7F62)],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                      ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(22),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    _NewsHeroImage(
+                                      imageUrl: item.imageUrl,
+                                      title: item.title,
                                     ),
-                                  Align(
-                                    alignment: Alignment.bottomCenter,
-                                    child: Container(
-                                      height: height * 0.45,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Colors.transparent,
-                                            Colors.black.withOpacity(0.75),
-                                          ],
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    left: 20,
-                                    right: 20,
-                                    bottom: 20,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.title,
-                                          maxLines: 2,
+                                    if (subtitle != null)
+                                      Positioned(
+                                        left: 20,
+                                        right: 20,
+                                        bottom: 76,
+                                        child: Text(
+                                          subtitle,
+                                          maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: t.titleLarge?.copyWith(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w700,
+                                          style: t.bodySmall?.copyWith(
+                                            color: Colors.white70,
                                           ),
                                         ),
-                                        if (subtitle != null) ...[
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            subtitle,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: t.bodySmall?.copyWith(
-                                              color: Colors.white70,
-                                            ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
+                                      ),
                                 ],
                               ),
                             ),
@@ -1143,6 +1091,96 @@ class _NewsCarouselState extends State<_NewsCarousel> {
           ],
         );
       },
+    );
+  }
+}
+
+class _NewsHeroImage extends StatelessWidget {
+  const _NewsHeroImage({required this.imageUrl, required this.title});
+
+  final String? imageUrl;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl?.trim() ?? '';
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (url.isEmpty)
+              const _NewsHeroFallback()
+            else
+              Image.network(
+                url,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                width: double.infinity,
+                height: double.infinity,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    color: Colors.grey.shade200,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      height: 28,
+                      width: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return const _NewsHeroFallback();
+                },
+              ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                color: Colors.black54,
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NewsHeroFallback extends StatelessWidget {
+  const _NewsHeroFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF0C6372), Color(0xFF2A7F62)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Align(
+        alignment: Alignment.center,
+        child: Icon(
+          Icons.image_not_supported_outlined,
+          color: Colors.white.withOpacity(0.7),
+          size: 48,
+        ),
+      ),
     );
   }
 }
