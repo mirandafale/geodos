@@ -34,8 +34,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
     });
 
     try {
-      await AuthService.instance
-          .signIn(_emailCtrl.text, _passwordCtrl.text);
+      await AuthService.instance.signIn(_emailCtrl.text, _passwordCtrl.text);
 
       if (!mounted) return;
 
@@ -43,14 +42,16 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isAdmin
-              ? 'Sesión iniciada como administrador.'
-              : 'Sesión iniciada, pero este usuario no es admin.'),
+          content: Text(
+            isAdmin
+                ? 'Sesión iniciada como administrador.'
+                : 'Sesión iniciada, pero este usuario no es admin.',
+          ),
         ),
       );
 
-      // Volvemos a la home o a donde prefieras
-      Navigator.pushReplacementNamed(context, '/');
+      // ✅ Si es admin -> al panel. Si no -> a inicio.
+      Navigator.pushReplacementNamed(context, isAdmin ? '/admin' : '/');
     } on FirebaseAuthException catch (e) {
       String msg = 'No se ha podido iniciar sesión.';
       if (e.code == 'user-not-found') {
@@ -80,6 +81,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
   Future<void> _logout() async {
     await AuthService.instance.signOut();
     if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Sesión cerrada.')),
     );
@@ -124,12 +126,11 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+          constraints: const BoxConstraints(maxWidth: 520),
           child: Card(
             elevation: 4,
             margin: const EdgeInsets.all(24),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: isLoggedIn
@@ -177,12 +178,8 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
                 ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) {
-                  if (v == null || v.trim().isEmpty) {
-                    return 'Introduce tu correo.';
-                  }
-                  if (!v.contains('@')) {
-                    return 'Correo no válido.';
-                  }
+                  if (v == null || v.trim().isEmpty) return 'Introduce tu correo.';
+                  if (!v.contains('@')) return 'Correo no válido.';
                   return null;
                 },
               ),
@@ -195,12 +192,8 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
                 ),
                 obscureText: true,
                 validator: (v) {
-                  if (v == null || v.isEmpty) {
-                    return 'Introduce tu contraseña.';
-                  }
-                  if (v.length < 6) {
-                    return 'La contraseña debe tener al menos 6 caracteres.';
-                  }
+                  if (v == null || v.isEmpty) return 'Introduce tu contraseña.';
+                  if (v.length < 6) return 'La contraseña debe tener al menos 6 caracteres.';
                   return null;
                 },
               ),
@@ -225,57 +218,65 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
     );
   }
 
-  Widget _buildLoggedIn(
-      BuildContext context, bool isAdmin, String userEmail) {
+  Widget _buildLoggedIn(BuildContext context, bool isAdmin, String userEmail) {
     final t = Theme.of(context).textTheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ✅ Banner claro de estado
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isAdmin ? Colors.green.withOpacity(0.12) : Colors.orange.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isAdmin ? Colors.green.withOpacity(0.35) : Colors.orange.withOpacity(0.35),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isAdmin ? Icons.admin_panel_settings : Icons.lock_outline,
+                color: isAdmin ? Colors.green : Colors.orange,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isAdmin
+                      ? 'Modo administrador activo. Tienes acceso al panel de control.'
+                      : 'Sesión iniciada sin permisos de administración.',
+                  style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
         Text(
           'Sesión iniciada',
           style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Text('Usuario: $userEmail'),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Icon(
-              isAdmin ? Icons.verified_user : Icons.lock_outline,
-              color: isAdmin ? Colors.green : Colors.orange,
+        const SizedBox(height: 18),
+
+        if (isAdmin) ...[
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => Navigator.pushReplacementNamed(context, '/admin'),
+              icon: const Icon(Icons.dashboard),
+              label: const Text('Ir al panel de control'),
             ),
-            const SizedBox(width: 8),
-            Text(
-              isAdmin
-                  ? 'Rol: Administrador'
-                  : 'Rol: Usuario sin permisos de administración',
-              style: t.bodyMedium,
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        if (isAdmin)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'A partir de aquí, podrás:',
-                style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              const Text('• Añadir nuevos proyectos.'),
-              const Text('• Añadir o actualizar descripciones de proyectos.'),
-              const Text('• Crear y editar noticias del blog.'),
-              const SizedBox(height: 16),
-              Text(
-                'En los siguientes pasos conectaremos estos permisos con la pantalla del visor y la sección de blog para mostrar los botones de edición sólo a administradores.',
-                style: t.bodySmall?.copyWith(color: Colors.grey.shade700),
-              ),
-              const SizedBox(height: 16),
-            ],
           ),
+          const SizedBox(height: 10),
+        ],
+
         Row(
           children: [
             FilledButton(

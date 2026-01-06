@@ -6,6 +6,7 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/firebase_options.dart';
 import 'package:geodos/pages/about_page.dart';
 import 'package:geodos/pages/accessibility_page.dart';
+import 'package:geodos/pages/admin_dashboard_page.dart';
 import 'package:geodos/pages/contact_page.dart';
 import 'package:geodos/pages/cookies_page.dart';
 import 'package:geodos/pages/data_privacy_page.dart';
@@ -21,6 +22,7 @@ import 'package:provider/provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(
     ChangeNotifierProvider<AuthService>(
       create: (_) => AuthService.instance,
@@ -46,8 +48,14 @@ class GeodosApp extends StatelessWidget {
         '/visor': (context) => const VisorPage(),
         '/contact': (context) => const ContactPage(),
         '/contacto': (context) => const ContactPage(),
+
+        // Login admin (pantalla de autenticación)
         '/login': (context) => const LoginAdminPage(),
-        '/admin': (context) => const AdminGate(child: LoginAdminPage()),
+
+        // Panel admin (protegido)
+        '/admin': (context) => const AdminGate(child: AdminDashboardPage()),
+
+        // Legales
         '/about': (context) => const AboutPage(),
         '/accessibility': (context) => const AccessibilityStatementPage(),
         '/cookies': (context) => const CookiesPolicyPage(),
