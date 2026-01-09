@@ -419,34 +419,19 @@ class _FiltersRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 56,
+      width: 10,
       decoration: BoxDecoration(
-        color: Brand.primary,
-        borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: Brand.primary.withOpacity(0.18),
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
       ),
-      child: RotatedBox(
-        quarterTurns: 3,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.filter_alt, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'FILTROS',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.5,
-                  ),
-            ),
-          ],
+      child: Center(
+        child: Tooltip(
+          message: 'Filtros',
+          child: Icon(
+            Icons.filter_alt,
+            size: 12,
+            color: Brand.primary,
+          ),
         ),
       ),
     );
