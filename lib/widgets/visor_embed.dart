@@ -125,6 +125,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   bool _mapReady = false;
   VoidCallback? _pendingCameraAction;
   double _zoom = 7;
+  List<String> _lastProjectIds = const [];
 
   @override
   Widget build(BuildContext context) {
@@ -239,35 +240,49 @@ class _ProjectsMapState extends State<_ProjectsMap> {
               );
             }).toList();
 
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!mounted) return;
-              _runWhenMapReady(() {
-                if (projects.isNotEmpty) {
-                  final latLngs =
-                      projects.map((p) => LatLng(p.lat, p.lon)).toList();
-                  var swLat = latLngs.first.latitude;
-                  var swLng = latLngs.first.longitude;
-                  var neLat = swLat;
-                  var neLng = swLng;
+            final currentIds = projects.map((p) => p.id).toList()..sort();
+            final projectsChanged =
+                currentIds.length != _lastProjectIds.length ||
+                    !_lastProjectIds
+                        .asMap()
+                        .entries
+                        .every((entry) => entry.value == currentIds[entry.key]);
+            if (projectsChanged) {
+              _lastProjectIds = currentIds;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                _runWhenMapReady(() {
+                  if (projects.isNotEmpty) {
+                    final latLngs =
+                        projects.map((p) => LatLng(p.lat, p.lon)).toList();
+                    var swLat = latLngs.first.latitude;
+                    var swLng = latLngs.first.longitude;
+                    var neLat = swLat;
+                    var neLng = swLng;
 
-                  for (final ll in latLngs) {
-                    if (ll.latitude < swLat) swLat = ll.latitude;
-                    if (ll.longitude < swLng) swLng = ll.longitude;
-                    if (ll.latitude > neLat) neLat = ll.latitude;
-                    if (ll.longitude > neLng) neLng = ll.longitude;
+                    for (final ll in latLngs) {
+                      if (ll.latitude < swLat) swLat = ll.latitude;
+                      if (ll.longitude < swLng) swLng = ll.longitude;
+                      if (ll.latitude > neLat) neLat = ll.latitude;
+                      if (ll.longitude > neLng) neLng = ll.longitude;
+                    }
+
+                    final bounds = LatLngBounds(
+                      LatLng(swLat, swLng),
+                      LatLng(neLat, neLng),
+                    );
+                    mapCtrl.fitCamera(
+                      CameraFit.bounds(
+                        bounds: bounds,
+                        padding: const EdgeInsets.all(60),
+                      ),
+                    );
+                  } else {
+                    mapCtrl.move(center, 7);
                   }
-
-                  final bounds =
-                      LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
-                  mapCtrl.fitCamera(
-                    CameraFit.bounds(
-                        bounds: bounds, padding: const EdgeInsets.all(60)),
-                  );
-                } else {
-                  mapCtrl.move(center, 7);
-                }
+                });
               });
-            });
+            }
 
             final emptyMessage = snap.hasError
                 ? snap.error.toString()
@@ -280,6 +295,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   options: MapOptions(
                     initialCenter: center,
                     initialZoom: 7,
+                    minZoom: 4,
+                    maxZoom: 18,
                     onMapReady: () {
                       if (!mounted) return;
                       _mapReady = true;
