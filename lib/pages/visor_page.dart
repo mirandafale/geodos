@@ -48,16 +48,25 @@ class _VisorPageState extends State<VisorPage> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: _FiltersPanel(
-              filters: filters,
-              yearsFuture: _yearsFuture,
-              categoriesFuture: _categoriesFuture,
-              scopesFuture: _scopesFuture,
-              islandsFuture: _islandsFuture,
-              searchController: _searchCtrl,
-            ),
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, controller) {
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: _FiltersPanel(
+                  filters: filters,
+                  yearsFuture: _yearsFuture,
+                  categoriesFuture: _categoriesFuture,
+                  scopesFuture: _scopesFuture,
+                  islandsFuture: _islandsFuture,
+                  searchController: _searchCtrl,
+                  scrollController: controller,
+                ),
+              );
+            },
           ),
         );
       },
@@ -131,6 +140,8 @@ class _VisorPageState extends State<VisorPage> {
                 ContactForm(
                   originSection: 'visor',
                   showCompanyField: false,
+                  showProjectTypeField: true,
+                  projectTypeLabel: 'Tipo de proyecto (opcional)',
                   title: '¿Quieres que te contactemos?',
                   helperText:
                       'Tus datos se almacenan de forma segura en Firebase al enviar el formulario.',
@@ -201,6 +212,7 @@ class _FiltersPanel extends StatelessWidget {
   final TextEditingController searchController;
   final VoidCallback? onToggle;
   final bool showHeaderAction;
+  final ScrollController? scrollController;
 
   const _FiltersPanel({
     required this.filters,
@@ -211,6 +223,7 @@ class _FiltersPanel extends StatelessWidget {
     required this.searchController,
     this.onToggle,
     this.showHeaderAction = false,
+    this.scrollController,
   });
 
   @override
@@ -221,147 +234,160 @@ class _FiltersPanel extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: AnimatedBuilder(
           animation: filters,
           builder: (context, _) {
             final st = filters.state;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            return Scrollbar(
+              controller: scrollController,
+              thumbVisibility: scrollController != null,
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Filtros',
-                      style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary),
-                    ),
-                    if (showHeaderAction)
-                      IconButton(
-                        tooltip: 'Contraer filtros',
-                        icon: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.filter_alt),
-                            SizedBox(width: 4),
-                            Icon(Icons.chevron_right),
-                          ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Filtros',
+                          style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary),
                         ),
-                        onPressed: onToggle,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text('Refina los proyectos por categoría, ámbito, isla y año.', style: t.bodyMedium),
-                const Divider(height: 24),
-                TextFormField(
-                  controller: searchController,
-                  decoration: const InputDecoration(
-                    labelText: 'Buscar por título o municipio',
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                  onChanged: filters.setSearch,
-                ),
-                const SizedBox(height: 14),
-                FutureBuilder<List<String>>(
-                  future: categoriesFuture,
-                  builder: (context, snapshot) {
-                    final items = snapshot.data ?? [];
-                    final selectedCategory =
-                        items.contains(st.category) ? st.category : null;
-                    return DropdownButtonFormField<String?>(
-                      value: selectedCategory,
-                      decoration: const InputDecoration(labelText: 'Categoría'),
-                      items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('Todas')),
-                        ...items.map(
-                          (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
-                        ),
-                      ],
-                      onChanged: filters.setCategory,
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                FutureBuilder<List<ProjectScope>>(
-                  future: scopesFuture,
-                  builder: (context, snapshot) {
-                    final scopes = snapshot.data ?? [];
-                    return DropdownButtonFormField<ProjectScope?>(
-                      value: st.scope,
-                      decoration: const InputDecoration(labelText: 'Ámbito'),
-                      items: [
-                        const DropdownMenuItem<ProjectScope?>(value: null, child: Text('Todos')),
-                        ...scopes.map(
-                          (s) => DropdownMenuItem<ProjectScope?>(
-                            value: s,
-                            child: Text(_scopeLabel(s)),
+                        if (showHeaderAction)
+                          IconButton(
+                            tooltip: 'Contraer filtros',
+                            icon: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.filter_alt),
+                                SizedBox(width: 4),
+                                Icon(Icons.chevron_right),
+                              ],
+                            ),
+                            onPressed: onToggle,
                           ),
-                        ),
                       ],
-                      onChanged: filters.setScope,
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                FutureBuilder<List<String>>(
-                  future: islandsFuture,
-                  builder: (context, snapshot) {
-                    final items = snapshot.data ?? [];
-                    final selectedIsland = items.contains(st.island) ? st.island : null;
-                    return DropdownButtonFormField<String?>(
-                      value: selectedIsland,
-                      decoration: const InputDecoration(labelText: 'Isla'),
-                      items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('Todas las islas')),
-                        ...items.map(
-                          (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
-                        ),
-                      ],
-                      onChanged: filters.setIsland,
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                FutureBuilder<List<int>>(
-                  future: yearsFuture,
-                  builder: (context, snapshot) {
-                    final items = snapshot.data ?? [];
-                    return DropdownButtonFormField<int?>(
-                      value: st.year,
-                      decoration: const InputDecoration(labelText: 'Año'),
-                      items: [
-                        const DropdownMenuItem<int?>(value: null, child: Text('Todos los años')),
-                        ...items.map(
-                          (y) => DropdownMenuItem<int?>(value: y, child: Text(y.toString())),
-                        ),
-                      ],
-                      onChanged: filters.setYear,
-                    );
-                  },
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        searchController.clear();
-                        filters.reset();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Brand.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                      icon: const Icon(Icons.filter_alt_off),
-                      label: const Text('Limpiar filtros'),
                     ),
-                    const SizedBox(width: 12),
-                    Text('Proyectos mostrados dinámicamente en el mapa.', style: t.bodySmall),
+                    const SizedBox(height: 4),
+                    Text('Refina los proyectos por categoría, ámbito, isla y año.', style: t.bodyMedium),
+                    const Divider(height: 24),
+                    TextFormField(
+                      controller: searchController,
+                      decoration: const InputDecoration(
+                        labelText: 'Buscar por título o municipio',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: filters.setSearch,
+                    ),
+                    const SizedBox(height: 14),
+                    FutureBuilder<List<String>>(
+                      future: categoriesFuture,
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? [];
+                        final selectedCategory =
+                            items.contains(st.category) ? st.category : null;
+                        return DropdownButtonFormField<String?>(
+                          value: selectedCategory,
+                          decoration: const InputDecoration(labelText: 'Categoría'),
+                          items: [
+                            const DropdownMenuItem<String?>(value: null, child: Text('Todas')),
+                            ...items.map(
+                              (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
+                            ),
+                          ],
+                          onChanged: filters.setCategory,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    FutureBuilder<List<ProjectScope>>(
+                      future: scopesFuture,
+                      builder: (context, snapshot) {
+                        final scopes = snapshot.data ?? [];
+                        return DropdownButtonFormField<ProjectScope?>(
+                          value: st.scope,
+                          decoration: const InputDecoration(labelText: 'Ámbito'),
+                          items: [
+                            const DropdownMenuItem<ProjectScope?>(value: null, child: Text('Todos')),
+                            ...scopes.map(
+                              (s) => DropdownMenuItem<ProjectScope?>(
+                                value: s,
+                                child: Text(_scopeLabel(s)),
+                              ),
+                            ),
+                          ],
+                          onChanged: filters.setScope,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    FutureBuilder<List<String>>(
+                      future: islandsFuture,
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? [];
+                        final selectedIsland = items.contains(st.island) ? st.island : null;
+                        return DropdownButtonFormField<String?>(
+                          value: selectedIsland,
+                          decoration: const InputDecoration(labelText: 'Isla'),
+                          items: [
+                            const DropdownMenuItem<String?>(value: null, child: Text('Todas las islas')),
+                            ...items.map(
+                              (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
+                            ),
+                          ],
+                          onChanged: filters.setIsland,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    FutureBuilder<List<int>>(
+                      future: yearsFuture,
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? [];
+                        return DropdownButtonFormField<int?>(
+                          value: st.year,
+                          decoration: const InputDecoration(labelText: 'Año'),
+                          items: [
+                            const DropdownMenuItem<int?>(value: null, child: Text('Todos los años')),
+                            ...items.map(
+                              (y) => DropdownMenuItem<int?>(value: y, child: Text(y.toString())),
+                            ),
+                          ],
+                          onChanged: filters.setYear,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            searchController.clear();
+                            filters.reset();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Brand.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                          icon: const Icon(Icons.filter_alt_off),
+                          label: const Text('Limpiar filtros'),
+                        ),
+                        Text(
+                          'Proyectos mostrados dinámicamente en el mapa.',
+                          style: t.bodySmall,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             );
           },
         ),

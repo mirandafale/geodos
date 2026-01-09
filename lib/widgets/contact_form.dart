@@ -13,17 +13,21 @@ class ContactForm extends StatefulWidget {
     super.key,
     this.originSection = 'contact_page',
     this.showCompanyField = true,
+    this.showProjectTypeField = false,
     this.title = 'Envíanos tu consulta',
     this.helperText =
         'Tus datos se almacenan de forma segura en Firebase al enviar el formulario.',
     this.successMessage = 'Solicitud enviada correctamente',
+    this.projectTypeLabel = 'Tipo de proyecto (opcional)',
   });
 
   final String originSection;
   final bool showCompanyField;
+  final bool showProjectTypeField;
   final String title;
   final String helperText;
   final String successMessage;
+  final String projectTypeLabel;
 
   @override
   State<ContactForm> createState() => _ContactFormState();
@@ -34,6 +38,7 @@ class _ContactFormState extends State<ContactForm> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _companyController = TextEditingController();
+  final _projectTypeController = TextEditingController();
   final _messageController = TextEditingController();
   bool _submitting = false;
 
@@ -42,6 +47,7 @@ class _ContactFormState extends State<ContactForm> {
     _nameController.dispose();
     _emailController.dispose();
     _companyController.dispose();
+    _projectTypeController.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -104,6 +110,16 @@ class _ContactFormState extends State<ContactForm> {
                   ),
                 ),
               ],
+              if (widget.showProjectTypeField) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _projectTypeController,
+                  decoration: InputDecoration(
+                    labelText: widget.projectTypeLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               TextFormField(
                 controller: _messageController,
@@ -158,6 +174,8 @@ class _ContactFormState extends State<ContactForm> {
         company: _companyController.text.trim(),
         message: _messageController.text.trim(),
         originSection: widget.originSection,
+        projectType: _projectTypeController.text.trim(),
+        source: widget.originSection,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,6 +185,7 @@ class _ContactFormState extends State<ContactForm> {
       _nameController.clear();
       _emailController.clear();
       _companyController.clear();
+      _projectTypeController.clear();
       _messageController.clear();
     } catch (e) {
       if (!mounted) return;
