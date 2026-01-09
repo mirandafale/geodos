@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:geodos/brand/brand.dart';
 import 'package:geodos/widgets/app_shell.dart';
 import '../services/auth_service.dart';
 
@@ -19,6 +20,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _loading = false;
+  bool _loadingGoogle = false;
   String? _error;
 
   @override
@@ -56,17 +58,8 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
 
       Navigator.pushReplacementNamed(context, widget.redirectTo);
     } on FirebaseAuthException catch (e) {
-      String msg = 'No se ha podido iniciar sesión.';
-      if (e.code == 'user-not-found') {
-        msg = 'No existe ningún usuario con ese correo.';
-      } else if (e.code == 'wrong-password') {
-        msg = 'Contraseña incorrecta.';
-      } else if (e.code == 'invalid-email') {
-        msg = 'Correo no válido.';
-      }
-
       setState(() {
-        _error = msg;
+        _error = _friendlyAuthError(e.code);
       });
     } catch (_) {
       setState(() {
@@ -78,6 +71,120 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
           _loading = false;
         });
       }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _loadingGoogle = true;
+      _error = null;
+    });
+
+    try {
+      await context.read<AuthService>().signInWithGoogle();
+      if (!mounted) return;
+      final isAdmin = context.read<AuthService>().isAdmin;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isAdmin
+              ? 'Sesión iniciada con Google.'
+              : 'Sesión iniciada con Google, pero este usuario no es admin.'),
+        ),
+      );
+      Navigator.pushReplacementNamed(context, widget.redirectTo);
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _error = _friendlyAuthError(e.code);
+      });
+    } catch (_) {
+      setState(() {
+        _error = 'Error inesperado al iniciar sesión con Google.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingGoogle = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _openPasswordResetDialog() async {
+    final controller = TextEditingController(text: _emailCtrl.text.trim());
+    final email = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Restablecer contraseña'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Introduce tu correo y te enviaremos un enlace para restablecer la contraseña.',
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: 'Correo electrónico',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: const Text('Enviar enlace'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (email == null || email.isEmpty) {
+      return;
+    }
+
+    try {
+      await context.read<AuthService>().sendPasswordResetEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enlace de recuperación enviado.')),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_friendlyAuthError(e.code))),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo enviar el correo de recuperación.')),
+      );
+    }
+  }
+
+  String _friendlyAuthError(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return 'No existe ningún usuario con ese correo.';
+      case 'wrong-password':
+        return 'Contraseña incorrecta.';
+      case 'invalid-email':
+        return 'Correo no válido.';
+      case 'popup-closed-by-user':
+        return 'Se cerró la ventana de inicio de sesión.';
+      case 'account-exists-with-different-credential':
+        return 'Ya existe una cuenta con otro método de acceso.';
+      case 'too-many-requests':
+        return 'Demasiados intentos. Intenta más tarde.';
+      default:
+        return 'No se ha podido iniciar sesión.';
     }
   }
 
@@ -108,19 +215,27 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Card(
-            elevation: 4,
-            margin: const EdgeInsets.all(24),
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: isLoggedIn
-                  ? _buildLoggedIn(context, isAdmin, userEmail)
-                  : _buildForm(context),
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Brand.mist, Color(0xFFE9F2F0)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Card(
+              elevation: 6,
+              margin: const EdgeInsets.all(24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+                child: isLoggedIn
+                    ? _buildLoggedIn(context, isAdmin, userEmail)
+                    : _buildForm(context),
+              ),
             ),
           ),
         ),
@@ -135,6 +250,19 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Brand.primary, Brand.secondary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.admin_panel_settings, color: Colors.white, size: 28),
+        ),
+        const SizedBox(height: 16),
         Text(
           'Iniciar sesión',
           style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -145,9 +273,25 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
         ),
         const SizedBox(height: 24),
         if (_error != null) ...[
-          Text(
-            _error!,
-            style: TextStyle(color: Colors.red.shade700),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.shade100),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _error!,
+                    style: TextStyle(color: Colors.red.shade700),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
         ],
@@ -161,6 +305,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
                   labelText: 'Correo electrónico',
                   border: OutlineInputBorder(),
                 ),
+                autofillHints: const [AutofillHints.email],
                 keyboardType: TextInputType.emailAddress,
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) {
@@ -180,6 +325,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
                   border: OutlineInputBorder(),
                 ),
                 obscureText: true,
+                autofillHints: const [AutofillHints.password],
                 validator: (v) {
                   if (v == null || v.isEmpty) {
                     return 'Introduce tu contraseña.';
@@ -189,6 +335,14 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: _loading ? null : _openPasswordResetDialog,
+                  child: const Text('¿Has olvidado tu contraseña?'),
+                ),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -202,6 +356,32 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                       : const Text('Entrar'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('o'),
+                  ),
+                  Expanded(child: Divider(color: Colors.grey.shade300)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _loadingGoogle ? null : _signInWithGoogle,
+                  icon: _loadingGoogle
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.g_mobiledata),
+                  label: const Text('Continuar con Google'),
                 ),
               ),
             ],

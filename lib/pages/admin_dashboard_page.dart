@@ -29,9 +29,9 @@ class AdminDashboardPage extends StatelessWidget {
         ],
         bottom: const TabBar(
           tabs: [
-            Tab(text: 'Proyectos'),
-            Tab(text: 'Carrusel'),
-            Tab(text: 'Noticias'),
+            Tab(icon: Icon(Icons.work_outline), text: 'Proyectos'),
+            Tab(icon: Icon(Icons.view_carousel_outlined), text: 'Carrusel'),
+            Tab(icon: Icon(Icons.article_outlined), text: 'Noticias'),
           ],
         ),
         body: const TabBarView(
@@ -56,63 +56,74 @@ class _ProjectsTab extends StatefulWidget {
 class _ProjectsTabState extends State<_ProjectsTab> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Gestión de proyectos', style: Theme.of(context).textTheme.titleLarge),
-              FilledButton.icon(
-                onPressed: () => _openForm(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Nuevo proyecto'),
-              ),
-            ],
+          _SectionHeader(
+            title: 'Gestión de proyectos',
+            subtitle: 'Administra los proyectos visibles en el visor.',
+            action: FilledButton.icon(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Nuevo proyecto'),
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Expanded(
-            child: StreamBuilder<List<Project>>(
-              stream: ProjectService.stream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final projects = (snapshot.data ?? [])
-                  ..sort((a, b) => (b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-                      .compareTo(a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
-                if (projects.isEmpty) {
-                  return const Center(child: Text('No hay proyectos registrados.'));
-                }
-                return ListView.separated(
-                  itemCount: projects.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final p = projects[index];
-                    return ListTile(
-                      title: Text(p.title),
-                      subtitle: Text('${p.municipality} · ${p.category} · ${p.scope.name.toUpperCase()}'),
-                      trailing: Wrap(
-                        spacing: 8,
-                        children: [
-                          IconButton(
-                            tooltip: 'Editar',
-                            onPressed: () => _openForm(context, project: p),
-                            icon: const Icon(Icons.edit_outlined),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: StreamBuilder<List<Project>>(
+                  stream: ProjectService.stream(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const _LoadingState(message: 'Cargando proyectos...');
+                    }
+                    final projects = (snapshot.data ?? [])
+                      ..sort((a, b) => (b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+                          .compareTo(a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+                    if (projects.isEmpty) {
+                      return const _EmptyState(
+                        icon: Icons.work_outline,
+                        title: 'No hay proyectos registrados',
+                        message: 'Crea el primer proyecto para mostrarlo en el visor.',
+                      );
+                    }
+                    return ListView.separated(
+                      itemCount: projects.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final p = projects[index];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          title: Text(p.title, style: theme.textTheme.titleMedium),
+                          subtitle: Text(
+                            '${p.municipality} · ${p.category} · ${p.scope.name.toUpperCase()}',
                           ),
-                          IconButton(
-                            tooltip: 'Eliminar',
-                            onPressed: () => _deleteProject(p),
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          trailing: Wrap(
+                            spacing: 8,
+                            children: [
+                              IconButton(
+                                tooltip: 'Editar',
+                                onPressed: () => _openForm(context, project: p),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                              IconButton(
+                                tooltip: 'Eliminar',
+                                onPressed: () => _deleteProject(p),
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+              ),
             ),
           ),
         ],
@@ -347,93 +358,102 @@ class _CarouselTabState extends State<_CarouselTab> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Carrusel', style: Theme.of(context).textTheme.titleLarge),
-              FilledButton.icon(
-                onPressed: () => _openForm(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Nuevo slide'),
-              ),
-            ],
+          _SectionHeader(
+            title: 'Carrusel',
+            subtitle: 'Destaca contenido clave en la portada.',
+            action: FilledButton.icon(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Nuevo slide'),
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Expanded(
-            child: StreamBuilder<List<CarouselItem>>(
-              stream: CarouselService.streamAll(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final items = snapshot.data ?? [];
-                if (items.isEmpty) {
-                  return const Center(child: Text('Aún no hay elementos en el carrusel.'));
-                }
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return ListTile(
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: SizedBox(
-                          height: 48,
-                          width: 64,
-                          child: Image.network(
-                            item.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey.shade200,
-                                alignment: Alignment.center,
-                                child: const Icon(Icons.broken_image_outlined, size: 20),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                      title: Text(item.title?.isNotEmpty == true ? item.title! : 'Sin título'),
-                      subtitle: Text('Orden: ${item.order}${item.linkUrl == null ? '' : ' · ${item.linkUrl}'}'),
-                      trailing: Wrap(
-                        spacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text('Activo', style: TextStyle(fontSize: 12)),
-                              Switch(
-                                value: item.isActive,
-                                onChanged: (value) async {
-                                  await CarouselService.update(
-                                    item.copyWith(isActive: value, updatedAt: DateTime.now()),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: StreamBuilder<List<CarouselItem>>(
+                  stream: CarouselService.streamAll(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const _LoadingState(message: 'Cargando slides...');
+                    }
+                    final items = snapshot.data ?? [];
+                    if (items.isEmpty) {
+                      return const _EmptyState(
+                        icon: Icons.view_carousel_outlined,
+                        title: 'Aún no hay elementos en el carrusel',
+                        message: 'Añade un slide para destacar contenido en la portada.',
+                      );
+                    }
+                    return ListView.separated(
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              height: 48,
+                              width: 64,
+                              child: Image.network(
+                                item.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade200,
+                                    alignment: Alignment.center,
+                                    child: const Icon(Icons.broken_image_outlined, size: 20),
                                   );
                                 },
                               ),
+                            ),
+                          ),
+                          title: Text(item.title?.isNotEmpty == true ? item.title! : 'Sin título'),
+                          subtitle:
+                              Text('Orden: ${item.order}${item.linkUrl == null ? '' : ' · ${item.linkUrl}'}'),
+                          trailing: Wrap(
+                            spacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('Activo', style: TextStyle(fontSize: 12)),
+                                  Switch(
+                                    value: item.isActive,
+                                    onChanged: (value) async {
+                                      await CarouselService.update(
+                                        item.copyWith(isActive: value, updatedAt: DateTime.now()),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                              IconButton(
+                                tooltip: 'Editar',
+                                onPressed: () => _openForm(context, item: item),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                              IconButton(
+                                tooltip: 'Eliminar',
+                                onPressed: () => _deleteItem(item),
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              ),
                             ],
                           ),
-                          IconButton(
-                            tooltip: 'Editar',
-                            onPressed: () => _openForm(context, item: item),
-                            icon: const Icon(Icons.edit_outlined),
-                          ),
-                          IconButton(
-                            tooltip: 'Eliminar',
-                            onPressed: () => _deleteItem(item),
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+              ),
             ),
           ),
         ],
@@ -593,67 +613,78 @@ class _NewsTabState extends State<_NewsTab> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(20.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Noticias', style: Theme.of(context).textTheme.titleLarge),
-              FilledButton.icon(
-                onPressed: () => _openForm(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Nueva noticia'),
-              ),
-            ],
+          _SectionHeader(
+            title: 'Noticias',
+            subtitle: 'Gestiona publicaciones y actualizaciones.',
+            action: FilledButton.icon(
+              onPressed: () => _openForm(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva noticia'),
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Expanded(
-            child: StreamBuilder<List<NewsItem>>(
-              stream: NewsService.stream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final news = snapshot.data ?? [];
-                if (news.isEmpty) {
-                  return const Center(child: Text('Aún no hay noticias.'));
-                }
-                return ListView.separated(
-                  itemCount: news.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final item = news[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundImage: NetworkImage(item.imageUrl),
-                      ),
-                      title: Text(item.title),
-                      subtitle: Text(item.body, maxLines: 2, overflow: TextOverflow.ellipsis),
-                      trailing: Wrap(
-                        spacing: 8,
-                        children: [
-                          Chip(
-                            label: Text(item.published ? 'Publicada' : 'Borrador'),
-                            backgroundColor: item.published ? Colors.green.shade100 : Colors.orange.shade100,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: StreamBuilder<List<NewsItem>>(
+                  stream: NewsService.stream(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const _LoadingState(message: 'Cargando noticias...');
+                    }
+                    final news = snapshot.data ?? [];
+                    if (news.isEmpty) {
+                      return const _EmptyState(
+                        icon: Icons.article_outlined,
+                        title: 'Aún no hay noticias',
+                        message: 'Publica la primera noticia para la web.',
+                      );
+                    }
+                    return ListView.separated(
+                      itemCount: news.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final item = news[index];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          leading: CircleAvatar(
+                            backgroundImage: NetworkImage(item.imageUrl),
                           ),
-                          IconButton(
-                            tooltip: 'Editar',
-                            onPressed: () => _openForm(context, item: item),
-                            icon: const Icon(Icons.edit_outlined),
+                          title: Text(item.title),
+                          subtitle:
+                              Text(item.body, maxLines: 2, overflow: TextOverflow.ellipsis),
+                          trailing: Wrap(
+                            spacing: 8,
+                            children: [
+                              Chip(
+                                label: Text(item.published ? 'Publicada' : 'Borrador'),
+                                backgroundColor: item.published
+                                    ? Colors.green.shade100
+                                    : Colors.orange.shade100,
+                              ),
+                              IconButton(
+                                tooltip: 'Editar',
+                                onPressed: () => _openForm(context, item: item),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                              IconButton(
+                                tooltip: 'Eliminar',
+                                onPressed: () => _deleteNews(item),
+                                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            tooltip: 'Eliminar',
-                            onPressed: () => _deleteNews(item),
-                            icon: const Icon(Icons.delete_outline, color: Colors.red),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+              ),
             ),
           ),
         ],
@@ -793,6 +824,90 @@ class _NewsTabState extends State<_NewsTab> {
           ],
         );
       },
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+    required this.action,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: theme.textTheme.titleLarge),
+              const SizedBox(height: 4),
+              Text(subtitle, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700)),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        action,
+      ],
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: theme.colorScheme.primary.withOpacity(0.6)),
+          const SizedBox(height: 12),
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(message, style: theme.textTheme.bodyMedium, textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+}
+
+class _LoadingState extends StatelessWidget {
+  const _LoadingState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 12),
+          Text(message),
+        ],
+      ),
     );
   }
 }
