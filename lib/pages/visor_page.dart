@@ -186,13 +186,15 @@ class _VisorPageState extends State<VisorPage> {
                           visorContent,
                         ],
                       )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          visorContent,
-                          if (!isMobile) const SizedBox(width: 20),
-                          if (!isMobile) sidePanel,
-                        ],
+                    : IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            visorContent,
+                            if (!isMobile) const _FiltersRail(),
+                            if (!isMobile) sidePanel,
+                          ],
+                        ),
                       ),
               ),
             ),
@@ -408,5 +410,45 @@ class _FiltersPanel extends StatelessWidget {
       case ProjectScope.unknown:
         return 'Otro';
     }
+  }
+}
+
+class _FiltersRail extends StatelessWidget {
+  const _FiltersRail();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      decoration: BoxDecoration(
+        color: Brand.primary,
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: RotatedBox(
+        quarterTurns: 3,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.filter_alt, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'FILTROS',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
