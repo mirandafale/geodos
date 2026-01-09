@@ -294,10 +294,25 @@ class _FiltersPanel extends StatelessWidget {
                         return DropdownButtonFormField<String?>(
                           value: selectedCategory,
                           decoration: const InputDecoration(labelText: 'Categoría'),
+                          isExpanded: true,
                           items: [
-                            const DropdownMenuItem<String?>(value: null, child: Text('Todas')),
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(
+                                'Todas',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             ...items.map(
-                              (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
+                              (c) => DropdownMenuItem<String?>(
+                                value: c,
+                                child: Text(
+                                  c,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ),
                           ],
                           onChanged: filters.setCategory,
@@ -312,12 +327,24 @@ class _FiltersPanel extends StatelessWidget {
                         return DropdownButtonFormField<ProjectScope?>(
                           value: st.scope,
                           decoration: const InputDecoration(labelText: 'Ámbito'),
+                          isExpanded: true,
                           items: [
-                            const DropdownMenuItem<ProjectScope?>(value: null, child: Text('Todos')),
+                            const DropdownMenuItem<ProjectScope?>(
+                              value: null,
+                              child: Text(
+                                'Todos',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             ...scopes.map(
                               (s) => DropdownMenuItem<ProjectScope?>(
                                 value: s,
-                                child: Text(_scopeLabel(s)),
+                                child: Text(
+                                  _scopeLabel(s),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
                           ],
@@ -334,10 +361,25 @@ class _FiltersPanel extends StatelessWidget {
                         return DropdownButtonFormField<String?>(
                           value: selectedIsland,
                           decoration: const InputDecoration(labelText: 'Isla'),
+                          isExpanded: true,
                           items: [
-                            const DropdownMenuItem<String?>(value: null, child: Text('Todas las islas')),
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(
+                                'Todas las islas',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             ...items.map(
-                              (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
+                              (c) => DropdownMenuItem<String?>(
+                                value: c,
+                                child: Text(
+                                  c,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ),
                           ],
                           onChanged: filters.setIsland,
@@ -352,10 +394,25 @@ class _FiltersPanel extends StatelessWidget {
                         return DropdownButtonFormField<int?>(
                           value: st.year,
                           decoration: const InputDecoration(labelText: 'Año'),
+                          isExpanded: true,
                           items: [
-                            const DropdownMenuItem<int?>(value: null, child: Text('Todos los años')),
+                            const DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text(
+                                'Todos los años',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             ...items.map(
-                              (y) => DropdownMenuItem<int?>(value: y, child: Text(y.toString())),
+                              (y) => DropdownMenuItem<int?>(
+                                value: y,
+                                child: Text(
+                                  y.toString(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ),
                           ],
                           onChanged: filters.setYear,
