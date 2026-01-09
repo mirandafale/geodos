@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:geodos/models/carousel_item.dart';
 import 'package:geodos/models/news_item.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/auth_service.dart';
+import 'package:geodos/services/carousel_service.dart';
 import 'package:geodos/services/news_service.dart';
 import 'package:geodos/services/project_service.dart';
 import 'package:geodos/widgets/app_shell.dart';
 import 'package:geodos/widgets/coordinate_picker.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 
@@ -16,7 +17,7 @@ class AdminDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: AppShell(
         title: const Text('Panel de administración'),
         actions: [
@@ -29,12 +30,14 @@ class AdminDashboardPage extends StatelessWidget {
         bottom: const TabBar(
           tabs: [
             Tab(text: 'Proyectos'),
+            Tab(text: 'Carrusel'),
             Tab(text: 'Noticias'),
           ],
         ),
         body: const TabBarView(
           children: [
             _ProjectsTab(),
+            _CarouselTab(),
             _NewsTab(),
           ],
         ),
@@ -333,6 +336,252 @@ class _ProjectsTabState extends State<_ProjectsTab> {
   }
 }
 
+class _CarouselTab extends StatefulWidget {
+  const _CarouselTab();
+
+  @override
+  State<_CarouselTab> createState() => _CarouselTabState();
+}
+
+class _CarouselTabState extends State<_CarouselTab> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Carrusel', style: Theme.of(context).textTheme.titleLarge),
+              FilledButton.icon(
+                onPressed: () => _openForm(context),
+                icon: const Icon(Icons.add),
+                label: const Text('Nuevo slide'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: StreamBuilder<List<CarouselItem>>(
+              stream: CarouselService.streamAll(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final items = snapshot.data ?? [];
+                if (items.isEmpty) {
+                  return const Center(child: Text('Aún no hay elementos en el carrusel.'));
+                }
+                return ListView.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ListTile(
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: SizedBox(
+                          height: 48,
+                          width: 64,
+                          child: Image.network(
+                            item.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: Colors.grey.shade200,
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.broken_image_outlined, size: 20),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      title: Text(item.title?.isNotEmpty == true ? item.title! : 'Sin título'),
+                      subtitle: Text('Orden: ${item.order}${item.linkUrl == null ? '' : ' · ${item.linkUrl}'}'),
+                      trailing: Wrap(
+                        spacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Activo', style: TextStyle(fontSize: 12)),
+                              Switch(
+                                value: item.isActive,
+                                onChanged: (value) async {
+                                  await CarouselService.update(
+                                    item.copyWith(isActive: value, updatedAt: DateTime.now()),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            tooltip: 'Editar',
+                            onPressed: () => _openForm(context, item: item),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                          IconButton(
+                            tooltip: 'Eliminar',
+                            onPressed: () => _deleteItem(item),
+                            icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteItem(CarouselItem item) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar slide'),
+        content: Text('¿Seguro que deseas eliminar el slide "${item.title ?? 'Sin título'}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      try {
+        await CarouselService.delete(item.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Slide eliminado')),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No se pudo eliminar el slide: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _openForm(BuildContext context, {CarouselItem? item}) async {
+    final isEditing = item != null;
+    final formKey = GlobalKey<FormState>();
+    final titleCtrl = TextEditingController(text: item?.title ?? '');
+    final imageUrlCtrl = TextEditingController(text: item?.imageUrl ?? '');
+    final linkUrlCtrl = TextEditingController(text: item?.linkUrl ?? '');
+    final orderCtrl = TextEditingController(text: item?.order.toString() ?? '0');
+    final isActive = ValueNotifier<bool>(item?.isActive ?? true);
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(isEditing ? 'Editar slide' : 'Nuevo slide'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return SizedBox(
+                width: 520,
+                child: SingleChildScrollView(
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: titleCtrl,
+                          decoration: const InputDecoration(labelText: 'Título (opcional)'),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: imageUrlCtrl,
+                          decoration: const InputDecoration(labelText: 'URL de imagen'),
+                          validator: (v) => v == null || v.trim().isEmpty ? 'Campo obligatorio' : null,
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: linkUrlCtrl,
+                          decoration: const InputDecoration(labelText: 'URL de destino (opcional)'),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: orderCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'Orden'),
+                          validator: (v) =>
+                              int.tryParse(v ?? '') == null ? 'Introduce un número válido' : null,
+                        ),
+                        const SizedBox(height: 8),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: isActive,
+                          builder: (context, value, _) {
+                            return SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              value: value,
+                              onChanged: (v) => isActive.value = v,
+                              title: const Text('Activo'),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                final now = DateTime.now();
+                final updated = CarouselItem(
+                  id: item?.id ?? '',
+                  title: titleCtrl.text.trim().isEmpty ? null : titleCtrl.text.trim(),
+                  imageUrl: imageUrlCtrl.text.trim(),
+                  linkUrl: linkUrlCtrl.text.trim().isEmpty ? null : linkUrlCtrl.text.trim(),
+                  isActive: isActive.value,
+                  order: int.parse(orderCtrl.text.trim()),
+                  createdAt: item?.createdAt ?? now,
+                  updatedAt: now,
+                );
+                try {
+                  if (isEditing) {
+                    await CarouselService.update(updated);
+                  } else {
+                    await CarouselService.create(updated);
+                  }
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEditing ? 'Slide actualizado' : 'Slide creado'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al guardar: $e')),
+                  );
+                }
+              },
+              child: Text(isEditing ? 'Guardar cambios' : 'Crear'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _NewsTab extends StatefulWidget {
   const _NewsTab();
 
@@ -341,8 +590,6 @@ class _NewsTab extends StatefulWidget {
 }
 
 class _NewsTabState extends State<_NewsTab> {
-  final ImagePicker _picker = ImagePicker();
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -449,8 +696,6 @@ class _NewsTabState extends State<_NewsTab> {
     final bodyCtrl = TextEditingController(text: item?.body ?? '');
     final imageUrlCtrl = TextEditingController(text: item?.imageUrl ?? '');
     final published = ValueNotifier<bool>(item?.published ?? false);
-    XFile? pickedFile;
-
     await showDialog(
       context: context,
       builder: (context) {
@@ -482,24 +727,7 @@ class _NewsTabState extends State<_NewsTab> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: imageUrlCtrl,
-                          decoration: const InputDecoration(labelText: 'URL de imagen (opcional si subes archivo)'),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            FilledButton.icon(
-                              onPressed: () async {
-                                final result = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 1600);
-                                if (result != null) {
-                                  setState(() => pickedFile = result);
-                                }
-                              },
-                              icon: const Icon(Icons.upload_file),
-                              label: const Text('Subir imagen'),
-                            ),
-                            const SizedBox(width: 12),
-                            if (pickedFile != null) Text(pickedFile!.name),
-                          ],
+                          decoration: const InputDecoration(labelText: 'URL de imagen'),
                         ),
                         const SizedBox(height: 8),
                         ValueListenableBuilder<bool>(
@@ -540,9 +768,9 @@ class _NewsTabState extends State<_NewsTab> {
                 );
                 try {
                   if (isEditing) {
-                    await NewsService.update(news, image: pickedFile);
+                    await NewsService.update(news);
                   } else {
-                    await NewsService.create(news, image: pickedFile);
+                    await NewsService.create(news);
                   }
                   if (context.mounted) {
                     Navigator.pop(context);

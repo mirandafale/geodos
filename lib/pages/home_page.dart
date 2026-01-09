@@ -2,11 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geodos/models/carousel_item.dart';
 import 'package:geodos/models/news_item.dart';
 import 'package:geodos/services/auth_service.dart';
+import 'package:geodos/services/carousel_service.dart';
 import 'package:geodos/services/news_service.dart';
 import 'package:provider/provider.dart';
 import 'package:geodos/widgets/app_shell.dart';
+import 'package:geodos/pages/news_detail_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 // Visor incrustado para mostrar los proyectos georreferenciados.
 import '../widgets/visor_embed.dart';
 // Controlador de filtros para mantener el estado de ámbito (categoría), año, etc.
@@ -90,6 +94,8 @@ class _HomePageState extends State<HomePage> {
         padding: EdgeInsets.zero,
         children: [
           _HeroSection(),
+          const SizedBox(height: 24),
+          const _CarouselSection(),
           const SizedBox(height: 40),
           _ServicesSection(key: _servicesKey),
           const SizedBox(height: 40),
@@ -250,6 +256,274 @@ class _HeroSection extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CARRUSEL PRINCIPAL
+// ---------------------------------------------------------------------------
+
+class _CarouselSection extends StatelessWidget {
+  const _CarouselSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<CarouselItem>>(
+      stream: CarouselService.streamActive(),
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: _CarouselSlider(items: items),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CarouselSlider extends StatefulWidget {
+  const _CarouselSlider({required this.items});
+
+  final List<CarouselItem> items;
+
+  @override
+  State<_CarouselSlider> createState() => _CarouselSliderState();
+}
+
+class _CarouselSliderState extends State<_CarouselSlider> {
+  late final PageController _carouselCtrl;
+  Timer? _autoTimer;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _carouselCtrl = PageController(viewportFraction: 0.95);
+    _restartAutoPlay();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CarouselSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.items.length != oldWidget.items.length && _index >= widget.items.length) {
+      setState(() => _index = 0);
+      if (_carouselCtrl.hasClients) {
+        _carouselCtrl.jumpToPage(0);
+      }
+    }
+    if (widget.items.length != oldWidget.items.length) {
+      _restartAutoPlay();
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoTimer?.cancel();
+    _carouselCtrl.dispose();
+    super.dispose();
+  }
+
+  void _restartAutoPlay() {
+    _autoTimer?.cancel();
+    if (widget.items.length <= 1) return;
+    _autoTimer = Timer.periodic(const Duration(seconds: 7), (_) {
+      if (!mounted || widget.items.isEmpty || !_carouselCtrl.hasClients) return;
+      final nextIndex = _index + 1 >= widget.items.length ? 0 : _index + 1;
+      _carouselCtrl.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 550),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  Future<void> _handleTap(CarouselItem item) async {
+    final link = item.linkUrl?.trim();
+    if (link == null || link.isEmpty) return;
+    final uri = Uri.tryParse(link);
+    if (uri == null) return;
+    final success = await launchUrl(uri, mode: LaunchMode.platformDefault);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el enlace.')),
+      );
+    }
+  }
+
+  void _goTo(int index) {
+    if (widget.items.isEmpty) return;
+    final target = index.clamp(0, widget.items.length - 1);
+    _carouselCtrl.animateToPage(
+      target,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeInOut,
+    );
+    _restartAutoPlay();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final showNav = widget.items.length > 1;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = constraints.maxWidth >= 900 ? 420.0 : 300.0;
+        return Column(
+          children: [
+            SizedBox(
+              height: height,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PageView.builder(
+                    controller: _carouselCtrl,
+                    itemCount: widget.items.length,
+                    onPageChanged: (i) {
+                      setState(() => _index = i);
+                      _restartAutoPlay();
+                    },
+                    itemBuilder: (context, index) {
+                      final item = widget.items[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(22),
+                          onTap: item.linkUrl == null ? null : () => _handleTap(item),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(22),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.network(
+                                  item.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.broken_image_outlined),
+                                    );
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      alignment: Alignment.center,
+                                      child: const SizedBox(
+                                        height: 28,
+                                        width: 28,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                if (item.title != null || item.linkUrl != null)
+                                  Align(
+                                    alignment: Alignment.bottomCenter,
+                                    child: Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.transparent,
+                                            Colors.black.withOpacity(0.6),
+                                          ],
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (item.title != null)
+                                            Text(
+                                              item.title!,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleLarge
+                                                  ?.copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                            ),
+                                          if (item.linkUrl != null) ...[
+                                            const SizedBox(height: 8),
+                                            FilledButton(
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor: Colors.white,
+                                                foregroundColor:
+                                                    Theme.of(context).colorScheme.primary,
+                                              ),
+                                              onPressed: () => _handleTap(item),
+                                              child: const Text('Ver más'),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (showNav)
+                    Positioned(
+                      left: 6,
+                      child: _NavButton(
+                        icon: Icons.chevron_left,
+                        onPressed: _index > 0 ? () => _goTo(_index - 1) : null,
+                      ),
+                    ),
+                  if (showNav)
+                    Positioned(
+                      right: 6,
+                      child: _NavButton(
+                        icon: Icons.chevron_right,
+                        onPressed: _index < widget.items.length - 1
+                            ? () => _goTo(_index + 1)
+                            : null,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(widget.items.length, (i) {
+                final selected = i == _index;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: selected ? 14 : 8,
+                  height: selected ? 14 : 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: selected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey.shade400,
+                  ),
+                );
+              }),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -823,7 +1097,21 @@ class _BlogSectionState extends State<_BlogSection> {
                       ),
                     )
                   else
-                    _NewsCarousel(items: posts, excerptBuilder: _excerpt),
+                    Column(
+                      children: [
+                        _NewsCarousel(
+                          items: posts,
+                          excerptBuilder: _excerpt,
+                          onSelect: (item) => _openNewsDetail(context, item),
+                        ),
+                        const SizedBox(height: 24),
+                        _NewsList(
+                          items: posts,
+                          excerptBuilder: _excerpt,
+                          onSelect: (item) => _openNewsDetail(context, item),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -832,13 +1120,27 @@ class _BlogSectionState extends State<_BlogSection> {
       },
     );
   }
+
+  void _openNewsDetail(BuildContext context, NewsItem item) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NewsDetailPage(item: item),
+      ),
+    );
+  }
 }
 
 class _NewsCarousel extends StatefulWidget {
-  const _NewsCarousel({required this.items, required this.excerptBuilder});
+  const _NewsCarousel({
+    required this.items,
+    required this.excerptBuilder,
+    required this.onSelect,
+  });
 
   final List<NewsItem> items;
   final String Function(String text, {int maxLength}) excerptBuilder;
+  final ValueChanged<NewsItem> onSelect;
 
   @override
   State<_NewsCarousel> createState() => _NewsCarouselState();
@@ -904,72 +1206,6 @@ class _NewsCarouselState extends State<_NewsCarousel> {
     _restartAutoPlay();
   }
 
-  void _showNewsDialog(NewsItem item) {
-    final theme = Theme.of(context);
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 700),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (item.imageUrl.trim().isNotEmpty)
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Image.network(
-                        item.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey.shade200,
-                            alignment: Alignment.center,
-                            child: const Icon(Icons.broken_image_outlined, color: Colors.grey),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title,
-                          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          item.body,
-                          style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
-                        ),
-                        const SizedBox(height: 24),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: FilledButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cerrar'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -1005,7 +1241,7 @@ class _NewsCarouselState extends State<_NewsCarousel> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(22),
-                          onTap: () => _showNewsDialog(item),
+                          onTap: () => widget.onSelect(item),
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(22),
@@ -1089,6 +1325,138 @@ class _NewsCarouselState extends State<_NewsCarousel> {
               }),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+class _NewsList extends StatelessWidget {
+  const _NewsList({
+    required this.items,
+    required this.excerptBuilder,
+    required this.onSelect,
+  });
+
+  final List<NewsItem> items;
+  final String Function(String text, {int maxLength}) excerptBuilder;
+  final ValueChanged<NewsItem> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 700;
+        return ListView.separated(
+          itemCount: items.length,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            final excerpt = item.body.trim().isEmpty
+                ? 'Noticia sin resumen disponible.'
+                : excerptBuilder(item.body, maxLength: 140);
+            return InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => onSelect(item),
+              child: Card(
+                elevation: 1,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: isWide
+                      ? Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: SizedBox(
+                                width: 180,
+                                height: 110,
+                                child: Image.network(
+                                  item.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.broken_image_outlined),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.title,
+                                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    excerpt,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: Colors.grey.shade700),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(Icons.chevron_right),
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: AspectRatio(
+                                aspectRatio: 16 / 9,
+                                child: Image.network(
+                                  item.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      alignment: Alignment.center,
+                                      child: const Icon(Icons.broken_image_outlined),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              item.title,
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              excerpt,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: Colors.grey.shade700),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
