@@ -42,6 +42,21 @@ class AuthService extends ChangeNotifier {
     // authStateChanges ya actualizará _user y notificará.
   }
 
+  Future<void> signInWithGoogle() async {
+    final provider = GoogleAuthProvider();
+    if (kIsWeb) {
+      await _auth.signInWithPopup(provider);
+    } else {
+      await _auth.signInWithProvider(provider);
+    }
+    _user = _auth.currentUser;
+    notifyListeners();
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email.trim());
+  }
+
   Future<void> signOut() async {
     await _auth.signOut();
     _user = null;
