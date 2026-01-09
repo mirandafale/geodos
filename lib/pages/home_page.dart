@@ -1732,9 +1732,11 @@ class _FooterSection extends StatelessWidget {
               Wrap(
                 spacing: 16,
                 children: const [
-                  _FooterLink('Aviso legal'),
-                  _FooterLink('Política de privacidad'),
-                  _FooterLink('Política de cookies'),
+                  _FooterLink(label: 'Privacidad', route: '/privacy'),
+                  _FooterLink(label: 'Cookies', route: '/cookies'),
+                  _FooterLink(label: 'Ajustes de datos', route: '/data-privacy'),
+                  _FooterLink(label: 'Términos de uso', route: '/terms'),
+                  _FooterLink(label: 'Accesibilidad', route: '/accessibility'),
                 ],
               ),
             ],
@@ -1747,14 +1749,18 @@ class _FooterSection extends StatelessWidget {
 
 class _FooterLink extends StatelessWidget {
   final String label;
-  const _FooterLink(this.label);
+  final String route;
+  const _FooterLink({required this.label, required this.route});
   @override
   Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: Colors.white,
-        decoration: TextDecoration.underline,
+    return InkWell(
+      onTap: () => Navigator.pushNamed(context, route),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Colors.white,
+          decoration: TextDecoration.underline,
+        ),
       ),
     );
   }

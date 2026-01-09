@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/carousel_item.dart';
 import 'package:geodos/models/news_item.dart';
 import 'package:geodos/models/project.dart';
@@ -21,6 +22,7 @@ class AdminDashboardPage extends StatelessWidget {
       child: AppShell(
         title: const Text('Panel de administración'),
         actions: [
+          const _AdminModeIndicator(),
           IconButton(
             tooltip: 'Cerrar sesión',
             onPressed: () => context.read<AuthService>().signOut(),
@@ -28,6 +30,11 @@ class AdminDashboardPage extends StatelessWidget {
           ),
         ],
         bottom: const TabBar(
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelStyle: TextStyle(fontWeight: FontWeight.w600),
           tabs: [
             Tab(icon: Icon(Icons.work_outline), text: 'Proyectos'),
             Tab(icon: Icon(Icons.view_carousel_outlined), text: 'Carrusel'),
@@ -343,6 +350,71 @@ class _ProjectsTabState extends State<_ProjectsTab> {
           ],
         );
       },
+    );
+  }
+}
+
+class _AdminModeIndicator extends StatelessWidget {
+  const _AdminModeIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final email = auth.user?.email ?? 'Usuario administrador';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.18),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.admin_panel_settings_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Modo admin',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                Text(
+                  email,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70),
+                ),
+              ],
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.edit_rounded, color: Colors.white, size: 12),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Edición habilitada',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -842,6 +914,13 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final headingStyle = theme.textTheme.titleLarge?.copyWith(
+      color: Brand.ink,
+      fontWeight: FontWeight.w700,
+    );
+    final subtitleStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: Colors.blueGrey.shade700,
+    );
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -850,9 +929,9 @@ class _SectionHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: theme.textTheme.titleLarge),
+              Text(title, style: headingStyle),
               const SizedBox(height: 4),
-              Text(subtitle, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey.shade700)),
+              Text(subtitle, style: subtitleStyle),
             ],
           ),
         ),
