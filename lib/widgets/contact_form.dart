@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geodos/brand/brand.dart';
 import 'package:geodos/services/lead_service.dart';
@@ -187,10 +188,25 @@ class _ContactFormState extends State<ContactForm> {
       _companyController.clear();
       _projectTypeController.clear();
       _messageController.clear();
-    } catch (e) {
+    } on FirebaseException catch (e, stackTrace) {
+      debugPrint(
+        'ContactForm Firebase error (${e.code}): ${e.message}',
+      );
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      final message =
+          e.message?.isNotEmpty == true
+              ? e.message!
+              : 'No hemos podido enviar tu mensaje. Inténtalo de nuevo.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('ContactForm submit failed: $e');
+      debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al enviar: \$e')),
+        const SnackBar(content: Text('Se produjo un error inesperado. Inténtalo de nuevo.')),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
