@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/carousel_item.dart';
 import 'package:geodos/models/news_item.dart';
+import 'package:geodos/brand/brand.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/carousel_service.dart';
 import 'package:geodos/services/news_service.dart';
@@ -513,6 +514,7 @@ class _CarouselSliderState extends State<_CarouselSlider> {
   @override
   Widget build(BuildContext context) {
     final showNav = widget.items.length > 1;
+    final t = Theme.of(context).textTheme;
     return LayoutBuilder(
       builder: (context, constraints) {
         final height = constraints.maxWidth >= 900 ? 420.0 : 300.0;
@@ -565,19 +567,32 @@ class _CarouselSliderState extends State<_CarouselSlider> {
                                     );
                                   },
                                 ),
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Brand.primary.withOpacity(0.35),
+                                        Colors.transparent,
+                                        Brand.secondary.withOpacity(0.35),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                                 if (item.title != null || item.linkUrl != null)
                                   Align(
                                     alignment: Alignment.bottomCenter,
                                     child: Container(
                                       width: double.infinity,
-                                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           begin: Alignment.topCenter,
                                           end: Alignment.bottomCenter,
                                           colors: [
                                             Colors.transparent,
-                                            Colors.black.withOpacity(0.6),
+                                            Brand.primary.withOpacity(0.72),
                                           ],
                                         ),
                                       ),
@@ -590,24 +605,21 @@ class _CarouselSliderState extends State<_CarouselSlider> {
                                               item.title!,
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleLarge
-                                                  ?.copyWith(
-                                                    color: Colors.white,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
+                                              style: t.titleLarge?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
                                           if (item.linkUrl != null) ...[
                                             const SizedBox(height: 8),
-                                            FilledButton(
+                                            FilledButton.icon(
                                               style: FilledButton.styleFrom(
-                                                backgroundColor: Colors.white,
-                                                foregroundColor:
-                                                    Theme.of(context).colorScheme.primary,
+                                                backgroundColor: Brand.secondary,
+                                                foregroundColor: Colors.white,
                                               ),
                                               onPressed: () => _handleTap(item),
-                                              child: const Text('Ver más'),
+                                              icon: const Icon(Icons.open_in_new, size: 18),
+                                              label: const Text('Ver más'),
                                             ),
                                           ],
                                         ],
@@ -1706,11 +1718,11 @@ class _NavButton extends StatelessWidget {
       opacity: isDisabled ? 0.35 : 1,
       duration: const Duration(milliseconds: 200),
       child: Material(
-        color: Colors.white.withOpacity(0.85),
+        color: Colors.white.withOpacity(0.9),
         shape: const CircleBorder(),
         child: IconButton(
           onPressed: onPressed,
-          icon: Icon(icon, color: Colors.black87),
+          icon: Icon(icon, color: Brand.primary),
           tooltip: icon == Icons.chevron_left ? 'Anterior' : 'Siguiente',
         ),
       ),
