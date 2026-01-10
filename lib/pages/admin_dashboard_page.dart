@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/carousel_item.dart';
+import 'package:geodos/models/contact_message.dart';
 import 'package:geodos/models/news_item.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/carousel_service.dart';
+import 'package:geodos/services/contact_message_service.dart';
 import 'package:geodos/services/news_service.dart';
 import 'package:geodos/services/project_service.dart';
 import 'package:geodos/widgets/app_shell.dart';
@@ -18,7 +20,7 @@ class AdminDashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: AppShell(
         title: const Text('Panel de administración'),
         actions: [
@@ -29,16 +31,17 @@ class AdminDashboardPage extends StatelessWidget {
             icon: const Icon(Icons.logout),
           ),
         ],
-        bottom: const TabBar(
+        bottom: TabBar(
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
           indicatorWeight: 3,
-          labelStyle: TextStyle(fontWeight: FontWeight.w600),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
           tabs: [
-            Tab(icon: Icon(Icons.work_outline), text: 'Proyectos'),
-            Tab(icon: Icon(Icons.view_carousel_outlined), text: 'Carrusel'),
-            Tab(icon: Icon(Icons.article_outlined), text: 'Noticias'),
+            const Tab(icon: Icon(Icons.work_outline), text: 'Proyectos'),
+            const Tab(icon: Icon(Icons.view_carousel_outlined), text: 'Carrusel'),
+            const Tab(icon: Icon(Icons.article_outlined), text: 'Noticias'),
+            const Tab(child: _ContactMessagesTabLabel()),
           ],
         ),
         body: const TabBarView(
@@ -46,6 +49,7 @@ class AdminDashboardPage extends StatelessWidget {
             _ProjectsTab(),
             _CarouselTab(),
             _NewsTab(),
+            _ContactMessagesTab(),
           ],
         ),
       ),
@@ -896,6 +900,164 @@ class _NewsTabState extends State<_NewsTab> {
           ],
         );
       },
+    );
+  }
+}
+
+class _ContactMessagesTabLabel extends StatelessWidget {
+  const _ContactMessagesTabLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<int>(
+      stream: ContactMessageService.streamUnreadCount(),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data ?? 0;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.mail_outline),
+                if (unreadCount > 0)
+                  Positioned(
+                    right: -6,
+                    top: -4,
+                    child: _UnreadBadge(count: unreadCount),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            const Text('Mensajes'),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ContactMessagesTab extends StatefulWidget {
+  const _ContactMessagesTab();
+
+  @override
+  State<_ContactMessagesTab> createState() => _ContactMessagesTabState();
+}
+
+class _ContactMessagesTabState extends State<_ContactMessagesTab> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _SectionHeader(
+            title: 'Mensajes de contacto',
+            subtitle: 'Gestiona los mensajes enviados desde el formulario.',
+            action: SizedBox.shrink(),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: StreamBuilder<List<ContactMessage>>(
+                  stream: ContactMessageService.streamAll(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const _LoadingState(message: 'Cargando mensajes...');
+                    }
+                    final messages = snapshot.data ?? [];
+                    if (messages.isEmpty) {
+                      return const _EmptyState(
+                        icon: Icons.mail_outline,
+                        title: 'No hay mensajes nuevos',
+                        message: 'Las consultas de contacto aparecerán aquí.',
+                      );
+                    }
+                    return ListView.separated(
+                      itemCount: messages.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final statusLabel = message.isRead ? 'Leído' : 'Sin leer';
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                          title: Text(message.name, style: Theme.of(context).textTheme.titleMedium),
+                          subtitle: Text(
+                            '${message.email} · ${_formatDate(context, message.createdAt)}',
+                          ),
+                          trailing: Wrap(
+                            spacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Chip(
+                                label: Text(statusLabel),
+                                backgroundColor: message.isRead
+                                    ? Colors.green.shade100
+                                    : Colors.orange.shade100,
+                                labelStyle: TextStyle(
+                                  color: message.isRead
+                                      ? Colors.green.shade800
+                                      : Colors.orange.shade800,
+                                ),
+                              ),
+                              if (!message.isRead)
+                                TextButton.icon(
+                                  onPressed: () async {
+                                    await ContactMessageService.markAsRead(message.id);
+                                  },
+                                  icon: const Icon(Icons.mark_email_read_outlined, size: 18),
+                                  label: const Text('Marcar leído'),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(BuildContext context, DateTime? date) {
+    if (date == null) return 'Sin fecha';
+    final localizations = MaterialLocalizations.of(context);
+    final dateLabel = localizations.formatShortDate(date);
+    final timeLabel = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(date));
+    return '$dateLabel · $timeLabel';
+  }
+}
+
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final displayValue = count > 9 ? '9+' : '$count';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondary,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white, width: 1),
+      ),
+      child: Text(
+        displayValue,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
