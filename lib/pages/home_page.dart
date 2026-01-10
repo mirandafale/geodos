@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/carousel_item.dart';
 import 'package:geodos/models/news_item.dart';
 import 'package:geodos/services/auth_service.dart';
@@ -269,21 +270,156 @@ class _CarouselSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<CarouselItem>>(
-      stream: CarouselService.streamActive(),
-      builder: (context, snapshot) {
-        final items = snapshot.data ?? [];
-        if (items.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _CarouselSlider(items: items),
-            ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1100),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: StreamBuilder<List<CarouselItem>>(
+            stream: CarouselService.streamActive(),
+            builder: (context, snapshot) {
+              final items =
+                  (snapshot.data ?? []).where((item) => item.isActive).toList();
+              final isLoading = snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData;
+              Widget child;
+              if (isLoading) {
+                child = const _CarouselPlaceholder.loading(key: ValueKey('carousel-loading'));
+              } else if (items.isEmpty) {
+                child = const _CarouselPlaceholder.fallback(key: ValueKey('carousel-fallback'));
+              } else {
+                child = _CarouselSlider(
+                  key: const ValueKey('carousel-loaded'),
+                  items: items,
+                );
+              }
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                child: child,
+              );
+            },
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CarouselPlaceholder extends StatelessWidget {
+  const _CarouselPlaceholder.loading({super.key}) : _isLoading = true;
+  const _CarouselPlaceholder.fallback({super.key}) : _isLoading = false;
+
+  final bool _isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = constraints.maxWidth >= 900 ? 420.0 : 300.0;
+        return Column(
+          children: [
+            SizedBox(
+              height: height,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Brand.primary.withOpacity(0.95),
+                        Brand.secondary.withOpacity(0.9),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: Opacity(
+                          opacity: 0.12,
+                          child: Icon(
+                            Icons.public,
+                            size: height * 0.7,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'GEODOS',
+                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.6,
+                                  ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _isLoading
+                                  ? 'Preparando contenidos institucionales...'
+                                  : 'Consultoría ambiental y territorial con datos confiables.',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                            const SizedBox(height: 20),
+                            if (_isLoading)
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Brand.accent.withOpacity(0.95),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Cargando carrusel',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: Colors.white.withOpacity(0.85),
+                                        ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(3, (i) {
+                return Container(
+                  width: i == 0 ? 14 : 8,
+                  height: i == 0 ? 14 : 8,
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: i == 0
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey.shade400,
+                  ),
+                );
+              }),
+            ),
+          ],
         );
       },
     );
