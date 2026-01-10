@@ -36,6 +36,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _scrollCtrl = ScrollController();
+  late final Future<List<CarouselItem>> _carouselFuture;
 
   // Claves para hacer scroll a secciones concretas.
   final _servicesKey = GlobalKey();
@@ -44,6 +45,12 @@ class _HomePageState extends State<HomePage> {
   final _blogKey = GlobalKey();
   final _ctaKey = GlobalKey();
   final _footerKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _carouselFuture = CarouselService().getPublicCarousel();
+  }
 
   /// Desplaza la vista hasta la sección asociada a [key].
   void _scrollTo(GlobalKey key) {
@@ -96,7 +103,7 @@ class _HomePageState extends State<HomePage> {
         children: [
           _HeroSection(),
           const SizedBox(height: 24),
-          const _CarouselSection(),
+          _CarouselSection(carouselFuture: _carouselFuture),
           const SizedBox(height: 40),
           _ServicesSection(key: _servicesKey),
           const SizedBox(height: 40),
@@ -266,14 +273,16 @@ class _HeroSection extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _CarouselSection extends StatelessWidget {
-  const _CarouselSection();
+  const _CarouselSection({required this.carouselFuture});
+
+  final Future<List<CarouselItem>> carouselFuture;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.zero,
-      child: StreamBuilder<List<CarouselItem>>(
-        stream: CarouselService.streamActive(),
+      child: FutureBuilder<List<CarouselItem>>(
+        future: carouselFuture,
         builder: (context, snapshot) {
           final items = snapshot.data ?? [];
           final isLoading = snapshot.connectionState == ConnectionState.waiting &&
