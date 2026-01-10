@@ -270,36 +270,30 @@ class _CarouselSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1100),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: StreamBuilder<List<CarouselItem>>(
-            stream: CarouselService.streamActive(),
-            builder: (context, snapshot) {
-              final items =
-                  (snapshot.data ?? []).where((item) => item.isActive).toList();
-              final isLoading = snapshot.connectionState == ConnectionState.waiting &&
-                  !snapshot.hasData;
-              Widget child;
-              if (isLoading) {
-                child = const _CarouselPlaceholder.loading(key: ValueKey('carousel-loading'));
-              } else if (items.isEmpty) {
-                child = const _CarouselPlaceholder.fallback(key: ValueKey('carousel-fallback'));
-              } else {
-                child = _CarouselSlider(
-                  key: const ValueKey('carousel-loaded'),
-                  items: items,
-                );
-              }
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 350),
-                child: child,
-              );
-            },
-          ),
-        ),
+    return Padding(
+      padding: EdgeInsets.zero,
+      child: StreamBuilder<List<CarouselItem>>(
+        stream: CarouselService.streamActive(),
+        builder: (context, snapshot) {
+          final items = snapshot.data ?? [];
+          final isLoading = snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData;
+          Widget child;
+          if (isLoading) {
+            child = const _CarouselPlaceholder.loading(key: ValueKey('carousel-loading'));
+          } else if (items.isEmpty) {
+            child = const SizedBox.shrink(key: ValueKey('carousel-empty'));
+          } else {
+            child = _CarouselSlider(
+              key: const ValueKey('carousel-loaded'),
+              items: items,
+            );
+          }
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            child: child,
+          );
+        },
       ),
     );
   }
@@ -565,6 +559,18 @@ class _CarouselSliderState extends State<_CarouselSlider> {
                                     );
                                   },
                                 ),
+                                DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Brand.primary.withOpacity(0.14),
+                                        Brand.secondary.withOpacity(0.22),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                  ),
+                                ),
                                 if (item.title != null || item.linkUrl != null)
                                   Align(
                                     alignment: Alignment.bottomCenter,
@@ -577,7 +583,8 @@ class _CarouselSliderState extends State<_CarouselSlider> {
                                           end: Alignment.bottomCenter,
                                           colors: [
                                             Colors.transparent,
-                                            Colors.black.withOpacity(0.6),
+                                            Brand.primary.withOpacity(0.55),
+                                            Brand.secondary.withOpacity(0.7),
                                           ],
                                         ),
                                       ),
