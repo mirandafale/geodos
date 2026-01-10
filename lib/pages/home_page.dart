@@ -427,13 +427,17 @@ class _CarouselPlaceholder extends StatelessWidget {
 }
 
 class _CarouselSlider extends StatefulWidget {
-  const _CarouselSlider({required this.items});
+  const _CarouselSlider({
+    Key? key,
+    required this.items,
+  }) : super(key: key);
 
   final List<CarouselItem> items;
 
   @override
   State<_CarouselSlider> createState() => _CarouselSliderState();
 }
+
 
 class _CarouselSliderState extends State<_CarouselSlider> {
   late final PageController _carouselCtrl;
