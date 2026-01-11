@@ -65,6 +65,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _scrollToTop() {
+    _scrollCtrl.animateTo(
+      0,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -161,11 +169,17 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 40),
             _FinalCtaSection(key: _ctaKey),
             const SizedBox(height: 24),
-            _FooterSection(key: _footerKey),
+            _FooterSection(
+              key: _footerKey,
+              onHomeTap: _scrollToTop,
+              onServicesTap: () => _scrollTo(_servicesKey),
+              onProjectsTap: () => Navigator.pushNamed(context, '/visor'),
+              onBlogTap: () => _scrollTo(_blogKey),
+              onContactTap: () => _scrollTo(_ctaKey),
+            ),
           ],
         ),
       ),
-
     );
   }
 }
@@ -2175,35 +2189,189 @@ class _FinalCtaSection extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _FooterSection extends StatelessWidget {
-  const _FooterSection({super.key});
+  const _FooterSection({
+    super.key,
+    required this.onHomeTap,
+    required this.onServicesTap,
+    required this.onProjectsTap,
+    required this.onBlogTap,
+    required this.onContactTap,
+  });
+
+  final VoidCallback onHomeTap;
+  final VoidCallback onServicesTap;
+  final VoidCallback onProjectsTap;
+  final VoidCallback onBlogTap;
+  final VoidCallback onContactTap;
+
+  Future<void> _openExternalLink(BuildContext context, String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    final ok = await launchUrl(uri, mode: LaunchMode.platformDefault);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el enlace.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Container(
       color: const Color(0xFF0B1F26),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '© ${DateTime.now().year} GEODOS · Consultoría ambiental y territorial',
-                style: t.bodySmall?.copyWith(color: Colors.white70),
-              ),
               Wrap(
-                spacing: 16,
-                children: const [
-                  _FooterLink(label: 'Privacidad', route: '/privacy'),
-                  _FooterLink(label: 'Cookies', route: '/cookies'),
-                  _FooterLink(label: 'Ajustes de datos', route: '/data-privacy'),
-                  _FooterLink(label: 'Términos de uso', route: '/terms'),
-                  _FooterLink(label: 'Accesibilidad', route: '/accessibility'),
+                spacing: 48,
+                runSpacing: 24,
+                children: [
+                  SizedBox(
+                    width: 250,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'GEODOS',
+                          style: t.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Consultoría ambiental y SIG',
+                          style: t.bodySmall?.copyWith(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Contacto: info@geodos.es',
+                          style: t.bodySmall?.copyWith(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Ubicación: Canarias · España',
+                          style: t.bodySmall?.copyWith(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _FooterColumn(
+                    title: 'Navegación',
+                    children: [
+                      _FooterAction(label: 'Inicio', onTap: onHomeTap),
+                      _FooterAction(label: 'Servicios', onTap: onServicesTap),
+                      _FooterAction(label: 'Proyectos', onTap: onProjectsTap),
+                      _FooterAction(label: 'Blog', onTap: onBlogTap),
+                      _FooterAction(label: 'Contacto', onTap: onContactTap),
+                    ],
+                  ),
+                  _FooterColumn(
+                    title: 'Legal',
+                    children: const [
+                      _FooterLink(label: 'Política de privacidad', route: '/privacy'),
+                      _FooterLink(label: 'Cookies', route: '/cookies'),
+                      _FooterLink(label: 'Términos de uso', route: '/terms'),
+                    ],
+                  ),
+                  _FooterColumn(
+                    title: 'Síguenos',
+                    children: [
+                      _FooterIconLink(
+                        label: 'LinkedIn',
+                        icon: Icons.business_center_outlined,
+                        url: 'https://www.linkedin.com',
+                        onLaunch: _openExternalLink,
+                      ),
+                      _FooterIconLink(
+                        label: 'X (Twitter)',
+                        icon: Icons.alternate_email_outlined,
+                        url: 'https://x.com',
+                        onLaunch: _openExternalLink,
+                      ),
+                      _FooterIconLink(
+                        label: 'Instagram',
+                        icon: Icons.camera_alt_outlined,
+                        url: 'https://www.instagram.com',
+                        onLaunch: _openExternalLink,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white24),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '© ${DateTime.now().year} GEODOS · Consultoría ambiental y territorial',
+                    style: t.bodySmall?.copyWith(color: Colors.white70),
+                  ),
+                  Text(
+                    'Compromiso con la privacidad y la sostenibilidad',
+                    style: t.bodySmall?.copyWith(color: Colors.white70),
+                  ),
                 ],
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterColumn extends StatelessWidget {
+  const _FooterColumn({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return SizedBox(
+      width: 180,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: t.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _FooterAction extends StatelessWidget {
+  const _FooterAction({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
         ),
       ),
     );
@@ -2218,11 +2386,46 @@ class _FooterLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () => Navigator.pushNamed(context, route),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Colors.white,
-          decoration: TextDecoration.underline,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterIconLink extends StatelessWidget {
+  const _FooterIconLink({
+    required this.label,
+    required this.icon,
+    required this.url,
+    required this.onLaunch,
+  });
+
+  final String label;
+  final IconData icon;
+  final String url;
+  final Future<void> Function(BuildContext context, String url) onLaunch;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onLaunch(context, url),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: Colors.white70),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white70),
+            ),
+          ],
         ),
       ),
     );
