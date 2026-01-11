@@ -1564,6 +1564,15 @@ class _BlogSectionState extends State<_BlogSection> {
                           excerptBuilder: _excerpt,
                           onSelect: (item) => _openNewsDetail(context, item),
                         ),
+                        const SizedBox(height: 16),
+                        Align(
+                          alignment: Alignment.center,
+                          child: TextButton.icon(
+                            onPressed: () => Navigator.pushNamed(context, '/blog'),
+                            icon: const Icon(Icons.open_in_new),
+                            label: const Text('Ver todas las noticias'),
+                          ),
+                        ),
                       ],
                     ),
                 ],
