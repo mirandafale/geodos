@@ -38,7 +38,6 @@ class _HomePageState extends State<HomePage> {
   final _scrollCtrl = ScrollController();
   late final Stream<List<CarouselItem>> _carouselStream;
 
-
   // Claves para hacer scroll a secciones concretas.
   final _servicesKey = GlobalKey();
   final _projectsKey = GlobalKey();
@@ -104,6 +103,7 @@ class _HomePageState extends State<HomePage> {
         children: [
           _HeroSection(),
           const SizedBox(height: 24),
+          _CarouselSection(carouselStream: _carouselStream),
           const SizedBox(height: 40),
           _ServicesSection(key: _servicesKey),
           const SizedBox(height: 40),
@@ -273,16 +273,16 @@ class _HeroSection extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _CarouselSection extends StatelessWidget {
-  const _CarouselSection({required this.carouselFuture});
+  const _CarouselSection({required this.carouselStream});
 
-  final Future<List<CarouselItem>> carouselFuture;
+  final Stream<List<CarouselItem>> carouselStream;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.zero,
-      child: FutureBuilder<List<CarouselItem>>(
-        future: carouselFuture,
+      child: StreamBuilder<List<CarouselItem>>(
+        stream: carouselStream,
         builder: (context, snapshot) {
           final items = snapshot.data ?? [];
           final isLoading = snapshot.connectionState == ConnectionState.waiting &&
@@ -291,7 +291,7 @@ class _CarouselSection extends StatelessWidget {
           if (isLoading) {
             child = const _CarouselPlaceholder.loading(key: ValueKey('carousel-loading'));
           } else if (items.isEmpty) {
-            child = const SizedBox.shrink(key: ValueKey('carousel-empty'));
+            child = const _CarouselPlaceholder.fallback(key: ValueKey('carousel-empty'));
           } else {
             child = _CarouselSlider(
               key: const ValueKey('carousel-loaded'),
