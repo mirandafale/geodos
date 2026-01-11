@@ -68,34 +68,78 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isWide = MediaQuery.of(context).size.width >= 980;
 
     return AppShell(
-      title: Text(
-        'GEODOS',
-        style: theme.textTheme.titleLarge?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-        ),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.18),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white.withOpacity(0.4)),
+            ),
+            child: const Icon(Icons.public, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'GEODOS',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.6,
+                ),
+              ),
+              Text(
+                'Consultoría ambiental y SIG',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: Colors.white.withOpacity(0.85),
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => _scrollTo(_servicesKey),
-          child: const Text('Servicios', style: TextStyle(color: Colors.white)),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pushNamed(context, '/visor'),
-          child: const Text('Proyectos', style: TextStyle(color: Colors.white)),
-        ),
-        TextButton(
-          onPressed: () => _scrollTo(_aboutKey),
-          child: const Text('Quiénes somos', style: TextStyle(color: Colors.white)),
-        ),
-        TextButton(
-          onPressed: () => _scrollTo(_ctaKey),
-          child: const Text('Contacto', style: TextStyle(color: Colors.white)),
-        ),
-        const SizedBox(width: 16),
+        if (isWide)
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _NavAction(
+                    label: 'Servicios',
+                    onPressed: () => _scrollTo(_servicesKey),
+                  ),
+                  _NavAction(
+                    label: 'Proyectos',
+                    onPressed: () => Navigator.pushNamed(context, '/visor'),
+                  ),
+                  _NavAction(
+                    label: 'Quiénes somos',
+                    onPressed: () => _scrollTo(_aboutKey),
+                  ),
+                  _NavAction(
+                    label: 'Blog',
+                    onPressed: () => _scrollTo(_blogKey),
+                  ),
+                  _NavAction(
+                    label: 'Contacto',
+                    onPressed: () => _scrollTo(_ctaKey),
+                    isPrimary: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
       body: ListView(
         controller: _scrollCtrl,
@@ -117,6 +161,60 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 24),
           _FooterSection(key: _footerKey),
         ],
+      ),
+    );
+  }
+}
+
+class _NavAction extends StatelessWidget {
+  const _NavAction({
+    required this.label,
+    required this.onPressed,
+    this.isPrimary = false,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final bool isPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final baseStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.4,
+        );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: TextButton(
+        onPressed: onPressed,
+        style: ButtonStyle(
+          padding: MaterialStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          ),
+          textStyle: MaterialStateProperty.all(baseStyle),
+          foregroundColor: MaterialStateProperty.resolveWith(
+            (states) => Colors.white,
+          ),
+          backgroundColor: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.pressed) || states.contains(MaterialState.hovered)) {
+              return Colors.white.withOpacity(0.18);
+            }
+            return isPrimary ? Colors.white.withOpacity(0.12) : Colors.transparent;
+          }),
+          overlayColor: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.pressed)) {
+              return Colors.white.withOpacity(0.24);
+            }
+            if (states.contains(MaterialState.hovered)) {
+              return Colors.white.withOpacity(0.18);
+            }
+            return Colors.transparent;
+          }),
+          shape: MaterialStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          ),
+        ),
+        child: Text(label),
       ),
     );
   }
@@ -229,36 +327,61 @@ class _HeroSection extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Consultoría ambiental, territorial y SIG',
-                      style: t.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'En Geodos ayudamos a organizaciones públicas y privadas a tomar decisiones sobre el territorio, integrando análisis ambiental, planificación y datos geoespaciales.',
-                      style: t.bodyLarge?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: () => Navigator.pushNamed(context, '/visor'),
-                      child: const Text('Explorar proyectos'),
-                    ),
-                  ],
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeOut,
+            tween: Tween(begin: 0, end: 1),
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 18 * (1 - value)),
+                  child: child,
                 ),
-              ),
-            ],
+              );
+            },
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Consultoría ambiental, territorial y SIG',
+                        style: t.headlineLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.6,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 620),
+                        child: Text(
+                          'En Geodos ayudamos a organizaciones públicas y privadas a tomar decisiones sobre el territorio, integrando análisis ambiental, planificación y datos geoespaciales.',
+                          style: t.titleMedium?.copyWith(
+                            color: Colors.white.withOpacity(0.9),
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Theme.of(context).colorScheme.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        ),
+                        onPressed: () => Navigator.pushNamed(context, '/visor'),
+                        child: const Text('Explorar proyectos'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -760,52 +883,113 @@ class _ServiceCard extends StatelessWidget {
         elevation: 3,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         clipBehavior: Clip.antiAlias,
-        child: Column(
+        child: Stack(
           children: [
-            Container(
-              height: 90,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Theme.of(context).colorScheme.primary.withOpacity(0.18),
-                    Theme.of(context).colorScheme.primary.withOpacity(0.04),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: 32,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-              child: Column(
-                children: [
-                  Text(
-                    title,
-                    style: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
+            const Positioned.fill(child: _CardTexture()),
+            Column(
+              children: [
+                Container(
+                  height: 98,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                        Theme.of(context).colorScheme.primary.withOpacity(0.06),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    style: t.bodySmall,
-                    textAlign: TextAlign.center,
+                  child: Stack(
+                    children: [
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(
+                            icon,
+                            size: 54,
+                            color: Colors.white.withOpacity(0.18),
+                          ),
+                        ),
+                      ),
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.75),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            icon,
+                            size: 28,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                  child: Column(
+                    children: [
+                      Text(
+                        title,
+                        style: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        subtitle,
+                        style: t.bodySmall?.copyWith(color: Colors.grey.shade700),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+}
+
+class _CardTexture extends StatelessWidget {
+  const _CardTexture();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DotPainter(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+      ),
+    );
+  }
+}
+
+class _DotPainter extends CustomPainter {
+  _DotPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    const spacing = 24.0;
+    const radius = 1.8;
+    for (var y = spacing / 2; y < size.height; y += spacing) {
+      for (var x = spacing / 2; x < size.width; x += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DotPainter oldDelegate) => oldDelegate.color != color;
 }
 
 // ---------------------------------------------------------------------------
@@ -1022,12 +1206,47 @@ class _AboutSection extends StatelessWidget {
                   final image = Expanded(
                     flex: 1,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(18),
                       child: AspectRatio(
                         aspectRatio: 4 / 3,
-                        child: Image.network(
-                          officeImageUrl,
-                          fit: BoxFit.cover,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              officeImageUrl,
+                              fit: BoxFit.cover,
+                            ),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withOpacity(0.35),
+                                  ],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 16,
+                              bottom: 16,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.85),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'Equipo GEODOS',
+                                  style: t.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -1037,35 +1256,41 @@ class _AboutSection extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.only(
                         left: isWide ? 32 : 0,
-                        top: isWide ? 0 : 16,
+                        top: isWide ? 0 : 20,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Geodos es una consultora especializada en estudios medioambientales, manejo SIG, ordenación del territorio, patrimonio, paisaje, urbanismo y divulgación. Trabajamos con administraciones públicas, empresas y entidades sociales para integrar la variable espacial en la toma de decisiones.',
-                            style: t.bodyMedium,
+                            style: t.bodyMedium?.copyWith(height: 1.6),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             'Desde Canarias, pero con vocación nacional e internacional, combinamos experiencia técnica y capacidad de comunicación para que los resultados sean comprensibles y útiles para todos los agentes implicados.',
-                            style: t.bodyMedium,
+                            style: t.bodyMedium?.copyWith(height: 1.6),
                           ),
                         ],
                       ),
                     ),
                   );
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [image, text],
-                    );
-                  } else {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [image, text],
-                    );
-                  }
+                  final content = isWide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [image, text],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [image, text],
+                        );
+                  return Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: content,
+                    ),
+                  );
                 },
               ),
             ],
