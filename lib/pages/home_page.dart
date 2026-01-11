@@ -18,7 +18,6 @@ import '../widgets/visor_embed.dart';
 import '../services/filters_controller.dart';
 // Servicio que carga los proyectos desde el JSON de assets y expone categorías disponibles.
 import '../services/project_service.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 /// Página de inicio de GEODOS basada en el diseño original proporcionado.
 ///
@@ -142,26 +141,29 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
       ],
-      body: ListView(
-        controller: _scrollCtrl,
-        padding: EdgeInsets.zero,
-        children: [
-          _CarouselSection(carouselStream: _carouselStream),
-          const SizedBox(height: 40),
-          _ServicesSection(key: _servicesKey),
-          const SizedBox(height: 40),
-          _ProjectsByCategorySection(key: _projectsKey),
-          const SizedBox(height: 40),
-          _WorkflowSection(),
-          const SizedBox(height: 40),
-          _AboutSection(key: _aboutKey),
-          const SizedBox(height: 40),
-          _BlogSection(key: _blogKey),
-          const SizedBox(height: 40),
-          _FinalCtaSection(key: _ctaKey),
-          const SizedBox(height: 24),
-          _FooterSection(key: _footerKey),
-        ],
+      body: Container(
+        color: const Color(0xFFF2F6F4),
+        child: ListView(
+          controller: _scrollCtrl,
+          padding: EdgeInsets.zero,
+          children: [
+            _CarouselSection(carouselStream: _carouselStream),
+            const SizedBox(height: 40),
+            _ServicesSection(key: _servicesKey),
+            const SizedBox(height: 40),
+            _ProjectsByCategorySection(key: _projectsKey),
+            const SizedBox(height: 40),
+            _WorkflowSection(),
+            const SizedBox(height: 40),
+            _AboutSection(key: _aboutKey),
+            const SizedBox(height: 40),
+            _BlogSection(key: _blogKey),
+            const SizedBox(height: 40),
+            _FinalCtaSection(key: _ctaKey),
+            const SizedBox(height: 24),
+            _FooterSection(key: _footerKey),
+          ],
+        ),
       ),
     );
   }
@@ -338,18 +340,6 @@ class _HeroSection extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Opacity(
-                    opacity: 0.08,
-                    child: SvgPicture.asset(
-                      'assets/background/coolbackgrounds-topography-micron.svg',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                    ),
-                  ),
-                ),
-              ),
               Positioned.fill(
                 child: IgnorePointer(
                   child: DecoratedBox(
