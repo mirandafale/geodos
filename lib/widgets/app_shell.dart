@@ -28,6 +28,7 @@ class AppShell extends StatelessWidget {
       drawer: const AppDrawer(),
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        toolbarHeight: 72,
         leadingWidth: canPop ? 96 : 56,
         leading: Builder(
           builder: (context) {
@@ -51,6 +52,8 @@ class AppShell extends StatelessWidget {
           decoration: const BoxDecoration(gradient: Brand.appBarGradient),
         ),
         title: title ?? const Text('GEODOS'),
+        titleSpacing: 12,
+        centerTitle: false,
         actions: actions,
         bottom: bottom,
       ),
