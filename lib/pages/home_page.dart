@@ -101,8 +101,6 @@ class _HomePageState extends State<HomePage> {
         controller: _scrollCtrl,
         padding: EdgeInsets.zero,
         children: [
-          _HeroSection(),
-          const SizedBox(height: 24),
           _CarouselSection(carouselStream: _carouselStream),
           const SizedBox(height: 40),
           _ServicesSection(key: _servicesKey),
@@ -284,24 +282,14 @@ class _CarouselSection extends StatelessWidget {
       child: StreamBuilder<List<CarouselItem>>(
         stream: carouselStream,
         builder: (context, snapshot) {
-          final items = snapshot.data ?? [];
-          final isLoading = snapshot.connectionState == ConnectionState.waiting &&
-              !snapshot.hasData;
-          Widget child;
-          if (isLoading) {
-            child = const _CarouselPlaceholder.loading(key: ValueKey('carousel-loading'));
-          } else if (items.isEmpty) {
-            child = const _CarouselPlaceholder.fallback(key: ValueKey('carousel-empty'));
-          } else {
-            child = _CarouselSlider(
+          final items = snapshot.data;
+          if (items != null && items.isNotEmpty) {
+            return _CarouselSlider(
               key: const ValueKey('carousel-loaded'),
               items: items,
             );
           }
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 350),
-            child: child,
-          );
+          return _HeroSection();
         },
       ),
     );
