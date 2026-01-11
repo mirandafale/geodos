@@ -18,6 +18,7 @@ import '../widgets/visor_embed.dart';
 import '../services/filters_controller.dart';
 // Servicio que carga los proyectos desde el JSON de assets y expone categorías disponibles.
 import '../services/project_service.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// Página de inicio de GEODOS basada en el diseño original proporcionado.
 ///
@@ -341,7 +342,7 @@ class _HeroSection extends StatelessWidget {
                 child: IgnorePointer(
                   child: Opacity(
                     opacity: 0.08,
-                    child: Image.asset(
+                    child: SvgPicture.asset(
                       'assets/background/coolbackgrounds-topography-micron.svg',
                       fit: BoxFit.cover,
                       alignment: Alignment.topCenter,
