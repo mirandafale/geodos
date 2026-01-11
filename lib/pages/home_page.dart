@@ -155,7 +155,10 @@ class _HomePageState extends State<HomePage> {
           controller: _scrollCtrl,
           padding: EdgeInsets.zero,
           children: [
-            _CarouselSection(carouselStream: _carouselStream),
+            _CarouselSection(
+              carouselStream: _carouselStream,
+              onContactTap: () => _scrollTo(_ctaKey),
+            ),
             const SizedBox(height: 40),
             _ServicesSection(key: _servicesKey),
             const SizedBox(height: 40),
@@ -335,6 +338,10 @@ class _SectionHeader extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _HeroSection extends StatelessWidget {
+  const _HeroSection({required this.onContactTap});
+
+  final VoidCallback onContactTap;
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -403,47 +410,60 @@ class _HeroSection extends StatelessWidget {
                         ),
                       );
                     },
-                    child: Row(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Consultoría ambiental, territorial y SIG',
-                                style: t.headlineLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.4,
-                                  height: 1.15,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 640),
-                                child: Text(
-                                  'En Geodos ayudamos a organizaciones públicas y privadas a tomar decisiones sobre el territorio, integrando análisis ambiental, planificación y datos geoespaciales.',
-                                  style: t.titleMedium?.copyWith(
-                                    color: Colors.white.withOpacity(0.88),
-                                    height: 1.55,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 28),
-                              FilledButton(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Brand.primary,
-                                  padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-                                  textStyle: t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                                onPressed: () => Navigator.pushNamed(context, '/visor'),
-                                child: const Text('Explorar proyectos'),
-                              ),
-                            ],
+                        Text(
+                          'Consultoría ambiental, territorial y SIG',
+                          textAlign: TextAlign.center,
+                          style: t.headlineLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.4,
+                            height: 1.15,
                           ),
+                        ),
+                        const SizedBox(height: 18),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 640),
+                          child: Text(
+                            'En Geodos ayudamos a organizaciones públicas y privadas a tomar decisiones sobre el territorio, integrando análisis ambiental, planificación y datos geoespaciales.',
+                            textAlign: TextAlign.center,
+                            style: t.titleMedium?.copyWith(
+                              color: Colors.white.withOpacity(0.88),
+                              height: 1.55,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 16,
+                          runSpacing: 12,
+                          children: [
+                            FilledButton(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Brand.primary,
+                                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                                textStyle: t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              onPressed: () => Navigator.pushNamed(context, '/visor'),
+                              child: const Text('Visualizar proyectos'),
+                            ),
+                            OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: BorderSide(color: Colors.white.withOpacity(0.9)),
+                                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                                textStyle: t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                              ),
+                              onPressed: onContactTap,
+                              child: const Text('Consulta a un experto'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -463,9 +483,13 @@ class _HeroSection extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _CarouselSection extends StatelessWidget {
-  const _CarouselSection({required this.carouselStream});
+  const _CarouselSection({
+    required this.carouselStream,
+    required this.onContactTap,
+  });
 
   final Stream<List<CarouselItem>> carouselStream;
+  final VoidCallback onContactTap;
 
   @override
   Widget build(BuildContext context) {
@@ -481,7 +505,7 @@ class _CarouselSection extends StatelessWidget {
               items: items,
             );
           }
-          return _HeroSection();
+          return _HeroSection(onContactTap: onContactTap);
         },
       ),
     );
