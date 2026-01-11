@@ -7,6 +7,7 @@ import 'package:geodos/firebase_options.dart';
 import 'package:geodos/pages/about_page.dart';
 import 'package:geodos/pages/accessibility_page.dart';
 import 'package:geodos/pages/admin_dashboard_page.dart';
+import 'package:geodos/pages/blog_page.dart';
 import 'package:geodos/pages/contact_page.dart';
 import 'package:geodos/pages/cookies_page.dart';
 import 'package:geodos/pages/data_privacy_page.dart';
@@ -49,6 +50,7 @@ class GeodosApp extends StatelessWidget {
           '/login': (context) => const LoginAdminPage(),
           '/login-admin': (context) => const LoginAdminPage(),
           '/about': (context) => const AboutPage(),
+          '/blog': (context) => const BlogPage(),
           '/accessibility': (context) => const AccessibilityStatementPage(),
           '/cookies': (context) => const CookiesPolicyPage(),
           '/data-privacy': (context) => const DataPrivacySettingsPage(),

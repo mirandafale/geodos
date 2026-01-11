@@ -58,7 +58,7 @@ class AppDrawer extends StatelessWidget {
             _SectionLabel(title: 'Navegación pública'),
             _item(context, Icons.home_rounded, 'Inicio', '/'),
             _item(context, Icons.map_rounded, 'Visor', '/visor'),
-            _item(context, Icons.article_outlined, 'Blog / Actualidad', '/home'),
+            _item(context, Icons.article_outlined, 'Blog / Actualidad', '/blog'),
             _item(context, Icons.mail_rounded, 'Contacto', '/contact'),
             if (!auth.isLoggedIn)
               _item(context, Icons.login_rounded, 'Acceso admin', '/login-admin'),
