@@ -827,31 +827,37 @@ class _ServicesSection extends StatelessWidget {
                     icon: Icons.fact_check,
                     title: 'Evaluación de Impacto Ambiental',
                     subtitle: 'Estudios detallados para valorar los efectos de planes y proyectos sobre el medio.',
+                    imageAsset: 'assets/services/impacto_ambiental.png',
                   ),
                   _ServiceCard(
                     icon: Icons.map,
                     title: 'Ordenación del Territorio y Urbanismo',
                     subtitle: 'Planes, informes y apoyo técnico a la planificación territorial y urbanística.',
+                    imageAsset: 'assets/services/ordenacion_urbanismo.png',
                   ),
                   _ServiceCard(
                     icon: Icons.terrain,
                     title: 'Estudios de Paisaje',
                     subtitle: 'Análisis visual y paisajístico para integración y mejora del entorno.',
+                    imageAsset: 'assets/services/estudios_paisaje.png',
                   ),
                   _ServiceCard(
                     icon: Icons.account_balance,
                     title: 'Patrimonio y Geodiversidad',
                     subtitle: 'Identificación, valoración y divulgación de patrimonio natural y cultural.',
+                    imageAsset: 'assets/services/patrimonio_geodiversidad.png',
                   ),
                   _ServiceCard(
                     icon: Icons.spatial_tracking,
                     title: 'Sistemas de Información Geográfica (SIG)',
                     subtitle: 'Modelización espacial, cartografía avanzada y cuadros de mando geográficos.',
+                    imageAsset: 'assets/services/sig_geoespacial.png',
                   ),
                   _ServiceCard(
                     icon: Icons.analytics,
                     title: 'Geomarketing y análisis socioterritorial',
                     subtitle: 'Apoyo a la toma de decisiones en localización, movilidad y demografía.',
+                    imageAsset: 'assets/services/geomarketing.png',
                   ),
                 ],
               ),
@@ -867,11 +873,13 @@ class _ServiceCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final String imageAsset;
 
   const _ServiceCard({
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.imageAsset,
   });
 
   @override
@@ -885,6 +893,28 @@ class _ServiceCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
+            Positioned.fill(
+              child: Image.asset(
+                imageAsset,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+            ),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFE8F2F5).withOpacity(0.85),
+                      const Color(0xFFD6E8F1).withOpacity(0.7),
+                      const Color(0xFFC5DDEA).withOpacity(0.55),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
             const Positioned.fill(child: _CardTexture()),
             Column(
               children: [
