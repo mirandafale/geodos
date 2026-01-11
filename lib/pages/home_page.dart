@@ -142,27 +142,41 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
       ],
-      body: ListView(
-        controller: _scrollCtrl,
-        padding: EdgeInsets.zero,
+      body: Stack(
         children: [
-          _CarouselSection(carouselStream: _carouselStream),
-          const SizedBox(height: 40),
-          _ServicesSection(key: _servicesKey),
-          const SizedBox(height: 40),
-          _ProjectsByCategorySection(key: _projectsKey),
-          const SizedBox(height: 40),
-          _WorkflowSection(),
-          const SizedBox(height: 40),
-          _AboutSection(key: _aboutKey),
-          const SizedBox(height: 40),
-          _BlogSection(key: _blogKey),
-          const SizedBox(height: 40),
-          _FinalCtaSection(key: _ctaKey),
-          const SizedBox(height: 24),
-          _FooterSection(key: _footerKey),
+          // 🌍 Fondo global de toda la Home
+          Positioned.fill(
+            child: SvgPicture.asset(
+              'assets/background/coolbackgrounds-topography-micron.svg',
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          // 🧾 Contenido principal
+          ListView(
+            controller: _scrollCtrl,
+            padding: EdgeInsets.zero,
+            children: [
+              _CarouselSection(carouselStream: _carouselStream),
+              const SizedBox(height: 40),
+              _ServicesSection(key: _servicesKey),
+              const SizedBox(height: 40),
+              _ProjectsByCategorySection(key: _projectsKey),
+              const SizedBox(height: 40),
+              _WorkflowSection(),
+              const SizedBox(height: 40),
+              _AboutSection(key: _aboutKey),
+              const SizedBox(height: 40),
+              _BlogSection(key: _blogKey),
+              const SizedBox(height: 40),
+              _FinalCtaSection(key: _ctaKey),
+              const SizedBox(height: 24),
+              _FooterSection(key: _footerKey),
+            ],
+          ),
         ],
       ),
+
     );
   }
 }
