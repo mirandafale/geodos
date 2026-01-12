@@ -143,17 +143,25 @@ class _HomePageState extends State<HomePage> {
           ),
       ],
       body: Container(
-        color: const Color(0xFFF7F9F9),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0F4C81),
+              Color(0xFF2A9D8F),
+              Color(0xFFF8F9FA),
+            ],
+            stops: [0.0, 0.4, 1.0],
+          ),
+        ),
         child: ListView(
           controller: _scrollCtrl,
           padding: EdgeInsets.zero,
           children: [
             const HeroAnimatedSection(),
-            const SizedBox(height: 18),
-            Transform.translate(
-              offset: const Offset(0, -18),
-              child: _ServicesSection(key: _servicesKey),
-            ),
+            const SizedBox(height: 40),
+            _ServicesSection(key: _servicesKey),
             const SizedBox(height: 40),
             _ProjectsByCategorySection(key: _projectsKey),
             const SizedBox(height: 40),

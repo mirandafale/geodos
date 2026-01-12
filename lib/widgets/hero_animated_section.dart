@@ -165,27 +165,6 @@ class _HeroAnimatedSectionState extends State<HeroAnimatedSection>
                     ),
                   ),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 140,
-                  child: IgnorePointer(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Colors.white.withOpacity(1),
-                            Colors.white.withOpacity(0.0),
-                          ],
-                          stops: const [0.0, 0.5],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
