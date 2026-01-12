@@ -44,8 +44,8 @@ class _HeroAnimatedSectionState extends State<HeroAnimatedSection>
     final maxHeight = width >= 1024
         ? 520.0
         : width >= 700
-            ? 400.0
-            : 340.0;
+            ? 420.0
+            : 360.0;
     final scrollPosition = Scrollable.of(context)?.position;
 
     return AnimatedBuilder(
@@ -180,7 +180,7 @@ class _HeroAnimatedSectionState extends State<HeroAnimatedSection>
                             Colors.white.withOpacity(1),
                             Colors.white.withOpacity(0.0),
                           ],
-                          stops: const [0.0, 0.3],
+                          stops: const [0.0, 0.5],
                         ),
                       ),
                     ),
