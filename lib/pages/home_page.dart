@@ -149,8 +149,11 @@ class _HomePageState extends State<HomePage> {
           padding: EdgeInsets.zero,
           children: [
             const HeroAnimatedSection(),
-            const SizedBox(height: 40),
-            _ServicesSection(key: _servicesKey),
+            const SizedBox(height: 20),
+            Transform.translate(
+              offset: const Offset(0, -20),
+              child: _ServicesSection(key: _servicesKey),
+            ),
             const SizedBox(height: 40),
             _ProjectsByCategorySection(key: _projectsKey),
             const SizedBox(height: 40),
