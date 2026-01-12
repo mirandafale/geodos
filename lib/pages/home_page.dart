@@ -143,15 +143,15 @@ class _HomePageState extends State<HomePage> {
           ),
       ],
       body: Container(
-        color: const Color(0xFFF2F6F4),
+        color: const Color(0xFFF7F9F9),
         child: ListView(
           controller: _scrollCtrl,
           padding: EdgeInsets.zero,
           children: [
             const HeroAnimatedSection(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             Transform.translate(
-              offset: const Offset(0, -20),
+              offset: const Offset(0, -18),
               child: _ServicesSection(key: _servicesKey),
             ),
             const SizedBox(height: 40),
@@ -279,8 +279,9 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (icon != null)
@@ -296,29 +297,24 @@ class _SectionHeader extends StatelessWidget {
                   size: 22,
                 ),
               ),
-            if (icon != null) const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: t.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: primary,
-                    ),
-                  ),
-                  if (subtitle != null) const SizedBox(height: 4),
-                  if (subtitle != null)
-                    Text(
-                      subtitle!,
-                      style: t.bodyMedium?.copyWith(
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                ],
+            if (icon != null) const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: t.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: primary,
               ),
             ),
+            if (subtitle != null) const SizedBox(height: 6),
+            if (subtitle != null)
+              Text(
+                subtitle!,
+                textAlign: TextAlign.center,
+                style: t.bodyMedium?.copyWith(
+                  color: Colors.grey.shade800,
+                ),
+              ),
           ],
         ),
       ),
