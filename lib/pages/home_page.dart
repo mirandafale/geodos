@@ -143,18 +143,7 @@ class _HomePageState extends State<HomePage> {
           ),
       ],
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0F4C81),
-              Color(0xFF2A9D8F),
-              Color(0xFFF8F9FA),
-            ],
-            stops: [0.0, 0.4, 1.0],
-          ),
-        ),
+        color: const Color(0xFFF8F9FA),
         child: ListView(
           controller: _scrollCtrl,
           padding: EdgeInsets.zero,
