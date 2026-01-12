@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:geodos/models/project.dart';
 import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart';
+
 
 /// Servicio encargado de cargar y filtrar los proyectos desde assets.
 class ProjectService {
