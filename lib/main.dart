@@ -39,9 +39,27 @@ class GeodosApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: Brand.theme(),
         initialRoute: '/',
-        builder: (context, child) => ConsentGate(
-          child: child ?? const SizedBox.shrink(),
-        ),
+        builder: (context, child) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final mediaQuery = MediaQuery.of(context);
+              final width = constraints.maxWidth;
+              final textScale = ResponsiveBreakpoints.textScaleForWidth(
+                width,
+                mediaQuery.textScaler.scale(1.0),
+              );
+
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(textScale),
+                ),
+                child: ConsentGate(
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              );
+            },
+          );
+        },
         routes: {
           '/': (context) => const HomePage(),
           '/home': (context) => const HomePage(),
@@ -60,5 +78,24 @@ class GeodosApp extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class ResponsiveBreakpoints {
+  static const double mobile = 768;
+  static const double tablet = 1200;
+
+  static bool isMobile(double width) => width < mobile;
+  static bool isTablet(double width) => width >= mobile && width < tablet;
+  static bool isDesktop(double width) => width >= tablet;
+
+  static double textScaleForWidth(double width, double systemScale) {
+    if (isMobile(width)) {
+      return systemScale.clamp(0.9, 1.0);
+    }
+    if (isTablet(width)) {
+      return systemScale.clamp(0.95, 1.05);
+    }
+    return systemScale;
   }
 }
