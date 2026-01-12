@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:geodos/models/project.dart';
 import 'package:uuid/uuid.dart';
@@ -18,7 +17,7 @@ class ProjectService {
   static int _lastRemoteCount = 0;
   static const _assetPath = 'assets/proyectos_por_municipio_cat_isla_v3_jittered.json';
 
-  /// Inicializa cargando los datos remotos y, en debug, el fallback local.
+  /// Inicializa cargando los datos remotos y el fallback local si es necesario.
   static Future<void> ensureInitialized() async {
     await _loadRemoteOnce();
     await _loadLocalIfNeeded();
@@ -26,27 +25,38 @@ class ProjectService {
 
   static Future<void> _loadRemoteOnce() async {
     if (_remoteLoaded) return;
-    final snapshot = await _firestore.get();
-    _remoteProjects = snapshot.docs.map(_projectFromDoc).toList();
-    _lastRemoteCount = _remoteProjects.length;
-    _remoteLoaded = true;
-    debugPrint('ProjectService: initial remote load $_lastRemoteCount docs');
+    try {
+      final snapshot = await _firestore.get();
+      _remoteProjects = snapshot.docs.map(_projectFromDoc).toList();
+      _lastRemoteCount = _remoteProjects.length;
+      _remoteLoaded = true;
+      debugPrint('ProjectService: initial remote load $_lastRemoteCount docs');
+    } catch (error) {
+      _remoteProjects = [];
+      _lastRemoteCount = 0;
+      _remoteLoaded = true;
+      debugPrint('ProjectService: remote load failed, using local fallback: $error');
+    }
   }
 
   static Future<void> _loadLocalIfNeeded() async {
-    if (_localLoaded || !kDebugMode) return;
+    if (_localLoaded) return;
     if (_remoteProjects.isNotEmpty) return;
-    final raw = await rootBundle.loadString(_assetPath);
-    _localProjects = Project.listFromJsonString(raw)
-        .where((p) => p.hasValidCoords)
-        .toList();
-    _localLoaded = true;
-    debugPrint('ProjectService: loaded local fallback ${_localProjects.length} projects');
+    try {
+      final raw = await rootBundle.loadString(_assetPath);
+      _localProjects = Project.listFromJsonString(raw)
+          .where((p) => p.hasValidCoords)
+          .toList();
+      _localLoaded = true;
+      debugPrint('ProjectService: loaded local fallback ${_localProjects.length} projects');
+    } catch (error) {
+      debugPrint('ProjectService: local fallback failed to load: $error');
+    }
   }
 
   static List<Project> _availableProjects() {
     if (_remoteProjects.isNotEmpty) return _remoteProjects;
-    if (kDebugMode) return _localProjects;
+    if (_localProjects.isNotEmpty) return _localProjects;
     return const [];
   }
 
