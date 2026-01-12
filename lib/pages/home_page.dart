@@ -6,12 +6,12 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/carousel_item.dart';
 import 'package:geodos/models/news_item.dart';
 import 'package:geodos/services/auth_service.dart';
-import 'package:geodos/services/carousel_service.dart';
 import 'package:geodos/services/news_service.dart';
 import 'package:provider/provider.dart';
 import 'package:geodos/widgets/app_shell.dart';
 import 'package:geodos/pages/news_detail_page.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/hero_animated_section.dart';
 // Visor incrustado para mostrar los proyectos georreferenciados.
 import '../widgets/visor_embed.dart';
 // Controlador de filtros para mantener el estado de ámbito (categoría), año, etc.
@@ -36,7 +36,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final _scrollCtrl = ScrollController();
-  late final Stream<List<CarouselItem>> _carouselStream;
 
   // Claves para hacer scroll a secciones concretas.
   final _servicesKey = GlobalKey();
@@ -45,12 +44,6 @@ class _HomePageState extends State<HomePage> {
   final _blogKey = GlobalKey();
   final _ctaKey = GlobalKey();
   final _footerKey = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _carouselStream = CarouselService.streamActive();
-  }
 
   /// Desplaza la vista hasta la sección asociada a [key].
   void _scrollTo(GlobalKey key) {
@@ -155,10 +148,7 @@ class _HomePageState extends State<HomePage> {
           controller: _scrollCtrl,
           padding: EdgeInsets.zero,
           children: [
-            _CarouselSection(
-              carouselStream: _carouselStream,
-              onContactTap: () => _scrollTo(_ctaKey),
-            ),
+            const HeroAnimatedSection(),
             const SizedBox(height: 40),
             _ServicesSection(key: _servicesKey),
             const SizedBox(height: 40),
@@ -334,162 +324,15 @@ class _SectionHeader extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// HERO
-// ---------------------------------------------------------------------------
-
-class _HeroSection extends StatelessWidget {
-  const _HeroSection({required this.onContactTap});
-
-  final VoidCallback onContactTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 720;
-        return Container(
-          padding: EdgeInsets.fromLTRB(32, isCompact ? 36 : 56, 32, isCompact ? 52 : 70),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF0F4C81),
-                Color(0xFF2A9D8F),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withOpacity(0.08),
-                          Colors.white.withOpacity(0.02),
-                          Colors.white.withOpacity(0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                right: -40,
-                top: -60,
-                child: Opacity(
-                  opacity: 0.18,
-                  child: Container(
-                    height: isCompact ? 180 : 240,
-                    width: isCompact ? 180 : 240,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1100),
-                  child: TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 700),
-                    curve: Curves.easeOut,
-                    tween: Tween(begin: 0, end: 1),
-                    builder: (context, value, child) {
-                      return Opacity(
-                        opacity: value,
-                        child: Transform.translate(
-                          offset: Offset(0, 16 * (1 - value)),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Consultoría ambiental, territorial y SIG',
-                          textAlign: TextAlign.center,
-                          style: t.headlineLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.4,
-                            height: 1.15,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 640),
-                          child: Text(
-                            'En Geodos ayudamos a organizaciones públicas y privadas a tomar decisiones sobre el territorio, integrando análisis ambiental, planificación y datos geoespaciales.',
-                            textAlign: TextAlign.center,
-                            style: t.titleMedium?.copyWith(
-                              color: Colors.white.withOpacity(0.88),
-                              height: 1.55,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 16,
-                          runSpacing: 12,
-                          children: [
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Brand.primary,
-                                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-                                textStyle: t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              onPressed: () => Navigator.pushNamed(context, '/visor'),
-                              child: const Text('Visualizar proyectos'),
-                            ),
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: BorderSide(color: Colors.white.withOpacity(0.9)),
-                                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-                                textStyle: t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                              ),
-                              onPressed: onContactTap,
-                              child: const Text('Consulta a un experto'),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // CARRUSEL PRINCIPAL
 // ---------------------------------------------------------------------------
 
 class _CarouselSection extends StatelessWidget {
   const _CarouselSection({
     required this.carouselStream,
-    required this.onContactTap,
   });
 
   final Stream<List<CarouselItem>> carouselStream;
-  final VoidCallback onContactTap;
 
   @override
   Widget build(BuildContext context) {
@@ -505,7 +348,7 @@ class _CarouselSection extends StatelessWidget {
               items: items,
             );
           }
-          return _HeroSection(onContactTap: onContactTap);
+          return const HeroAnimatedSection();
         },
       ),
     );
