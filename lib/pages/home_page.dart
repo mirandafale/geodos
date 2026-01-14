@@ -1993,31 +1993,35 @@ class _FinalCtaSection extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '¿Hablamos de tu territorio?',
-                      style: t.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 720;
+              final textColumn = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '¿Hablamos de tu territorio?',
+                    softWrap: true,
+                    textAlign: TextAlign.left,
+                    overflow: TextOverflow.visible,
+                    style: t.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Cuéntanos tu proyecto y te ayudamos a definir la mejor solución técnica y ambiental.',
-                      style: t.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Cuéntanos tu proyecto y te ayudamos a definir la mejor solución técnica y ambiental.',
+                    softWrap: true,
+                    textAlign: TextAlign.left,
+                    overflow: TextOverflow.visible,
+                    style: t.bodyMedium?.copyWith(
+                      color: Colors.white.withOpacity(0.9),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              Wrap(
+                  ),
+                ],
+              );
+              final actions = Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: [
@@ -2038,8 +2042,27 @@ class _FinalCtaSection extends StatelessWidget {
                     child: const Text('Pídenos un presupuesto'),
                   ),
                 ],
-              ),
-            ],
+              );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    textColumn,
+                    const SizedBox(height: 16),
+                    actions,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: textColumn),
+                  const SizedBox(width: 24),
+                  actions,
+                ],
+              );
+            },
           ),
         ),
       ),
