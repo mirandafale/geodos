@@ -179,12 +179,16 @@ class _VisorPageState extends State<VisorPage> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1400),
                 child: vertical
-                    ? Column(
-                        children: [
-                          if (!isMobile) sidePanel,
-                          if (!isMobile) const SizedBox(height: 20),
-                          visorContent,
-                        ],
+                    ? SizedBox(
+                        height: constraints.maxHeight,
+                        width: double.infinity,
+                        child: Column(
+                          children: [
+                            if (!isMobile) sidePanel,
+                            if (!isMobile) const SizedBox(height: 20),
+                            visorContent,
+                          ],
+                        ),
                       )
                     : IntrinsicHeight(
                         child: Row(
