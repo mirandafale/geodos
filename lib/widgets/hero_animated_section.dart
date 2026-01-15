@@ -78,29 +78,31 @@ class _HeroAnimatedSectionState extends State<HeroAnimatedSection>
             child: Stack(
               children: [
                 // 🌍 Tierra giratoria con transparencia
-                Center(
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([
-                      _earthController,
-                      if (scrollPosition != null) scrollPosition,
-                    ]),
-                    builder: (_, __) {
-                      return Transform.scale(
-                        scale: earthScale,
-                        child: Transform.rotate(
-                          angle: _earthController.value * 2 * math.pi,
-                          child: Opacity(
-                            opacity: 0.08,
-                            child: Image.asset(
-                              'assets/logos/geodos_tierra.png',
-                              height: 500,
-                              width: 500,
-                              fit: BoxFit.contain,
+                IgnorePointer(
+                  child: Center(
+                    child: AnimatedBuilder(
+                      animation: Listenable.merge([
+                        _earthController,
+                        if (scrollPosition != null) scrollPosition,
+                      ]),
+                      builder: (_, __) {
+                        return Transform.scale(
+                          scale: earthScale,
+                          child: Transform.rotate(
+                            angle: _earthController.value * 2 * math.pi,
+                            child: Opacity(
+                              opacity: 0.08,
+                              child: Image.asset(
+                                'assets/logos/geodos_tierra.png',
+                                height: 500,
+                                width: 500,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
 
