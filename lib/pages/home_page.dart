@@ -2021,6 +2021,10 @@ class _FinalCtaSection extends StatelessWidget {
                   ),
                 ],
               );
+              final textContent = SizedBox(
+                width: double.infinity,
+                child: textColumn,
+              );
               final actions = Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -2048,7 +2052,7 @@ class _FinalCtaSection extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    textColumn,
+                    textContent,
                     const SizedBox(height: 16),
                     actions,
                   ],
