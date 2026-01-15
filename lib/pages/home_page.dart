@@ -259,24 +259,21 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final primary = Theme.of(context).colorScheme.primary;
+    final borderTone = primary.withOpacity(0.4);
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      color: Colors.white,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border(
-            left: BorderSide(
-              color: primary,
-              width: 4,
-            ),
-          ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border(
+          left: BorderSide(color: primary, width: 4),
+          top: BorderSide(color: borderTone, width: 1),
+          right: BorderSide(color: borderTone, width: 1),
+          bottom: BorderSide(color: borderTone, width: 1),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        color: primary.withOpacity(0.04),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -287,6 +284,7 @@ class _SectionHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: primary.withOpacity(0.10),
+                  border: Border.all(color: primary.withOpacity(0.22), width: 1),
                 ),
                 child: Icon(
                   icon,
