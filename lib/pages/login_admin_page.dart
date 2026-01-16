@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../widgets/app_drawer.dart';
+import '../widgets/app_shell.dart';
 import '../services/auth_service.dart';
 
 class LoginAdminPage extends StatefulWidget {
@@ -96,8 +96,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
     final isAdmin = auth.isAdmin;
     final userEmail = auth.user?.email ?? '';
 
-    return Scaffold(
-      drawer: const AppDrawer(),
+    return AppShell(
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,

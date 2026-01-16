@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geodos/brand/brand.dart';
-import 'package:geodos/widgets/app_drawer.dart';
+import 'package:geodos/widgets/app_shell.dart';
 
 class LegalPageScaffold extends StatelessWidget {
   final String title;
@@ -24,8 +24,7 @@ class LegalPageScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
 
-    return Scaffold(
-      drawer: const AppDrawer(),
+    return AppShell(
       appBar: AppBar(
         title: Text(title),
         flexibleSpace: Container(

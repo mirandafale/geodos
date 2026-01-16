@@ -3,14 +3,10 @@ import '../theme.dart';
 
 // Nota: se eliminan los filtros y el formulario de contacto del drawer.
 
-class AppDrawer extends StatefulWidget {
-  const AppDrawer({super.key});
+class AppDrawer extends StatelessWidget {
+  const AppDrawer({super.key, required this.onAdminAccess});
 
-  @override
-  State<AppDrawer> createState() => _AppDrawerState();
-}
-
-class _AppDrawerState extends State<AppDrawer> {
+  final VoidCallback onAdminAccess;
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +22,9 @@ class _AppDrawerState extends State<AppDrawer> {
                 child: Text(
                   'GEODOS',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
               ),
             ),
@@ -43,7 +39,7 @@ class _AppDrawerState extends State<AppDrawer> {
               context,
               Icons.admin_panel_settings_rounded,
               'Login admin',
-              '/admin',
+              onTap: onAdminAccess,
             ),
             const SizedBox(height: 16),
           ],
@@ -53,18 +49,23 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   ListTile _item(
-      BuildContext ctx,
-      IconData icon,
-      String title,
-      String route,
-      ) {
+    BuildContext context,
+    IconData icon,
+    String title, [
+    String? route,
+    VoidCallback? onTap,
+  ]) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
       onTap: () {
-        Navigator.of(ctx).pop();
-        if (ModalRoute.of(ctx)?.settings.name != route) {
-          Navigator.of(ctx).pushReplacementNamed(route);
+        Scaffold.of(context).closeDrawer();
+        if (onTap != null) {
+          onTap();
+          return;
+        }
+        if (route != null && ModalRoute.of(context)?.settings.name != route) {
+          Navigator.of(context).pushReplacementNamed(route);
         }
       },
     );
