@@ -5,7 +5,7 @@ import 'package:geodos/models/news_item.dart';
 import 'package:geodos/services/news_service.dart';
 
 // Menú lateral con las diferentes opciones de navegación.
-import '../widgets/app_drawer.dart';
+import '../widgets/app_shell.dart';
 // Visor incrustado para mostrar los proyectos georreferenciados.
 import '../widgets/visor_embed.dart';
 // Controlador de filtros para mantener el estado de ámbito (categoría), año, etc.
@@ -56,8 +56,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      drawer: const AppDrawer(),
+    return AppShell(
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
