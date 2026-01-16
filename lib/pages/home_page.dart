@@ -134,7 +134,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   _NavAction(
                     label: 'Contacto',
-                    onPressed: () => _scrollTo(_ctaKey),
+                    onPressed: () => Navigator.pushNamed(context, '/contact'),
                     isPrimary: true,
                   ),
                 ],
@@ -261,58 +261,64 @@ class _SectionHeader extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
     final borderTone = primary.withOpacity(0.4);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border(
-          left: BorderSide(color: primary, width: 4),
-          top: BorderSide(color: borderTone, width: 1),
-          right: BorderSide(color: borderTone, width: 1),
-          bottom: BorderSide(color: borderTone, width: 1),
-        ),
-        color: primary.withOpacity(0.04),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            if (icon != null)
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: primary.withOpacity(0.10),
-                  border: Border.all(color: primary.withOpacity(0.22), width: 1),
-                ),
-                child: Icon(
-                  icon,
-                  color: primary,
-                  size: 22,
-                ),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border(
+                left: BorderSide(color: primary, width: 4),
+                top: BorderSide(color: borderTone, width: 1),
+                right: BorderSide(color: borderTone, width: 1),
+                bottom: BorderSide(color: borderTone, width: 1),
               ),
-            if (icon != null) const SizedBox(height: 10),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: t.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: primary,
-              ),
+              color: primary.withOpacity(0.04),
             ),
-            if (subtitle != null) const SizedBox(height: 6),
-            if (subtitle != null)
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (icon != null)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: primary.withOpacity(0.10),
+                    border: Border.all(color: primary.withOpacity(0.22), width: 1),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: primary,
+                    size: 22,
+                  ),
+                ),
+              if (icon != null) const SizedBox(height: 10),
               Text(
-                subtitle!,
+                title,
                 textAlign: TextAlign.center,
-                style: t.bodyMedium?.copyWith(
-                  color: Colors.grey.shade800,
+                style: t.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: primary,
                 ),
               ),
-          ],
+              if (subtitle != null) const SizedBox(height: 6),
+              if (subtitle != null)
+                Text(
+                  subtitle!,
+                  textAlign: TextAlign.center,
+                  style: t.bodyMedium?.copyWith(
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
