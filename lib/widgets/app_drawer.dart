@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geodos/brand/brand.dart';
+import 'package:geodos/pages/login_page.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
@@ -61,7 +62,19 @@ class AppDrawer extends StatelessWidget {
             _item(context, Icons.article_outlined, 'Blog / Actualidad', '/blog'),
             _item(context, Icons.mail_rounded, 'Contacto', '/contact'),
             if (!auth.isLoggedIn)
-              _item(context, Icons.login_rounded, 'Acceso admin', '/login-admin'),
+              ListTile(
+                leading: const Icon(Icons.login_rounded, color: Brand.primary),
+                title: Text(
+                  'Acceso admin',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Brand.ink),
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                  );
+                },
+              ),
             const Divider(height: 28),
             _SectionLabel(title: 'Sesión administrativa'),
             if (isAdmin) ...[
