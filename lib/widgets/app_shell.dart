@@ -23,6 +23,15 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
+    final adminAction = IconButton(
+      icon: const Icon(Icons.admin_panel_settings_outlined),
+      tooltip: 'Acceso admin',
+      onPressed: () => Navigator.of(context).pushNamed('/login'),
+    );
+    final mergedActions = <Widget>[
+      if (actions != null) ...actions!,
+      adminAction,
+    ];
 
     return Scaffold(
       drawer: const AppDrawer(),
@@ -54,7 +63,7 @@ class AppShell extends StatelessWidget {
         title: title ?? const Text('GEODOS'),
         titleSpacing: 12,
         centerTitle: false,
-        actions: actions,
+        actions: mergedActions,
         bottom: bottom,
       ),
       body: body,
