@@ -5,7 +5,12 @@ import 'package:geodos/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  final VoidCallback onAdminAccess;
+
+  const AppDrawer({
+    super.key,
+    required this.onAdminAccess,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -70,9 +75,7 @@ class AppDrawer extends StatelessWidget {
                 ),
                 onTap: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
-                  );
+                  onAdminAccess();
                 },
               ),
             const Divider(height: 28),

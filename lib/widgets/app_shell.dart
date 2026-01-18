@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geodos/brand/brand.dart';
 import 'package:geodos/widgets/app_drawer.dart';
+import 'package:geodos/pages/login_admin_page.dart';
+
 
 class AppShell extends StatelessWidget {
   const AppShell({
@@ -34,7 +36,15 @@ class AppShell extends StatelessWidget {
     ];
 
     return Scaffold(
-      drawer: const AppDrawer(),
+      drawer: AppDrawer(
+        onAdminAccess: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const LoginAdminPage(),
+            ),
+          );
+        },
+      ),
       appBar: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: 72,
