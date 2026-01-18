@@ -1,4 +1,3 @@
-// lib/services/news_service.dart
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -15,61 +14,38 @@ class NewsService {
       _db.collection('news');
   static final _storage = FirebaseStorage.instance;
 
-  static Query<Map<String, dynamic>> _publishedQuery({required String orderByField}) {
+  static Query<Map<String, dynamic>> _publishedQuery(
+      {required String orderByField}) {
     return _col
         .where('published', isEqualTo: true)
         .orderBy(orderByField, descending: true)
         .limit(10);
   }
 
-  /// Stream de noticias publicadas ordenadas por fecha (recientes primero)
-  static Stream<List<NewsItem>> publishedStream() {
-    return _col
-        .where('published', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList());
-  }
-
-  /// Stream de todas las noticias (panel admin)
-  static Stream<List<NewsItem>> streamAll() {
-    return _col
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList());
-  }
-
-  /// Noticias publicadas para la web pública.
-  static Stream<List<NewsItem>> publishedStream() {
-    Stream<QuerySnapshot<Map<String, dynamic>>> primaryStream;
-    Stream<QuerySnapshot<Map<String, dynamic>>> fallbackStream;
-
-    primaryStream = _publishedQuery(orderByField: 'createdAt').snapshots();
-    fallbackStream = _publishedQuery(orderByField: 'updatedAt').snapshots();
-
-    List<NewsItem> _toItems(QuerySnapshot<Map<String, dynamic>> snapshot) {
+  static Stream<List<NewsItem>> _queryWithFallback({
+    required Query<Map<String, dynamic>> primary,
+    Query<Map<String, dynamic>>? fallback,
+  }) {
+    List<NewsItem> toItems(QuerySnapshot<Map<String, dynamic>> snapshot) {
       return snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList();
     }
 
     return Stream.multi((controller) {
       StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? sub;
-      var isUsingFallback = false;
+      var usingFallback = false;
 
-      void listenTo(Stream<QuerySnapshot<Map<String, dynamic>>> stream) {
-        sub = stream.listen(
-          (snapshot) => controller.add(_toItems(snapshot)),
+      void listenTo(Query<Map<String, dynamic>> query) {
+        sub = query.snapshots().listen(
+          (snapshot) => controller.add(toItems(snapshot)),
           onError: (error, stackTrace) {
-            if (error is FirebaseException &&
-                (error.code == 'failed-precondition' || error.code == 'invalid-argument')) {
-              if (!isUsingFallback) {
-                isUsingFallback = true;
-                sub?.cancel();
-                listenTo(fallbackStream);
-              } else {
-                controller.addError(error, stackTrace);
-              }
+            if (fallback != null &&
+                error is FirebaseException &&
+                (error.code == 'failed-precondition' ||
+                    error.code == 'invalid-argument') &&
+                !usingFallback) {
+              usingFallback = true;
+              sub?.cancel();
+              listenTo(fallback);
             } else {
               controller.addError(error, stackTrace);
             }
@@ -78,12 +54,28 @@ class NewsService {
         );
       }
 
-      listenTo(primaryStream);
+      listenTo(primary);
       controller.onCancel = () => sub?.cancel();
     });
   }
 
-  /// Crea una noticia nueva
+  /// Stream de noticias publicadas ordenadas por fecha (recientes primero).
+  static Stream<List<NewsItem>> publishedStream() {
+    return _queryWithFallback(
+      primary: _publishedQuery(orderByField: 'createdAt'),
+      fallback: _publishedQuery(orderByField: 'updatedAt'),
+    );
+  }
+
+  /// Stream de todas las noticias (panel admin).
+  static Stream<List<NewsItem>> stream() {
+    return _queryWithFallback(
+      primary: _col.orderBy('createdAt', descending: true),
+      fallback: _col.orderBy('updatedAt', descending: true),
+    );
+  }
+
+  /// Crea una noticia nueva.
   static Future<void> create(NewsItem item, {XFile? image}) async {
     final imageUrl = image != null ? await _uploadImage(image) : item.imageUrl;
     await _col.add({
@@ -94,7 +86,7 @@ class NewsService {
     });
   }
 
-  /// Actualiza una noticia existente
+  /// Actualiza una noticia existente.
   static Future<void> update(NewsItem item, {XFile? image}) async {
     final imageUrl = image != null ? await _uploadImage(image) : item.imageUrl;
     await _col.doc(item.id).update({
@@ -104,10 +96,11 @@ class NewsService {
     });
   }
 
-  /// Borra una noticia
+  /// Borra una noticia.
   static Future<void> delete(String id) async {
     if (!AuthService.instance.isAdmin) {
-      throw Exception('Solo un administrador autenticado puede eliminar noticias.');
+      throw Exception(
+          'Solo un administrador autenticado puede eliminar noticias.');
     }
     await _col.doc(id).delete();
   }
@@ -122,7 +115,7 @@ class NewsService {
       await doc.set({
         'title': item.title,
         'body': item.body,
-        'summary': item.body,
+        'summary': item.summary,
         'imageUrl': item.imageUrl,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
@@ -133,7 +126,8 @@ class NewsService {
 
   static Future<String> _uploadImage(XFile file) async {
     final bytes = await file.readAsBytes();
-    final metadata = SettableMetadata(contentType: file.mimeType ?? 'image/jpeg');
+    final metadata =
+        SettableMetadata(contentType: file.mimeType ?? 'image/jpeg');
     final name = '${DateTime.now().millisecondsSinceEpoch}_${file.name}';
     final ref = _storage.ref().child('news/$name');
     await ref.putData(Uint8List.fromList(bytes), metadata);

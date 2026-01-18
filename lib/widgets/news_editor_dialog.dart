@@ -59,12 +59,13 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
       id: widget.initial?.id ?? '',
       title: _titleCtrl.text.trim(),
       body: _bodyCtrl.text.trim(),
+      summary: _bodyCtrl.text.trim(),
       imageUrl: _imageCtrl.text.trim().isEmpty
           ? 'https://images.pexels.com/photos/3184465/pexels-photo-3184465.jpeg?auto=compress&cs=tinysrgb&w=1200'
           : _imageCtrl.text.trim(),
       createdAt: widget.initial?.createdAt ?? now,
       updatedAt: now,
-      published: widget.initial?.published ?? true,
+      published: _published,
     );
 
     try {

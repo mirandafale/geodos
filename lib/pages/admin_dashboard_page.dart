@@ -609,6 +609,7 @@ class _NewsTabState extends State<_NewsTab> {
                   id: item?.id ?? '',
                   title: titleCtrl.text.trim(),
                   body: bodyCtrl.text.trim(),
+                  summary: bodyCtrl.text.trim(),
                   imageUrl: providedImageUrl,
                   createdAt: item?.createdAt ?? now,
                   updatedAt: now,
