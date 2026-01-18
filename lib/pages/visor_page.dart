@@ -1,6 +1,7 @@
 // visor_page.dart con filtros profesionales y visor de proyectos
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
@@ -8,6 +9,8 @@ import 'package:geodos/services/project_service.dart';
 import 'package:geodos/widgets/contact_form.dart';
 import 'package:geodos/widgets/visor_embed.dart';
 import 'package:geodos/widgets/app_shell.dart';
+
+import '../theme/base_map_style.dart';
 
 class VisorPage extends StatefulWidget {
   const VisorPage({super.key});
@@ -130,10 +133,15 @@ class _VisorPageState extends State<VisorPage> {
                     ),
                   ),
                 if (isMobile) const SizedBox(height: 12),
-                const Expanded(
+                Expanded(
                   child: Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: VisorEmbed(startExpanded: true),
+                    padding: const EdgeInsets.all(12.0),
+                    child: VisorEmbed(
+                      mapCtrl: MapController(),
+                      baseMapStyle: BaseMapStyle.standard,
+                      startExpanded: true,
+                    ),
+
                   ),
                 ),
                 const SizedBox(height: 16),

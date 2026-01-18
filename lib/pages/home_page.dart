@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/carousel_item.dart';
 import 'package:geodos/models/news_item.dart';
@@ -11,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:geodos/widgets/app_shell.dart';
 import 'package:geodos/pages/news_detail_page.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../theme/base_map_style.dart';
 import '../widgets/hero_animated_section.dart';
 // Visor incrustado para mostrar los proyectos georreferenciados.
 import '../widgets/visor_embed.dart';
@@ -18,6 +20,8 @@ import '../widgets/visor_embed.dart';
 import '../services/filters_controller.dart';
 // Servicio que carga los proyectos desde el JSON de assets y expone categorías disponibles.
 import '../services/project_service.dart';
+import 'package:geodos/theme/base_map_style.dart';
+
 
 /// Página de inicio de GEODOS basada en el diseño original proporcionado.
 ///
@@ -1029,7 +1033,11 @@ class _ProjectsByCategorySection extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const VisorEmbed(startExpanded: false),
+                      VisorEmbed(
+                        mapCtrl: MapController(),
+                        baseMapStyle: BaseMapStyle.standard,
+                        startExpanded: false,
+                      ),
                     ],
                   );
                 },
