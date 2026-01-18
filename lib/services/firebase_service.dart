@@ -19,6 +19,8 @@ class FirebaseService {
     required String message,
     required String originSection,
     String? company,
+    String? projectType,
+    String? source,
   }) async {
     await _firestore.collection('contact_messages').add({
       'name': name.trim(),
@@ -26,6 +28,8 @@ class FirebaseService {
       'company': (company ?? '').trim(),
       'message': message.trim(),
       'originSection': originSection.trim(),
+      'projectType': (projectType ?? '').trim(),
+      'source': (source ?? '').trim(),
       'createdAt': FieldValue.serverTimestamp(),
     });
   }

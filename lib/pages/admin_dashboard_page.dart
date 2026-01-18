@@ -6,7 +6,7 @@ import 'package:geodos/models/project.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/contact_message_service.dart';
 import 'package:geodos/services/news_service.dart';
-import 'package:geodos/services/project_service.dart';
+import 'package:geodos/services/project_service.dart' hide Project;
 import 'package:geodos/widgets/app_shell.dart';
 import 'package:geodos/widgets/coordinate_picker.dart';
 import 'package:latlong2/latlong.dart';

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/auth_service.dart';
-import 'package:geodos/services/project_service.dart';
+import 'package:geodos/services/project_service.dart' hide Project;
 
 class AppState extends ChangeNotifier {
   AppState._({AuthService? authService})
