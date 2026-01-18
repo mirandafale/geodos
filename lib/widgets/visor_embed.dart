@@ -22,6 +22,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
   OverlayEntry? _backdrop;
   final _mapCtrl = MapController();
   final _legendKey = GlobalKey();
+  _BaseMapStyle _baseMapStyle = _BaseMapStyle.standard;
 
   @override
   void initState() {
@@ -93,6 +94,8 @@ class _VisorEmbedState extends State<VisorEmbed> {
           mapCtrl: _mapCtrl,
           filters: filters,
           legendKey: _legendKey,
+          baseMapStyle: _baseMapStyle,
+          onBaseMapChanged: (style) => setState(() => _baseMapStyle = style),
         ),
       ),
     );
@@ -103,11 +106,15 @@ class _ProjectsMap extends StatelessWidget {
   final MapController mapCtrl;
   final FiltersController filters;
   final GlobalKey legendKey;
+  final _BaseMapStyle baseMapStyle;
+  final ValueChanged<_BaseMapStyle> onBaseMapChanged;
 
   const _ProjectsMap({
     required this.mapCtrl,
     required this.filters,
     required this.legendKey,
+    required this.baseMapStyle,
+    required this.onBaseMapChanged,
   });
 
   @override
@@ -180,12 +187,20 @@ class _ProjectsMap extends StatelessWidget {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: baseMapStyle.urlTemplate,
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
                     MarkerLayer(markers: markers),
                   ],
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: _BaseMapControl(
+                    value: baseMapStyle,
+                    onChanged: onBaseMapChanged,
+                  ),
                 ),
                 if (projects.isEmpty)
                   const Center(
@@ -220,6 +235,64 @@ class _ProjectsMap extends StatelessWidget {
     if (c.contains('SISTEMAS')) return Colors.brown.shade700;
     if (c.contains('ESTUDIOS') || c.contains('DESARROLLO')) return Colors.teal.shade700;
     return Brand.secondary;
+  }
+}
+
+enum _BaseMapStyle {
+  standard(
+    label: 'Estándar',
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  ),
+  satellite(
+    label: 'Satélite',
+    urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  ),
+  relief(
+    label: 'Relieve',
+    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+  );
+
+  final String label;
+  final String urlTemplate;
+
+  const _BaseMapStyle({
+    required this.label,
+    required this.urlTemplate,
+  });
+}
+
+class _BaseMapControl extends StatelessWidget {
+  final _BaseMapStyle value;
+  final ValueChanged<_BaseMapStyle> onChanged;
+
+  const _BaseMapControl({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Card(
+      elevation: 6,
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: _BaseMapStyle.values
+              .map(
+                (style) => ChoiceChip(
+                  label: Text(style.label, style: t.labelSmall),
+                  selected: value == style,
+                  onSelected: (_) => onChanged(style),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
   }
 }
 
