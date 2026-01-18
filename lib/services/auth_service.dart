@@ -65,7 +65,9 @@ class AuthService extends ChangeNotifier {
     _user = null;
     notifyListeners();
   }
-
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email.trim());
+  }
   void _bindAuthState() {
     if (kIsWeb) {
       _auth.setPersistence(Persistence.LOCAL);
