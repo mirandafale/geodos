@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:geodos/brand/brand.dart';
 import 'package:geodos/services/firebase_service.dart';
+import 'package:geodos/theme/brand.dart';
 
 /// Formulario de contacto reutilizable para GEODOS.
 ///
@@ -14,6 +14,7 @@ class ContactForm extends StatefulWidget {
   const ContactForm({
     super.key,
     this.originSection = 'contact_page',
+    this.source,
     this.showCompanyField = true,
     this.showProjectTypeField = false,
     this.title = 'Envíanos tu consulta',
@@ -24,6 +25,7 @@ class ContactForm extends StatefulWidget {
   });
 
   final String originSection;
+  final String? source;
   final bool showCompanyField;
   final bool showProjectTypeField;
   final String title;
@@ -68,7 +70,10 @@ class _ContactFormState extends State<ContactForm> {
             children: [
               Text(
                 widget.title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -95,7 +100,8 @@ class _ContactFormState extends State<ContactForm> {
                   if (value == null || value.trim().isEmpty) {
                     return 'Por favor, introduzca su correo electrónico';
                   }
-                  final emailRegex = RegExp('^[\\w\\-.]+@([\\w-]+\\.)+[\\w-]{2,}\$');
+                  final emailRegex = RegExp(
+                      '^[\\w\\-.]+@([\\w-]+\\.)+[\\w-]{2,}\$');
                   if (!emailRegex.hasMatch(value)) {
                     return 'Introduzca un correo válido';
                   }
@@ -149,7 +155,8 @@ class _ContactFormState extends State<ContactForm> {
                     ? const SizedBox(
                         height: 16,
                         width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
                     : const Icon(Icons.send),
                 label: Text(_submitting ? 'Enviando...' : 'Enviar'),
@@ -177,7 +184,7 @@ class _ContactFormState extends State<ContactForm> {
         message: _messageController.text.trim(),
         originSection: widget.originSection,
         projectType: _projectTypeController.text.trim(),
-        source: widget.originSection,
+        source: widget.source ?? widget.originSection,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,10 +202,9 @@ class _ContactFormState extends State<ContactForm> {
       );
       debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
-      final message =
-          e.message?.isNotEmpty == true
-              ? e.message!
-              : 'No hemos podido enviar tu mensaje. Inténtalo de nuevo.';
+      final message = e.message?.isNotEmpty == true
+          ? e.message!
+          : 'No hemos podido enviar tu mensaje. Inténtalo de nuevo.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
@@ -207,7 +213,8 @@ class _ContactFormState extends State<ContactForm> {
       debugPrintStack(stackTrace: stackTrace);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Se produjo un error inesperado. Inténtalo de nuevo.')),
+        const SnackBar(
+            content: Text('Se produjo un error inesperado. Inténtalo de nuevo.')),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);

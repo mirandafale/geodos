@@ -3,11 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/theme/brand.dart';
+import 'package:latlong2/latlong.dart';
 
 class VisorEmbed extends StatefulWidget {
   final bool startExpanded;
@@ -136,14 +136,12 @@ class _ProjectsMapState extends State<_ProjectsMap> {
 
   @override
   Widget build(BuildContext context) {
-    final mapCtrl = widget.mapCtrl;
-    final filters = widget.filters;
     const center = LatLng(28.2916, -16.6291);
 
     return AnimatedBuilder(
-      animation: filters,
+      animation: widget.filters,
       builder: (ctx, _) {
-        final FiltersState st = filters.state;
+        final FiltersState st = widget.filters.state;
 
         return StreamBuilder<List<Project>>(
           stream: ProjectService.stream(
@@ -278,14 +276,14 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                       LatLng(swLat, swLng),
                       LatLng(neLat, neLng),
                     );
-                    mapCtrl.fitCamera(
+                    widget.mapCtrl.fitCamera(
                       CameraFit.bounds(
                         bounds: bounds,
                         padding: const EdgeInsets.all(60),
                       ),
                     );
                   } else {
-                    mapCtrl.move(center, 7);
+                    widget.mapCtrl.move(center, 7);
                   }
                 });
               });
@@ -298,7 +296,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
             return Stack(
               children: [
                 FlutterMap(
-                  mapController: mapCtrl,
+                  mapController: widget.mapCtrl,
                   options: MapOptions(
                     initialCenter: center,
                     initialZoom: 7,
@@ -322,9 +320,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: baseMapStyle.urlTemplate,
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: widget.baseMapStyle.urlTemplate,
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
@@ -335,8 +331,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   top: 12,
                   right: 12,
                   child: _BaseMapControl(
-                    value: baseMapStyle,
-                    onChanged: onBaseMapChanged,
+                    value: widget.baseMapStyle,
+                    onChanged: widget.onBaseMapChanged,
                   ),
                 ),
                 if (projects.isEmpty)
@@ -352,7 +348,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                           ),
                           const SizedBox(height: 10),
                           ElevatedButton.icon(
-                            onPressed: filters.reset,
+                            onPressed: widget.filters.reset,
                             icon: const Icon(Icons.visibility),
                             label: const Text('Ver todos'),
                           ),
@@ -567,11 +563,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     }
     return _categoryColor(context, bestCategory);
   }
-
-  String _normalizeCategory(String raw) {
-    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return normalized.isEmpty ? raw.trim() : normalized;
-  }
 }
 
 enum BaseMapStyle {
@@ -582,7 +573,8 @@ enum BaseMapStyle {
   ),
   satellite(
     label: 'Satélite',
-    urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    urlTemplate:
+        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     icon: Icons.satellite_alt,
   ),
   terrain(
@@ -633,16 +625,22 @@ class _BaseMapControl extends StatelessWidget {
                         duration: const Duration(milliseconds: 160),
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: value == style ? Brand.primary.withOpacity(0.12) : Colors.transparent,
+                          color: value == style
+                              ? Brand.primary.withOpacity(0.12)
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                            color: value == style ? Brand.primary : Colors.grey.shade300,
+                            color: value == style
+                                ? Brand.primary
+                                : Colors.grey.shade300,
                           ),
                         ),
                         child: Icon(
                           style.icon,
                           size: 18,
-                          color: value == style ? Brand.primary : Colors.grey.shade800,
+                          color: value == style
+                              ? Brand.primary
+                              : Colors.grey.shade800,
                         ),
                       ),
                     ),
@@ -656,10 +654,8 @@ class _BaseMapControl extends StatelessWidget {
   }
 }
 
-class _Legend extends StatelessWidget {
-  final List<String> categories;
-  final int total;
-  final Color Function(String) colorForCategory;
+class _Legend extends StatefulWidget {
+  final FiltersState filtersState;
 
   const _Legend({
     super.key,
@@ -773,7 +769,9 @@ class _LegendState extends State<_Legend> {
                                   .toList(),
                             ),
                           ),
-                        ),
+                        )
+                      else
+                        Text('Sin filtros activos', style: secondaryText),
                     ],
                   )
                 : Row(
@@ -789,6 +787,16 @@ class _LegendState extends State<_Legend> {
                           fontSize: 12,
                         ),
                       ),
+                      if (activeFilters.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '(${activeFilters.length})',
+                          style: textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 6),
                       const Icon(Icons.expand_more, size: 18),
                     ],

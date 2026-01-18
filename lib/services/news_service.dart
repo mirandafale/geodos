@@ -9,25 +9,25 @@ import '../models/news_item.dart';
 import '../services/auth_service.dart';
 
 class NewsService {
-  static final _db = FirebaseFirestore.instance;
+  static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection('news');
-  static final _storage = FirebaseStorage.instance;
+  static final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  static Query<Map<String, dynamic>> _publishedQuery(
-      {required String orderByField}) {
-    return _col
-        .where('published', isEqualTo: true)
-        .orderBy(orderByField, descending: true)
-        .limit(10);
+  static Query<Map<String, dynamic>> _newsQuery({
+    required bool includeDrafts,
+    required String orderByField,
+  }) {
+    final base = includeDrafts ? _col : _col.where('published', isEqualTo: true);
+    return base.orderBy(orderByField, descending: true).limit(10);
   }
 
   static Stream<List<NewsItem>> _queryWithFallback({
     required Query<Map<String, dynamic>> primary,
-    Query<Map<String, dynamic>>? fallback,
+    required Query<Map<String, dynamic>> fallback,
   }) {
     List<NewsItem> toItems(QuerySnapshot<Map<String, dynamic>> snapshot) {
-      return snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList();
+      return snapshot.docs.map(NewsItem.fromDoc).toList();
     }
 
     return Stream.multi((controller) {
@@ -38,8 +38,7 @@ class NewsService {
         sub = query.snapshots().listen(
           (snapshot) => controller.add(toItems(snapshot)),
           onError: (error, stackTrace) {
-            if (fallback != null &&
-                error is FirebaseException &&
+            if (error is FirebaseException &&
                 (error.code == 'failed-precondition' ||
                     error.code == 'invalid-argument') &&
                 !usingFallback) {
@@ -59,19 +58,11 @@ class NewsService {
     });
   }
 
-  /// Stream de noticias publicadas ordenadas por fecha (recientes primero).
-  static Stream<List<NewsItem>> publishedStream() {
+  /// Stream de noticias publicadas (o todo el listado en modo admin).
+  static Stream<List<NewsItem>> publishedStream({bool includeDrafts = false}) {
     return _queryWithFallback(
-      primary: _publishedQuery(orderByField: 'createdAt'),
-      fallback: _publishedQuery(orderByField: 'updatedAt'),
-    );
-  }
-
-  /// Stream de todas las noticias (panel admin).
-  static Stream<List<NewsItem>> stream() {
-    return _queryWithFallback(
-      primary: _col.orderBy('createdAt', descending: true),
-      fallback: _col.orderBy('updatedAt', descending: true),
+      primary: _newsQuery(includeDrafts: includeDrafts, orderByField: 'createdAt'),
+      fallback: _newsQuery(includeDrafts: includeDrafts, orderByField: 'updatedAt'),
     );
   }
 
