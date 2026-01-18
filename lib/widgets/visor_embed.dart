@@ -7,7 +7,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
-import 'package:geodos/services/project_service.dart';
+import 'package:geodos/services/project_service.dart' hide Project;
 
 class VisorEmbed extends StatefulWidget {
   final bool startExpanded;
