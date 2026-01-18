@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geodos/theme/brand.dart';
 import 'package:geodos/widgets/app_shell.dart';
 
 class AccessibilityStatementPage extends StatelessWidget {
@@ -22,7 +23,19 @@ class AccessibilityStatementPage extends StatelessWidget {
               'con los principios de accesibilidad universal y diseño para todas las personas.',
               style: t.bodyMedium,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            const _SectionTitle('Medidas adoptadas'),
+            const SizedBox(height: 8),
+            _BulletList(
+              items: [
+                'Contraste adecuado en textos y elementos interactivos.',
+                'Navegación clara y consistente en todas las páginas.',
+                'Contenido estructurado para facilitar la lectura.',
+              ],
+            ),
+            const SizedBox(height: 24),
+            const _SectionTitle('Contacto y sugerencias'),
+            const SizedBox(height: 8),
             Text(
               'Estamos trabajando de forma progresiva para mejorar la accesibilidad del sitio. '
               'Si detecta alguna barrera de accesibilidad, puede comunicárnoslo a través del '

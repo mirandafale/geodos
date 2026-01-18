@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geodos/theme/brand.dart';
 import 'package:geodos/widgets/app_shell.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
@@ -22,14 +23,28 @@ class PrivacyPolicyPage extends StatelessWidget {
               'recogen a través de los formularios de contacto y del uso de la web.',
               style: t.bodyMedium,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            const _SectionTitle('Datos recogidos'),
+            const SizedBox(height: 8),
+            _BulletList(
+              items: [
+                'Información de contacto (nombre, correo electrónico y empresa).',
+                'Mensaje o consulta enviada por el usuario.',
+                'Datos necesarios para dar seguimiento a solicitudes o proyectos.',
+              ],
+            ),
+            const SizedBox(height: 24),
+            const _SectionTitle('Finalidad del tratamiento'),
+            const SizedBox(height: 8),
             Text(
-              'La información que facilitan los usuarios se utiliza exclusivamente '
-              'para gestionar las consultas, solicitudes de información y la '
-              'relación profesional con nuestros clientes.',
+              'La información facilitada se utiliza exclusivamente para gestionar '
+              'consultas, solicitudes de información y la relación profesional con '
+              'nuestros clientes.',
               style: t.bodyMedium,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            const _SectionTitle('Derechos de las personas usuarias'),
+            const SizedBox(height: 8),
             Text(
               'GEODOS cumple con la normativa vigente en materia de protección de '
               'datos personales. Los usuarios pueden ejercer sus derechos de acceso, '

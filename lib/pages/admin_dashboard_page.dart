@@ -449,7 +449,7 @@ class _NewsTabState extends State<_NewsTab> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: StreamBuilder<List<NewsItem>>(
-                  stream: NewsService.stream(),
+                  stream: NewsService.publishedStream(includeDrafts: true),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const _LoadingState(message: 'Cargando noticias...');
