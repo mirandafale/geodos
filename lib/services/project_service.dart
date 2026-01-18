@@ -1,25 +1,30 @@
-// lib/services/project_service.dart
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:geodos/models/project.dart';
 import 'package:uuid/uuid.dart';
-import 'package:flutter/foundation.dart';
-
 
 /// Servicio de proyectos conectado a Firestore.
 /// Lectura pública (stream) y escritura sólo para admins autenticados
 /// (validación se realiza antes de invocar estos métodos desde la UI).
 class ProjectService {
-  static List<Project> _localProjects = [];
-  static List<Project> _remoteProjects = [];
+  static const _assetPath =
+      'assets/proyectos_por_municipio_cat_isla_v3_jittered.json';
   static final _firestore = FirebaseFirestore.instance.collection('projects');
   static final _uuid = const Uuid();
+
+  static List<Project> _localProjects = [];
+  static List<Project> _remoteProjects = [];
   static bool _remoteLoaded = false;
   static bool _localLoaded = false;
   static int _lastRemoteCount = 0;
-  static const _assetPath = 'assets/proyectos_por_municipio_cat_isla_v3_jittered.json';
+
+  static int get lastRemoteCount => _lastRemoteCount;
+  static bool get usingLocalFallback =>
+      _remoteProjects.isEmpty && _localProjects.isNotEmpty;
+  static int get localFallbackCount => _localProjects.length;
 
   /// Inicializa cargando los datos remotos y el fallback local si es necesario.
   static Future<void> ensureInitialized() async {
@@ -31,30 +36,39 @@ class ProjectService {
     if (_remoteLoaded) return;
     try {
       final snapshot = await _firestore.get();
-      _remoteProjects = snapshot.docs.map(_projectFromDoc).toList();
+      _remoteProjects = snapshot.docs.map(Project.fromDoc).toList();
       _lastRemoteCount = _remoteProjects.length;
-      _remoteLoaded = true;
-      debugPrint('ProjectService: initial remote load $_lastRemoteCount docs');
-    } catch (error) {
+      debugPrint(
+          'ProjectService: loaded $_lastRemoteCount projects from Firestore');
+    } on FirebaseException catch (error, stackTrace) {
+      debugPrint('ProjectService: Firestore load failed ${error.code}');
+      debugPrintStack(stackTrace: stackTrace);
       _remoteProjects = [];
       _lastRemoteCount = 0;
+    } catch (error, stackTrace) {
+      debugPrint('ProjectService: Firestore load failed $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _remoteProjects = [];
+      _lastRemoteCount = 0;
+    } finally {
       _remoteLoaded = true;
-      debugPrint('ProjectService: remote load failed, using local fallback: $error');
     }
   }
 
   static Future<void> _loadLocalIfNeeded() async {
-    if (_localLoaded) return;
-    if (_remoteProjects.isNotEmpty) return;
+    if (_localLoaded || _remoteProjects.isNotEmpty) return;
     try {
       final raw = await rootBundle.loadString(_assetPath);
       _localProjects = Project.listFromJsonString(raw)
           .where((p) => p.hasValidCoords)
           .toList();
+      debugPrint(
+          'ProjectService: loaded local fallback ${_localProjects.length} projects');
+    } catch (error, stackTrace) {
+      debugPrint('ProjectService: local fallback failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    } finally {
       _localLoaded = true;
-      debugPrint('ProjectService: loaded local fallback ${_localProjects.length} projects');
-    } catch (error) {
-      debugPrint('ProjectService: local fallback failed to load: $error');
     }
   }
 
@@ -64,12 +78,6 @@ class ProjectService {
     return const [];
   }
 
-  static int get lastRemoteCount => _lastRemoteCount;
-
-  static bool get usingLocalFallback => _remoteProjects.isEmpty && _localProjects.isNotEmpty;
-
-  static int get localFallbackCount => _localProjects.length;
-
   /// Devuelve un flujo (stream) de proyectos filtrados en base a los criterios.
   static Stream<List<Project>> stream({
     int? year,
@@ -77,35 +85,48 @@ class ProjectService {
     ProjectScope? scope,
     String? island,
     String? search,
-  }) async* {
+  }) {
     final filtersLog = _filtersDescription(year, category, scope, island, search);
-    debugPrint('ProjectService.stream: building stream with $filtersLog');
+    return Stream.multi((controller) async {
+      await ensureInitialized();
 
-    await ensureInitialized();
-
-    var filtered = _filterProjects(year, category, scope, island, search);
-    debugPrint(
-        'ProjectService.stream: initial filtered=${filtered.length} remote=$lastRemoteCount local=${_localProjects.length} (${usingLocalFallback ? 'using local fallback' : 'firestore'}) with $filtersLog');
-    yield filtered;
-
-    await for (final snapshot in _firestore.snapshots()) {
-      _remoteProjects = snapshot.docs.map(_projectFromDoc).toList();
-      _lastRemoteCount = _remoteProjects.length;
-      debugPrint('ProjectService.stream: received ${_remoteProjects.length} projects from Firestore');
-
-      if (_remoteProjects.isEmpty) {
-        await _loadLocalIfNeeded();
+      void emit(String reason) {
+        final filtered = _filterProjects(year, category, scope, island, search);
+        debugPrint(
+          'ProjectService.stream[$reason]: filtered=${filtered.length} '
+          'remote=$lastRemoteCount local=${_localProjects.length} '
+          '${usingLocalFallback ? '(fallback)' : '(firestore)'} '
+          'with $filtersLog',
+        );
+        controller.add(filtered);
       }
 
-      filtered = _filterProjects(year, category, scope, island, search);
-      debugPrint(
-          'ProjectService.stream: snapshot docs=${snapshot.docs.length} filtered=${filtered.length} (${usingLocalFallback ? 'local fallback' : 'firestore'}) with $filtersLog');
-      yield filtered;
-    }
+      emit('initial');
+
+      StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? sub;
+      sub = _firestore.snapshots().listen(
+        (snapshot) {
+          _remoteProjects = snapshot.docs.map(Project.fromDoc).toList();
+          _lastRemoteCount = _remoteProjects.length;
+          if (_remoteProjects.isEmpty) {
+            _loadLocalIfNeeded();
+          }
+          emit('snapshot');
+        },
+        onError: (error, stackTrace) {
+          debugPrint('ProjectService: snapshot error $error');
+          debugPrintStack(stackTrace: stackTrace);
+          emit('snapshot-error');
+        },
+      );
+
+      controller.onCancel = () => sub?.cancel();
+    });
   }
 
   /// Devuelve listas únicas para filtros (se calcula en cliente).
   static Future<List<int>> getYears() async {
+    await ensureInitialized();
     final set = <int>{};
     for (final p in _availableProjects()) {
       if (p.year != null) set.add(p.year!);
@@ -120,8 +141,7 @@ class ProjectService {
     for (final p in _availableProjects()) {
       if (p.category.isNotEmpty) set.add(p.category);
     }
-    final list = set.toList();
-    list.sort();
+    final list = set.toList()..sort();
     return list;
   }
 
@@ -226,7 +246,12 @@ class ProjectService {
   }
 
   static String _filtersDescription(
-      int? year, String? category, ProjectScope? scope, String? island, String? search) {
+    int? year,
+    String? category,
+    ProjectScope? scope,
+    String? island,
+    String? search,
+  ) {
     final parts = <String>[
       'year=${year ?? 'all'}',
       'category=${(category?.trim().isEmpty ?? true) ? 'all' : category?.trim()}',
@@ -235,47 +260,6 @@ class ProjectService {
       'search=${(search?.trim().isEmpty ?? true) ? '""' : search?.trim()}',
     ];
     return 'filters(${parts.join(', ')})';
-  }
-
-  static Project _projectFromDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data();
-    final scopeStr = (data['scope'] ?? data['cat'] ?? '').toString().toUpperCase();
-    final scope = _scopeFromString(scopeStr);
-    final lat = (data['lat'] is num)
-        ? (data['lat'] as num).toDouble()
-        : double.tryParse('${data['lat']}') ?? 0;
-    final lon = (data['lon'] is num)
-        ? (data['lon'] as num).toDouble()
-        : double.tryParse('${data['lon']}') ?? 0;
-
-    int? year;
-    if (data['year'] != null) {
-      year = data['year'] is int
-          ? data['year'] as int
-          : int.tryParse('${data['year']}');
-    } else if (data['date'] != null) {
-      year = data['date'] is int ? data['date'] as int : int.tryParse('${data['date']}');
-    }
-
-    return Project(
-      id: doc.id,
-      title: (data['title'] ?? '') as String,
-      municipality: (data['municipality'] ?? '') as String,
-      year: year,
-      category: (data['category'] ?? '') as String,
-      lat: lat,
-      lon: lon,
-      island: (data['island'] ?? data['isla'] ?? '') as String,
-      scope: scope,
-      enRedaccion: data['enRedaccion'] == true,
-      description: (data['description'] ?? '') as String?,
-      createdAt: (data['createdAt'] is Timestamp)
-          ? (data['createdAt'] as Timestamp).toDate()
-          : null,
-      updatedAt: (data['updatedAt'] is Timestamp)
-          ? (data['updatedAt'] as Timestamp).toDate()
-          : null,
-    );
   }
 
   static Map<String, dynamic> _projectToFirestoreMap(
@@ -313,21 +297,6 @@ class ProjectService {
         return 'REGIONAL';
       case ProjectScope.unknown:
         return 'OTRO';
-    }
-  }
-
-  static ProjectScope _scopeFromString(String s) {
-    switch (s) {
-      case 'MUNICIPAL':
-        return ProjectScope.municipal;
-      case 'COMARCAL':
-        return ProjectScope.comarcal;
-      case 'INSULAR':
-        return ProjectScope.insular;
-      case 'REGIONAL':
-        return ProjectScope.regional;
-      default:
-        return ProjectScope.unknown;
     }
   }
 }

@@ -19,20 +19,35 @@ class FirebaseService {
     required String message,
     required String originSection,
     String? company,
+    String? projectType,
+    String? source,
   }) async {
-    await _firestore.collection('contact_messages').add({
+    final payload = <String, dynamic>{
       'name': name.trim(),
       'email': email.trim(),
-      'company': (company ?? '').trim(),
       'message': message.trim(),
       'originSection': originSection.trim(),
+      'source': (source ?? originSection).trim(),
       'createdAt': FieldValue.serverTimestamp(),
-    });
+    };
+
+    final companyValue = (company ?? '').trim();
+    if (companyValue.isNotEmpty) {
+      payload['company'] = companyValue;
+    }
+
+    final projectTypeValue = (projectType ?? '').trim();
+    if (projectTypeValue.isNotEmpty) {
+      payload['projectType'] = projectTypeValue;
+    }
+
+    await _firestore.collection('contact_messages').add(payload);
   }
 
   static Future<void> createOrUpdateProject(Project project) async {
     if (!AuthService.instance.isAdmin) {
-      throw Exception('Solo un administrador autenticado puede modificar proyectos.');
+      throw Exception(
+          'Solo un administrador autenticado puede modificar proyectos.');
     }
     final doc = project.id.isEmpty
         ? _firestore.collection('projects').doc()
@@ -45,7 +60,7 @@ class FirebaseService {
       'lat': project.lat,
       'lon': project.lon,
       'island': project.island,
-      'scope': project.scope.name.toUpperCase(),
+      'scope': Project.scopeToString(project.scope),
       'enRedaccion': project.enRedaccion,
       if (project.description != null && project.description!.trim().isNotEmpty)
         'description': project.description,
@@ -57,13 +72,16 @@ class FirebaseService {
 
   static Future<String> createOrUpdateNews(NewsItem item) async {
     if (!AuthService.instance.isAdmin) {
-      throw Exception('Solo un administrador autenticado puede modificar noticias.');
+      throw Exception(
+          'Solo un administrador autenticado puede modificar noticias.');
     }
     final collection = _firestore.collection('news');
     final payload = {
       'title': item.title,
+      'body': item.body,
       'summary': item.summary,
       'imageUrl': item.imageUrl,
+      'published': item.published,
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
