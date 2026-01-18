@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -9,6 +8,10 @@ import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
 
+/// ===============================================================
+///  GEODOS VISOR — Bloque B1
+///  Selector de mapa base: Estándar / Satélite / Relieve
+/// ===============================================================
 class VisorEmbed extends StatefulWidget {
   final bool startExpanded;
   const VisorEmbed({super.key, this.startExpanded = false});
@@ -22,6 +25,9 @@ class _VisorEmbedState extends State<VisorEmbed> {
   OverlayEntry? _backdrop;
   final _mapCtrl = MapController();
   final _legendKey = GlobalKey();
+
+  // 🔹 Nuevo: tipo de mapa base (Bloque B1)
+  BaseMapStyle _baseMapStyle = BaseMapStyle.standard;
 
   @override
   void initState() {
@@ -99,21 +105,31 @@ class _VisorEmbedState extends State<VisorEmbed> {
           mapCtrl: _mapCtrl,
           filters: filters,
           legendKey: _legendKey,
+          baseMapStyle: _baseMapStyle,
+          onBaseMapChanged: (style) =>
+              setState(() => _baseMapStyle = style),
         ),
       ),
     );
   }
 }
 
+/// ===============================================================
+///  Subwidget principal con mapa + controles + leyenda
+/// ===============================================================
 class _ProjectsMap extends StatefulWidget {
   final MapController mapCtrl;
   final FiltersController filters;
   final GlobalKey legendKey;
+  final BaseMapStyle baseMapStyle;
+  final ValueChanged<BaseMapStyle> onBaseMapChanged;
 
   const _ProjectsMap({
     required this.mapCtrl,
     required this.filters,
     required this.legendKey,
+    required this.baseMapStyle,
+    required this.onBaseMapChanged,
   });
 
   @override
@@ -160,7 +176,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   height: 24,
                   child: Tooltip(
                     message:
-                        '${project.title}\n${project.category} · ${project.year ?? 's/f'}',
+                    '${project.title}\n${project.category} · ${project.year ?? 's/f'}',
                     child: Center(
                       child: Container(
                         width: 12,
@@ -175,9 +191,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   ),
                 );
               }
-              final clusterCategories = _clusterCategories(cluster.items);
               final clusterColor =
-                  _dominantClusterColor(context, cluster.items);
+              _dominantClusterColor(context, cluster.items);
               return Marker(
                 point: cluster.center,
                 width: 28,
@@ -185,7 +200,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                 child: Tooltip(
                   message: '${cluster.items.length} proyectos',
                   child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
                     onTap: () => _openClusterSheet(context, cluster.items),
                     child: Stack(
                       alignment: Alignment.center,
@@ -208,85 +222,12 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                             color: Colors.white,
                           ),
                         ),
-                        if (clusterCategories.length > 1)
-                          Positioned(
-                            bottom: 4,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: clusterCategories
-                                  .take(3)
-                                  .map(
-                                    (category) => Container(
-                                      margin:
-                                          const EdgeInsets.symmetric(horizontal: 1),
-                                      width: 5,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        color:
-                                            _categoryColor(context, category),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: Colors.white, width: 0.6),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
                       ],
                     ),
                   ),
                 ),
               );
             }).toList();
-
-            final currentIds = projects.map((p) => p.id).toList()..sort();
-            final projectsChanged =
-                currentIds.length != _lastProjectIds.length ||
-                    !_lastProjectIds
-                        .asMap()
-                        .entries
-                        .every((entry) => entry.value == currentIds[entry.key]);
-            if (projectsChanged) {
-              _lastProjectIds = currentIds;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                _runWhenMapReady(() {
-                  if (projects.isNotEmpty) {
-                    final latLngs =
-                        projects.map((p) => LatLng(p.lat, p.lon)).toList();
-                    var swLat = latLngs.first.latitude;
-                    var swLng = latLngs.first.longitude;
-                    var neLat = swLat;
-                    var neLng = swLng;
-
-                    for (final ll in latLngs) {
-                      if (ll.latitude < swLat) swLat = ll.latitude;
-                      if (ll.longitude < swLng) swLng = ll.longitude;
-                      if (ll.latitude > neLat) neLat = ll.latitude;
-                      if (ll.longitude > neLng) neLng = ll.longitude;
-                    }
-
-                    final bounds = LatLngBounds(
-                      LatLng(swLat, swLng),
-                      LatLng(neLat, neLng),
-                    );
-                    mapCtrl.fitCamera(
-                      CameraFit.bounds(
-                        bounds: bounds,
-                        padding: const EdgeInsets.all(60),
-                      ),
-                    );
-                  } else {
-                    mapCtrl.move(center, 7);
-                  }
-                });
-              });
-            }
-
-            final emptyMessage = snap.hasError
-                ? snap.error.toString()
-                : 'No hay proyectos que coincidan con el filtro.';
 
             return Stack(
               children: [
@@ -298,62 +239,52 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     minZoom: 4,
                     maxZoom: 18,
                     onMapReady: () {
-                      if (!mounted) return;
                       _mapReady = true;
-                      final pending = _pendingCameraAction;
+                      _pendingCameraAction?.call();
                       _pendingCameraAction = null;
-                      pending?.call();
                     },
                     onMapEvent: (event) {
-                      if (!mounted) return;
                       if (_zoom != event.camera.zoom) {
                         setState(() => _zoom = event.camera.zoom);
                       }
                     },
-                    interactionOptions:
-                        InteractionOptions(flags: InteractiveFlag.all),
                   ),
                   children: [
+                    // 🔹 Capa base seleccionable
                     TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: _mapUrl(widget.baseMapStyle),
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
                     MarkerLayer(markers: markers),
                   ],
                 ),
+
                 if (projects.isEmpty)
-                  Center(
+                  const Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            emptyMessage,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 10),
-                          ElevatedButton.icon(
-                            onPressed: filters.reset,
-                            icon: const Icon(Icons.visibility),
-                            label: const Text('Ver todos'),
-                          ),
-                          if (kDebugMode) ...[
-                            const SizedBox(height: 14),
-                            _DebugEmptyPanel(filtersState: st),
-                          ],
-                        ],
-                      ),
+                      padding: EdgeInsets.all(12),
+                      child: Text('No hay proyectos visibles con los filtros actuales.'),
                     ),
                   ),
+
+                // 🔹 Leyenda (izquierda)
                 Positioned(
                   top: 12,
                   left: 12,
                   child: _Legend(
                     key: widget.legendKey,
                     filtersState: st,
+                  ),
+                ),
+
+                // 🔹 Selector de mapa base (Bloque B1)
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: _BaseMapSelector(
+                    current: widget.baseMapStyle,
+                    onChanged: widget.onBaseMapChanged,
                   ),
                 ),
               ],
@@ -364,26 +295,35 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     );
   }
 
-  void _runWhenMapReady(VoidCallback action) {
-    if (_mapReady) action();
-    else _pendingCameraAction = action;
+  String _mapUrl(BaseMapStyle style) {
+    switch (style) {
+      case BaseMapStyle.satellite:
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case BaseMapStyle.terrain:
+        return 'https://tile.opentopomap.org/{z}/{x}/{y}.png';
+      default:
+        return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
   }
 
   List<_ProjectCluster> _buildClusters(List<Project> projects, double zoom) {
-    final threshold = _clusterThresholdMeters(zoom);
+    final threshold = zoom >= 13
+        ? 60
+        : zoom >= 11
+        ? 120
+        : zoom >= 9
+        ? 250
+        : 450;
     final clusters = <_ProjectCluster>[];
+    final distance = const Distance();
 
     for (final project in projects) {
       final point = LatLng(project.lat, project.lon);
       _ProjectCluster? match;
       for (final cluster in clusters) {
         for (final item in cluster.items) {
-          final distance = _distance.as(
-            LengthUnit.Meter,
-            point,
-            LatLng(item.lat, item.lon),
-          );
-          if (distance <= threshold) {
+          if (distance.as(LengthUnit.Meter, point, LatLng(item.lat, item.lon)) <=
+              threshold) {
             match = cluster;
             break;
           }
@@ -400,396 +340,145 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     return clusters;
   }
 
-  double _clusterThresholdMeters(double zoom) {
-    if (zoom >= 13) return 60;
-    if (zoom >= 11) return 120;
-    if (zoom >= 9) return 250;
-    return 450;
-  }
-
-  void _openClusterSheet(BuildContext context, List<Project> projects) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final size = MediaQuery.of(dialogContext).size;
-        final maxWidth = math.min(720.0, size.width * 0.9);
-        final maxHeight = size.height * 0.75;
-        const minHeight = 220.0;
-        final desiredHeight = 56 + projects.length * 64 + 40;
-        final dialogHeight =
-            desiredHeight.clamp(minHeight, maxHeight).toDouble();
-        final isMaxHeight = dialogHeight >= maxHeight;
-        final listView = ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          itemCount: projects.length,
-          physics: const AlwaysScrollableScrollPhysics(),
-          shrinkWrap: !isMaxHeight,
-          separatorBuilder: (_, __) => const Divider(height: 24),
-          itemBuilder: (_, index) {
-            final project = projects[index];
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: _categoryColor(
-                      dialogContext,
-                      project.category,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    project.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(dialogContext).textTheme.titleSmall,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    _runWhenMapReady(() {
-                      final target = LatLng(project.lat, project.lon);
-                      final double targetZoom = _zoom < 13.0 ? 13.0 : _zoom;
-                      widget.mapCtrl.move(target, targetZoom);
-                    });
-                  },
-                  child: const Text('Ver'),
-                ),
-              ],
-            );
-          },
-        );
-
-        return Dialog(
-          child: SizedBox(
-            width: maxWidth,
-            height: dialogHeight,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Proyectos (${projects.length})',
-                          style: Theme.of(dialogContext).textTheme.titleSmall,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(),
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Cerrar',
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                if (isMaxHeight)
-                  Expanded(child: listView)
-                else
-                  Flexible(fit: FlexFit.loose, child: listView),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Color _categoryColor(BuildContext context, String category) {
     final c = category.toUpperCase();
-    if (c.contains('IMPACTO') ||
-        c.contains('AMBIENTAL') ||
-        c.contains('MEDIOAMBIENTE')) {
-      return const Color(0xFF1B8A3D);
-    }
-    if (c.contains('URBANISMO') ||
-        c.contains('ORDENACION') ||
-        c.contains('ORDENACIÓN')) {
-      return const Color(0xFF1565C0);
-    }
-    if (c.contains('PAISAJE')) return const Color(0xFF00897B);
-    if (c.contains('PATRIMONIO') || c.contains('GEODIVERSIDAD')) {
-      return const Color(0xFF6D4C41);
-    }
-    if (c.contains('SIG') ||
-        c.contains('SISTEMA DE INFORMACION GEOGRAFICA') ||
-        c.contains('SISTEMA DE INFORMACIÓN GEOGRÁFICA')) {
-      return const Color(0xFF3949AB);
-    }
-    if (c.contains('GEOMARKETING')) return const Color(0xFF8E24AA);
+    if (c.contains('MEDIOAMBIENTE')) return Colors.green.shade700;
+    if (c.contains('ORDENACION') || c.contains('ORDENACIÓN')) return Colors.blue.shade700;
+    if (c.contains('PATRIMONIO')) return Colors.brown.shade700;
     return Theme.of(context).colorScheme.primary;
-  }
-
-  List<String> _clusterCategories(List<Project> projects) {
-    final categories =
-        projects.map((project) => project.category).toSet().toList()
-          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return categories;
   }
 
   Color _dominantClusterColor(BuildContext context, List<Project> projects) {
     final counts = <String, int>{};
-    var bestCategory = projects.first.category;
-    var bestCount = 0;
-    for (final project in projects) {
-      final category = project.category;
-      final nextCount = (counts[category] ?? 0) + 1;
-      counts[category] = nextCount;
-      if (nextCount > bestCount) {
-        bestCount = nextCount;
-        bestCategory = category;
-      }
+    for (final p in projects) {
+      counts[p.category] = (counts[p.category] ?? 0) + 1;
     }
-    return _categoryColor(context, bestCategory);
+    final dominant = counts.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    return _categoryColor(context, dominant);
   }
 
-  String _normalizeCategory(String raw) {
-    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return normalized.isEmpty ? raw.trim() : normalized;
-  }
-}
-
-class _Legend extends StatefulWidget {
-  final FiltersState filtersState;
-
-  const _Legend({
-    super.key,
-    required this.filtersState,
-  });
-
-  @override
-  State<_Legend> createState() => _LegendState();
-}
-
-class _LegendState extends State<_Legend> {
-  bool _expanded = false;
-
-  void _collapse() {
-    if (_expanded) {
-      setState(() => _expanded = false);
-    }
-  }
-
-  void _expand() {
-    if (!_expanded) {
-      setState(() => _expanded = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
-    final surfaceColor = theme.colorScheme.surface;
-    final outlineColor = theme.colorScheme.outlineVariant.withOpacity(0.45);
-    final secondaryText = textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontSize: 11,
-          height: 1.2,
-        ) ??
-        TextStyle(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontSize: 11,
-          height: 1.2,
-        );
-
-    final activeFilters = _activeFilters(widget.filtersState);
-
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      alignment: Alignment.topLeft,
-      curve: Curves.easeInOut,
-      child: Material(
-        color: surfaceColor,
-        elevation: 3,
-        shadowColor: Colors.black12,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: _expanded ? null : _expand,
-          child: Container(
-            padding: _expanded
-                ? const EdgeInsets.fromLTRB(12, 10, 10, 10)
-                : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            constraints: _expanded
-                ? const BoxConstraints(maxWidth: 240, maxHeight: 240)
-                : const BoxConstraints(minHeight: 44),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: outlineColor),
+  void _openClusterSheet(BuildContext context, List<Project> projects) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Proyectos (${projects.length})'),
+        content: SizedBox(
+          width: math.min(MediaQuery.of(context).size.width * 0.8, 500),
+          child: ListView.builder(
+            itemCount: projects.length,
+            itemBuilder: (_, i) => ListTile(
+              title: Text(projects[i].title),
+              subtitle: Text(projects[i].category),
             ),
-            child: _expanded
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Filtros activos',
-                              style: textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: _collapse,
-                            icon: const Icon(Icons.close, size: 16),
-                            tooltip: 'Cerrar',
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 24,
-                              minHeight: 24,
-                            ),
-                            splashRadius: 16,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      if (activeFilters.isNotEmpty)
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 200),
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: activeFilters
-                                  .map(
-                                    (filter) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 6),
-                                      child: Text(filter, style: secondaryText),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
-                        ),
-                    ],
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.tune, size: 16),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Filtros',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.expand_more, size: 18),
-                    ],
-                  ),
           ),
         ),
       ),
     );
   }
+}
 
-  List<String> _activeFilters(FiltersState st) {
-    final filters = <String>[];
-    if (st.category != null && st.category!.trim().isNotEmpty) {
-      filters.add('Categoría: ${_normalizeCategory(st.category!)}');
-    }
-    if (st.island != null && st.island!.trim().isNotEmpty) {
-      filters.add('Isla: ${st.island}');
-    }
-    if (st.scope != null) {
-      filters.add('Ámbito: ${st.scope!.name}');
-    }
-    if (st.year != null) {
-      filters.add('Año: ${st.year}');
-    }
-    if (st.search.isNotEmpty) {
-      filters.add('Búsqueda: "${st.search}"');
-    }
-    return filters;
-  }
+/// ===============================================================
+///  Selector visual del mapa base
+/// ===============================================================
+enum BaseMapStyle { standard, satellite, terrain }
 
-  String _normalizeCategory(String raw) {
-    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return normalized.isEmpty ? raw.trim() : normalized;
+class _BaseMapSelector extends StatelessWidget {
+  final BaseMapStyle current;
+  final ValueChanged<BaseMapStyle> onChanged;
+
+  const _BaseMapSelector({
+    required this.current,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    IconData iconFor(BaseMapStyle style) {
+      switch (style) {
+        case BaseMapStyle.satellite:
+          return Icons.satellite_alt_outlined;
+        case BaseMapStyle.terrain:
+          return Icons.terrain_outlined;
+        default:
+          return Icons.map_outlined;
+      }
+    }
+
+    return Card(
+      color: theme.colorScheme.surface,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: BaseMapStyle.values.map((style) {
+          final isSelected = style == current;
+          return IconButton(
+            tooltip: style.name[0].toUpperCase() + style.name.substring(1),
+            onPressed: () => onChanged(style),
+            icon: Icon(
+              iconFor(style),
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 }
 
+/// ===============================================================
+///  Estructuras auxiliares (clusters, leyenda, debug)
+/// ===============================================================
 class _ProjectCluster {
   _ProjectCluster(this.center, this.items);
-
   LatLng center;
   final List<Project> items;
-
   void recenter() {
-    var lat = 0.0;
-    var lon = 0.0;
-    for (final project in items) {
-      lat += project.lat;
-      lon += project.lon;
+    var lat = 0.0, lon = 0.0;
+    for (final p in items) {
+      lat += p.lat;
+      lon += p.lon;
     }
     center = LatLng(lat / items.length, lon / items.length);
   }
 }
 
-class _DebugEmptyPanel extends StatelessWidget {
+class _Legend extends StatelessWidget {
   final FiltersState filtersState;
-
-  const _DebugEmptyPanel({
-    required this.filtersState,
-  });
+  const _Legend({super.key, required this.filtersState});
 
   @override
   Widget build(BuildContext context) {
-    final remoteCount = ProjectService.lastRemoteCount;
-    final usingFallback = ProjectService.usingLocalFallback;
-    final fallbackCount = ProjectService.localFallbackCount;
+    final t = Theme.of(context).textTheme;
+    final st = filtersState;
+    final filters = <String>[];
+    if (st.category != null && st.category!.trim().isNotEmpty)
+      filters.add('Categoría: ${st.category}');
+    if (st.island != null && st.island!.trim().isNotEmpty)
+      filters.add('Isla: ${st.island}');
+    if (st.scope != null) filters.add('Ámbito: ${st.scope!.name}');
+    if (st.year != null) filters.add('Año: ${st.year}');
+    if (st.search.isNotEmpty) filters.add('Búsqueda: "${st.search}"');
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade400),
-      ),
+    return Card(
+      elevation: 4,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+        padding: const EdgeInsets.all(10),
+        child: filters.isEmpty
+            ? Text('Sin filtros', style: t.labelSmall)
+            : Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Diagnóstico (debug)',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 6),
-            Text('Proyectos recibidos de Firestore: $remoteCount'),
-            if (usingFallback)
-              Text('Fallback local activo: $fallbackCount proyectos'),
-            Text('Filtros actuales: ${_filtersSummary(filtersState)}'),
-          ],
+          children: filters
+              .map((f) => Text(f, style: t.labelSmall))
+              .toList(),
         ),
       ),
     );
-  }
-
-  String _filtersSummary(FiltersState st) {
-    final parts = <String>[
-      'categoría: ${st.category?.toLowerCase() ?? 'todas'}',
-      'isla: ${st.island ?? 'todas'}',
-      'ámbito: ${st.scope?.name ?? 'todos'}',
-      'año: ${st.year?.toString() ?? 'todos'}',
-      'búsqueda: ${st.search.isEmpty ? 'ninguna' : '"${st.search}"'}',
-    ];
-    return parts.join(' · ');
   }
 }
