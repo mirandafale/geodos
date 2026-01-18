@@ -8,7 +8,9 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 
 
-/// Servicio encargado de cargar y filtrar los proyectos desde assets.
+/// Servicio de proyectos conectado a Firestore.
+/// Lectura pública (stream) y escritura sólo para admins autenticados
+/// (validación se realiza antes de invocar estos métodos desde la UI).
 class ProjectService {
   static List<Project> _localProjects = [];
   static List<Project> _remoteProjects = [];
@@ -102,19 +104,17 @@ class ProjectService {
     }
   }
 
-  /// Extrae todos los años únicos presentes en los proyectos.
+  /// Devuelve listas únicas para filtros (se calcula en cliente).
   static Future<List<int>> getYears() async {
-    await ensureInitialized();
+    final snap = await _col.get();
     final set = <int>{};
     for (final p in _availableProjects()) {
       if (p.year != null) set.add(p.year!);
     }
-    final list = set.toList();
-    list.sort((a, b) => b.compareTo(a)); // descendente
+    final list = set.toList()..sort((a, b) => b.compareTo(a));
     return list;
   }
 
-  /// Extrae todas las categorías únicas presentes en los proyectos.
   static Future<List<String>> getCategories() async {
     await ensureInitialized();
     final set = <String>{};
@@ -126,7 +126,6 @@ class ProjectService {
     return list;
   }
 
-  /// Devuelve todos los ámbitos disponibles en los proyectos.
   static Future<List<ProjectScope>> getScopes() async {
     await ensureInitialized();
     final list = _availableProjects().map((p) => p.scope).toSet().toList();
@@ -134,7 +133,6 @@ class ProjectService {
     return list;
   }
 
-  /// Devuelve la lista de islas disponibles.
   static Future<List<String>> getIslands() async {
     await ensureInitialized();
     final list = _availableProjects()

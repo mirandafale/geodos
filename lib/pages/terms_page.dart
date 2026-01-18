@@ -6,7 +6,18 @@ class TermsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: Brand.primary,
+          ),
+    );
+  }
+}
+
+class _BulletList extends StatelessWidget {
+  final List<String> items;
 
     return AppShell(
       title: const Text('Términos y Condiciones'),

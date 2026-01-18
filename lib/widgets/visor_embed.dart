@@ -22,6 +22,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
   OverlayEntry? _backdrop;
   final _mapCtrl = MapController();
   final _legendKey = GlobalKey();
+  BaseMapStyle _baseMapStyle = BaseMapStyle.standard;
 
   @override
   void initState() {
@@ -99,6 +100,8 @@ class _VisorEmbedState extends State<VisorEmbed> {
           mapCtrl: _mapCtrl,
           filters: filters,
           legendKey: _legendKey,
+          baseMapStyle: _baseMapStyle,
+          onBaseMapChanged: (style) => setState(() => _baseMapStyle = style),
         ),
       ),
     );
@@ -109,11 +112,15 @@ class _ProjectsMap extends StatefulWidget {
   final MapController mapCtrl;
   final FiltersController filters;
   final GlobalKey legendKey;
+  final BaseMapStyle baseMapStyle;
+  final ValueChanged<BaseMapStyle> onBaseMapChanged;
 
   const _ProjectsMap({
     required this.mapCtrl,
     required this.filters,
     required this.legendKey,
+    required this.baseMapStyle,
+    required this.onBaseMapChanged,
   });
 
   @override
@@ -315,6 +322,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   ),
                   children: [
                     TileLayer(
+                      urlTemplate: baseMapStyle.urlTemplate,
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'geodos.app',
@@ -322,6 +330,14 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     ),
                     MarkerLayer(markers: markers),
                   ],
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: _BaseMapControl(
+                    value: baseMapStyle,
+                    onChanged: onBaseMapChanged,
+                  ),
                 ),
                 if (projects.isEmpty)
                   Center(
@@ -558,8 +574,92 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   }
 }
 
-class _Legend extends StatefulWidget {
-  final FiltersState filtersState;
+enum BaseMapStyle {
+  standard(
+    label: 'Estándar',
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    icon: Icons.map,
+  ),
+  satellite(
+    label: 'Satélite',
+    urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    icon: Icons.satellite_alt,
+  ),
+  terrain(
+    label: 'Relieve',
+    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+    icon: Icons.terrain,
+  );
+
+  final String label;
+  final String urlTemplate;
+  final IconData icon;
+
+  const BaseMapStyle({
+    required this.label,
+    required this.urlTemplate,
+    required this.icon,
+  });
+}
+
+class _BaseMapControl extends StatelessWidget {
+  final BaseMapStyle value;
+  final ValueChanged<BaseMapStyle> onChanged;
+
+  const _BaseMapControl({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 6,
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: BaseMapStyle.values
+              .map(
+                (style) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Tooltip(
+                    message: style.label,
+                    child: InkResponse(
+                      radius: 20,
+                      onTap: () => onChanged(style),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: value == style ? Brand.primary.withOpacity(0.12) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: value == style ? Brand.primary : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Icon(
+                          style.icon,
+                          size: 18,
+                          color: value == style ? Brand.primary : Colors.grey.shade800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _Legend extends StatelessWidget {
+  final List<String> categories;
+  final int total;
+  final Color Function(String) colorForCategory;
 
   const _Legend({
     super.key,

@@ -7,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/news_item.dart';
+import '../services/auth_service.dart';
 
 class NewsService {
   static final _db = FirebaseFirestore.instance;
@@ -21,13 +22,23 @@ class NewsService {
         .limit(10);
   }
 
-  /// Stream de noticias ordenadas por fecha (recientes primero)
-  static Stream<List<NewsItem>> stream() {
+  /// Stream de noticias publicadas ordenadas por fecha (recientes primero)
+  static Stream<List<NewsItem>> publishedStream() {
+    return _col
+        .where('published', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) =>
+            snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList());
+  }
+
+  /// Stream de todas las noticias (panel admin)
+  static Stream<List<NewsItem>> streamAll() {
     return _col
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) =>
-        snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList());
+            snapshot.docs.map((d) => NewsItem.fromDoc(d)).toList());
   }
 
   /// Noticias publicadas para la web pública.
@@ -95,6 +106,9 @@ class NewsService {
 
   /// Borra una noticia
   static Future<void> delete(String id) async {
+    if (!AuthService.instance.isAdmin) {
+      throw Exception('Solo un administrador autenticado puede eliminar noticias.');
+    }
     await _col.doc(id).delete();
   }
 

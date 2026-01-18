@@ -6,6 +6,7 @@ class NewsItem {
   final String title;
   final String body;
   final String imageUrl;
+  final bool published;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool published;
@@ -16,6 +17,7 @@ class NewsItem {
     required this.title,
     required this.body,
     required this.imageUrl,
+    required this.published,
     required this.createdAt,
     required this.updatedAt,
     required this.published,
@@ -50,9 +52,30 @@ class NewsItem {
       'body': body,
       'summary': body,
       'imageUrl': imageUrl,
+      'published': published,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'published': published,
     };
+  }
+
+  NewsItem copyWith({
+    String? id,
+    String? title,
+    String? summary,
+    String? imageUrl,
+    bool? published,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return NewsItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      summary: summary ?? this.summary,
+      imageUrl: imageUrl ?? this.imageUrl,
+      published: published ?? this.published,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 }

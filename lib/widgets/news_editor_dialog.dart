@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/news_item.dart';
+import '../services/auth_service.dart';
 import '../services/news_service.dart';
 
 class NewsEditorDialog extends StatefulWidget {
@@ -18,6 +19,7 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
   late final TextEditingController _titleCtrl;
   late final TextEditingController _bodyCtrl;
   late final TextEditingController _imageCtrl;
+  bool _published = false;
   bool _saving = false;
 
   @override
@@ -26,6 +28,7 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
     _titleCtrl = TextEditingController(text: widget.initial?.title ?? '');
     _bodyCtrl = TextEditingController(text: widget.initial?.body ?? '');
     _imageCtrl = TextEditingController(text: widget.initial?.imageUrl ?? '');
+    _published = widget.initial?.published ?? false;
   }
 
   @override
@@ -38,6 +41,14 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (!AuthService.instance.isAdmin) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Solo un administrador autenticado puede guardar.')),
+      );
+      return;
+    }
 
     setState(() {
       _saving = true;
@@ -63,6 +74,11 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
         await NewsService.update(base);
       }
       if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo guardar la noticia: $e')),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -113,6 +129,13 @@ class _NewsEditorDialogState extends State<NewsEditorDialog> {
                     labelText: 'URL de imagen (opcional)',
                     border: OutlineInputBorder(),
                   ),
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  value: _published,
+                  title: const Text('Publicar'),
+                  subtitle: const Text('Solo las noticias publicadas se mostrarán en la web'),
+                  onChanged: (v) => setState(() => _published = v),
                 ),
               ],
             ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
@@ -9,12 +11,14 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Instancia singleton
-  static final AuthService instance = AuthService._internal();
+  static final AuthService instance = AuthService._();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  late final StreamSubscription<User?> _authSubscription;
   User? _user;
 
   User? get user => _user;
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
   bool get isLoggedIn => _user != null;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();

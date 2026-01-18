@@ -1273,6 +1273,7 @@ class _AboutSection extends StatelessWidget {
 
 class _BlogSection extends StatefulWidget {
   const _BlogSection({super.key});
+
   @override
   State<_BlogSection> createState() => _BlogSectionState();
 }
@@ -1973,9 +1974,6 @@ class _NewsSkeleton extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// CTA FINAL
-// ---------------------------------------------------------------------------
 
 class _FinalCtaSection extends StatelessWidget {
   const _FinalCtaSection({super.key});

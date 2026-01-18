@@ -24,7 +24,12 @@ import 'package:provider/provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const GeodosApp());
+  runApp(
+    ChangeNotifierProvider<AuthService>(
+      create: (_) => AuthService.instance,
+      child: const GeodosApp(),
+    ),
+  );
 }
 
 class GeodosApp extends StatelessWidget {

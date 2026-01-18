@@ -43,3 +43,48 @@ class PrivacyPolicyPage extends StatelessWidget {
     );
   }
 }
+
+class _SectionTitle extends StatelessWidget {
+  final String text;
+
+  const _SectionTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: Brand.primary,
+          ),
+    );
+  }
+}
+
+class _BulletList extends StatelessWidget {
+  final List<String> items;
+
+  const _BulletList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: items
+          .map(
+            (text) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('• '),
+                  Expanded(child: Text(text, style: t.bodyMedium)),
+                ],
+              ),
+            ),
+          )
+          .toList(),
+    );
+  }
+}
