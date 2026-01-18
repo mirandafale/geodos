@@ -1298,6 +1298,8 @@ class _BlogSectionState extends State<_BlogSection> {
         id: 'sample_news_1',
         title: 'Ejemplo de noticia: Participación ciudadana',
         body: 'Exploramos cómo la cartografía colaborativa mejora la gestión territorial y la transparencia.',
+        summary:
+            'Exploramos cómo la cartografía colaborativa mejora la gestión territorial y la transparencia.',
         imageUrl: '',
         createdAt: now,
         updatedAt: now,
@@ -1308,6 +1310,8 @@ class _BlogSectionState extends State<_BlogSection> {
         id: 'sample_news_2',
         title: 'Ejemplo de noticia: Innovación ambiental',
         body: 'Nuevas herramientas digitales para medir el impacto ambiental y tomar decisiones informadas.',
+        summary:
+            'Nuevas herramientas digitales para medir el impacto ambiental y tomar decisiones informadas.',
         imageUrl: '',
         createdAt: now.subtract(const Duration(days: 2)),
         updatedAt: now.subtract(const Duration(days: 2)),

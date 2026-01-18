@@ -106,7 +106,6 @@ class ProjectService {
 
   /// Devuelve listas únicas para filtros (se calcula en cliente).
   static Future<List<int>> getYears() async {
-    final snap = await _col.get();
     final set = <int>{};
     for (final p in _availableProjects()) {
       if (p.year != null) set.add(p.year!);
