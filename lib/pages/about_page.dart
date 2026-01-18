@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_shell.dart';
+import 'package:geodos/widgets/app_shell.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -7,7 +7,7 @@ class AboutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppShell(
-      appBar: AppBar(title: const Text('GEODOS · Quiénes somos')),
+      title: const Text('GEODOS · Quiénes somos'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
         children: [

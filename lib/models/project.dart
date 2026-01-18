@@ -18,6 +18,8 @@ class Project {
   final ProjectScope scope; // campo `cat` en el JSON
   final bool enRedaccion;
   final String? description; // opcional, para proyectos añadidos vía admin
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   Project({
     required this.id,
@@ -31,6 +33,8 @@ class Project {
     required this.scope,
     required this.enRedaccion,
     this.description,
+    this.createdAt,
+    this.updatedAt,
   });
 
   /// Atajo para compatibilidad con código antiguo que usaba `categories`.
@@ -45,19 +49,32 @@ class Project {
 
   Project copyWith({
     String? description,
+    String? title,
+    String? category,
+    String? municipality,
+    ProjectScope? scope,
+    String? island,
+    int? year,
+    double? lat,
+    double? lon,
+    bool? enRedaccion,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return Project(
       id: id,
-      title: title,
-      municipality: municipality,
-      year: year,
-      category: category,
-      lat: lat,
-      lon: lon,
-      island: island,
-      scope: scope,
-      enRedaccion: enRedaccion,
+      title: title ?? this.title,
+      municipality: municipality ?? this.municipality,
+      year: year ?? this.year,
+      category: category ?? this.category,
+      lat: lat ?? this.lat,
+      lon: lon ?? this.lon,
+      island: island ?? this.island,
+      scope: scope ?? this.scope,
+      enRedaccion: enRedaccion ?? this.enRedaccion,
       description: description ?? this.description,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -76,7 +93,7 @@ class Project {
 
   factory Project.fromJson(Map<String, dynamic> json) {
     // date puede ser número o cadena "EN REDACCION"
-    final rawDate = json['date'];
+    final rawDate = json['year'] ?? json['date'];
     int? year;
     bool enRedaccion = false;
     if (rawDate is int) {
@@ -120,6 +137,8 @@ class Project {
       scope: scope,
       enRedaccion: json['enRedaccion'] == true || enRedaccion,
       description: json['description']?.toString(),
+      createdAt: _dateFromJson(json['createdAt']),
+      updatedAt: _dateFromJson(json['updatedAt']),
     );
   }
 
@@ -165,15 +184,20 @@ class Project {
       'id': id,
       'title': title,
       'municipality': municipality,
+      'year': year,
       'date': year ?? (enRedaccion ? 'EN REDACCION' : null),
       'category': category,
       'lat': lat,
       'lon': lon,
+      'island': island,
       'isla': island,
+      'scope': _scopeToString(scope),
       'cat': _scopeToString(scope),
       'enRedaccion': enRedaccion,
       if (description != null && description!.trim().isNotEmpty)
         'description': description,
+      if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+      if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
     };
   }
 
@@ -210,4 +234,11 @@ class Project {
   }
 
   static String scopeToString(ProjectScope scope) => _scopeToString(scope);
+
+  static DateTime? _dateFromJson(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
 }

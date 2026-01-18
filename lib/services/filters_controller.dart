@@ -3,6 +3,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:geodos/models/project.dart';
 
+const _unset = Object();
+
 class FiltersState {
   final int? year;
   final ProjectScope? scope;
@@ -19,26 +21,26 @@ class FiltersState {
   });
 
   FiltersState copyWith({
-    int? year,
-    ProjectScope? scope,
-    String? category,
-    String? island,
-    String? search,
+    Object? year = _unset,
+    Object? scope = _unset,
+    Object? category = _unset,
+    Object? island = _unset,
+    Object? search = _unset,
   }) {
     return FiltersState(
-      year: year ?? this.year,
-      scope: scope ?? this.scope,
-      category: category ?? this.category,
-      island: island ?? this.island,
-      search: search ?? this.search,
+      year: year == _unset ? this.year : year as int?,
+      scope: scope == _unset ? this.scope : scope as ProjectScope?,
+      category: category == _unset ? this.category : category as String?,
+      island: island == _unset ? this.island : island as String?,
+      search: search == _unset ? this.search : (search as String? ?? ''),
     );
   }
 
-  static const empty = FiltersState();
+  static const defaults = FiltersState();
 }
 
 class FiltersController extends ChangeNotifier {
-  FiltersState _state = FiltersState.empty;
+  FiltersState _state = FiltersState.defaults;
   static final FiltersController instance = FiltersController._();
   FiltersController._();
 
@@ -70,7 +72,7 @@ class FiltersController extends ChangeNotifier {
   }
 
   void reset() {
-    _state = FiltersState.empty;
+    _state = FiltersState.defaults;
     notifyListeners();
   }
 }

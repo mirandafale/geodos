@@ -1,12 +1,74 @@
-# geodos
+# Geodos
 
-Portal GEODOS con integración de Firebase para web y Android.
+Portal Flutter para visor público de proyectos y panel de administración conectado con Firebase.
 
-## Seguridad de Firebase
+## Configuración rápida
+1. Crea un proyecto de Firebase y descarga `firebase_options.dart` (FlutterFire CLI) para web/ios/android/web.
+2. Habilita **Authentication > Email/Password** y crea los usuarios admins. Actualiza los correos permitidos en `lib/services/auth_service.dart` (`_adminEmails`).
+3. Crea las colecciones `projects` y `news` en Firestore y habilita **Storage** para las imágenes de noticias.
+4. Ejecuta `flutter pub get` (desde un entorno con Flutter/Dart instalado) para resolver las dependencias nuevas (`firebase_storage`, `image_picker`, etc.).
 
-Para desplegar las reglas de Firestore se recomienda partir de esta estructura:
+## Reglas recomendadas (Firestore / Storage)
+Ajusta los ID/paths a tus necesidades. Permite lectura pública y escritura solo a administradores autenticados (por UID o claims):
 
-- `contact_messages`: permitir `create` al público y restringir las lecturas a administradores.
-- `projects` y `news`: solo administradores pueden crear/actualizar/eliminar documentos.
+```javascript
+// firestore.rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      // Puedes validar por claim custom o por lista de emails en Firestore.
+      return request.auth != null && request.auth.token.admin == true;
+    }
 
-Configura las reglas según tu modelo de autenticación antes de publicar.
+    match /projects/{projectId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
+```
+
+```javascript
+// storage.rules
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /news/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+  }
+}
+```
+
+## Uso
+- `/admin`: tablero con pestañas para **Proyectos** y **Noticias** (CRUD, subida de imagen, publicación).
+- Home muestra el carrusel de noticias publicadas y el visor sigue siendo público con filtros.
+- Sesión de admin persistente gracias a Firebase Auth y el guardián de ruta `AdminGate`.
+
+## Checklist rápido antes de merge
+- Revisa que no queden marcadores de conflicto en `lib`:
+  ```bash
+  git grep -n "<<<<<<<" lib || true
+  git grep -n "=======" lib || true
+  git grep -n ">>>>>>>" lib || true
+  ```
+- Comprueba que los archivos críticos no tengan `...` u otros textos incompletos (por ejemplo en `pubspec.yaml` o en formularios):
+  ```bash
+  rg "\\.\\.\\.$" lib pubspec.yaml || true
+  ```
+- Valida que `pubspec.yaml` siga siendo correcto tras los cambios:
+  ```bash
+  flutter pub get --dry-run
+  ```
+
+Validación recomendada: `flutter analyze` y `flutter run -d chrome` deben completarse sin errores ni marcadores de conflicto.
+
+## Archivos generados
+`flutter pub get` vuelve a crear `pubspec.lock` y los registradores de plugins de Linux/macOS/Windows. Se excluyen del repositorio para evitar ruido en los diffs; ejecútalo localmente antes de compilar en cada plataforma.

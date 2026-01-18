@@ -1,93 +1,56 @@
-// lib/pages/login_page.dart
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:geodos/models/project.dart';
+import 'package:geodos/services/auth_service.dart';
+import 'package:geodos/services/project_service.dart';
 
-import 'package:flutter/material.dart';
-import 'package:geodos/state/app_state.dart';
-import 'package:provider/provider.dart';
+class AppState extends ChangeNotifier {
+  AppState._();
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  static final AppState instance = AppState._();
 
-  @override
-  State<LoginPage> createState() => _LoginPageState();
-}
+  bool _isAdmin = false;
+  List<Project> _projects = [];
 
-class _LoginPageState extends State<LoginPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _user = TextEditingController();
-  final _pass = TextEditingController();
-  bool _isLoading = false;
+  bool get isAdmin => _isAdmin;
+  List<Project> get projects => List.unmodifiable(_projects);
 
-  @override
-  void dispose() {
-    _user.dispose();
-    _pass.dispose();
-    super.dispose();
+  Map<String, List<Project>> get visibleProjectsGroupedByCategory {
+    final map = <String, List<Project>>{};
+    for (final p in _projects) {
+      map.putIfAbsent(p.category, () => []).add(p);
+    }
+    return map;
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  List<String> get distinctCategories => _projects.map((p) => p.category).toSet().toList();
 
-    setState(() => _isLoading = true);
-    final ok = await context.read<AppState>().signIn(
-      email: _user.text,
-      password: _pass.text,
-    );
-    setState(() => _isLoading = false);
+  Future<void> loadProjects() async {
+    _projects = await ProjectService.stream().first;
+    notifyListeners();
+  }
 
-    if (!mounted) return;
+  Future<void> addProject(Project project) async {
+    await ProjectService.createAdminProject(project);
+  }
 
-    if (ok) {
-      Navigator.of(context).pop();
-    } else {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Error de autenticación'),
-          content: const Text('Usuario o contraseña incorrectos.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Aceptar'),
-            ),
-          ],
-        ),
+  Future<bool> signIn({String? user, String? pass, String? email, String? password}) async {
+    try {
+      await AuthService.instance.signIn(
+        email: email ?? user ?? '',
+        password: password ?? pass ?? '',
       );
+      _isAdmin = AuthService.instance.isAdmin;
+      notifyListeners();
+      return true;
+    } on FirebaseAuthException {
+      return false;
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar sesión')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: _user,
-                  decoration: const InputDecoration(labelText: 'Correo electrónico'),
-                  validator: (v) => v != null && v.contains('@') ? null : 'Correo no válido',
-                ),
-                TextFormField(
-                  controller: _pass,
-                  decoration: const InputDecoration(labelText: 'Contraseña'),
-                  obscureText: true,
-                  validator: (v) => v != null && v.length >= 4 ? null : 'Contraseña demasiado corta',
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _submit,
-                  child: _isLoading ? const CircularProgressIndicator() : const Text('Entrar'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  void logout() {
+    AuthService.instance.signOut();
+    _isAdmin = false;
+    notifyListeners();
   }
 }

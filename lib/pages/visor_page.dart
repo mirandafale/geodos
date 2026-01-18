@@ -5,7 +5,9 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/widgets/contact_form.dart';
 import 'package:geodos/widgets/visor_embed.dart';
+import 'package:geodos/widgets/app_shell.dart';
 
 class VisorPage extends StatefulWidget {
   const VisorPage({super.key});
@@ -21,6 +23,7 @@ class _VisorPageState extends State<VisorPage> {
   late Future<List<ProjectScope>> _scopesFuture;
   late Future<List<String>> _islandsFuture;
   final _searchCtrl = TextEditingController();
+  bool _filtersCollapsed = false;
 
   @override
   void initState() {
@@ -38,35 +41,136 @@ class _VisorPageState extends State<VisorPage> {
     super.dispose();
   }
 
+  void _openFiltersSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SafeArea(
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.95,
+            builder: (context, controller) {
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: _FiltersPanel(
+                  filters: filters,
+                  yearsFuture: _yearsFuture,
+                  categoriesFuture: _categoriesFuture,
+                  scopesFuture: _scopesFuture,
+                  islandsFuture: _islandsFuture,
+                  searchController: _searchCtrl,
+                  scrollController: controller,
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Visor de proyectos'),
-        flexibleSpace: Container(decoration: const BoxDecoration(gradient: Brand.appBarGradient)),
-        foregroundColor: Colors.white,
-        backgroundColor: Colors.transparent,
+    return AppShell(
+      title: const Text('Visor de proyectos'),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          final navigator = Navigator.of(context);
+          if (navigator.canPop()) {
+            navigator.maybePop();
+          } else {
+            navigator.pushNamed('/');
+          }
+        },
+        icon: const Icon(Icons.arrow_back),
+        label: const Text('Volver'),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final vertical = constraints.maxWidth < 1100;
-          final content = [
-            _FiltersPanel(
-              filters: filters,
-              yearsFuture: _yearsFuture,
-              categoriesFuture: _categoriesFuture,
-              scopesFuture: _scopesFuture,
-              islandsFuture: _islandsFuture,
-              searchController: _searchCtrl,
+          final isMobile = constraints.maxWidth < 900;
+          final panelWidth = _filtersCollapsed ? 56.0 : 300.0;
+          final filtersPanel = _FiltersPanel(
+            filters: filters,
+            yearsFuture: _yearsFuture,
+            categoriesFuture: _categoriesFuture,
+            scopesFuture: _scopesFuture,
+            islandsFuture: _islandsFuture,
+            searchController: _searchCtrl,
+            onToggle: () {
+              setState(() => _filtersCollapsed = !_filtersCollapsed);
+            },
+            showHeaderAction: !isMobile,
+          );
+
+          final visorContent = Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (isMobile)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openFiltersSheet(context),
+                      icon: const Icon(Icons.filter_alt),
+                      label: const Text('Filtros'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Brand.primary,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        side: BorderSide(color: Brand.primary.withOpacity(0.3)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      ),
+                    ),
+                  ),
+                if (isMobile) const SizedBox(height: 12),
+                const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: VisorEmbed(startExpanded: true),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ContactForm(
+                  originSection: 'visor',
+                  showCompanyField: false,
+                  showProjectTypeField: true,
+                  projectTypeLabel: 'Tipo de proyecto (opcional)',
+                  title: '¿Quieres que te contactemos?',
+                  helperText:
+                      'Tus datos se almacenan de forma segura en Firebase al enviar el formulario.',
+                  successMessage: 'Mensaje enviado correctamente',
+                ),
+              ],
             ),
-            const SizedBox(width: 20, height: 20),
-            const Expanded(
-              child: Padding(
-                padding: EdgeInsets.all(12.0),
-                child: VisorEmbed(startExpanded: true),
-              ),
-            ),
-          ];
+          );
+
+          final sidePanel = AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            width: panelWidth,
+            child: _filtersCollapsed
+                ? Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Center(
+                      child: IconButton(
+                        tooltip: 'Mostrar filtros',
+                        icon: const Icon(Icons.filter_alt),
+                        onPressed: () {
+                          setState(() => _filtersCollapsed = false);
+                        },
+                      ),
+                    ),
+                  )
+                : filtersPanel,
+          );
 
           return Container(
             color: Brand.mist,
@@ -75,15 +179,26 @@ class _VisorPageState extends State<VisorPage> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1400),
                 child: vertical
-                    ? Column(
-                        children: content,
+                    ? SizedBox(
+                        height: constraints.maxHeight,
+                        width: double.infinity,
+                        child: Column(
+                          children: [
+                            if (!isMobile) sidePanel,
+                            if (!isMobile) const SizedBox(height: 20),
+                            visorContent,
+                          ],
+                        ),
                       )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(width: 360, child: content.first),
-                          ...content.sublist(1),
-                        ],
+                    : IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            visorContent,
+                            if (!isMobile) const _FiltersRail(),
+                            if (!isMobile) sidePanel,
+                          ],
+                        ),
                       ),
               ),
             ),
@@ -101,6 +216,9 @@ class _FiltersPanel extends StatelessWidget {
   final Future<List<ProjectScope>> scopesFuture;
   final Future<List<String>> islandsFuture;
   final TextEditingController searchController;
+  final VoidCallback? onToggle;
+  final bool showHeaderAction;
+  final ScrollController? scrollController;
 
   const _FiltersPanel({
     required this.filters,
@@ -109,6 +227,9 @@ class _FiltersPanel extends StatelessWidget {
     required this.scopesFuture,
     required this.islandsFuture,
     required this.searchController,
+    this.onToggle,
+    this.showHeaderAction = false,
+    this.scrollController,
   });
 
   @override
@@ -119,123 +240,217 @@ class _FiltersPanel extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: AnimatedBuilder(
           animation: filters,
           builder: (context, _) {
             final st = filters.state;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Filtros', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary)),
-                const SizedBox(height: 4),
-                Text('Refina los proyectos por categoría, ámbito, isla y año.', style: t.bodyMedium),
-                const Divider(height: 24),
-                TextFormField(
-                  controller: searchController,
-                  decoration: const InputDecoration(
-                    labelText: 'Buscar por título o municipio',
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                  onChanged: filters.setSearch,
-                ),
-                const SizedBox(height: 14),
-                FutureBuilder<List<String>>(
-                  future: categoriesFuture,
-                  builder: (context, snapshot) {
-                    final items = snapshot.data ?? [];
-                    return DropdownButtonFormField<String?>(
-                      value: st.category,
-                      decoration: const InputDecoration(labelText: 'Categoría'),
-                      items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('Todas')),
-                        ...items.map(
-                          (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
-                        ),
-                      ],
-                      onChanged: filters.setCategory,
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                FutureBuilder<List<ProjectScope>>(
-                  future: scopesFuture,
-                  builder: (context, snapshot) {
-                    final scopes = snapshot.data ?? [];
-                    return DropdownButtonFormField<ProjectScope?>(
-                      value: st.scope,
-                      decoration: const InputDecoration(labelText: 'Ámbito'),
-                      items: [
-                        const DropdownMenuItem<ProjectScope?>(value: null, child: Text('Todos')),
-                        ...scopes.map(
-                          (s) => DropdownMenuItem<ProjectScope?>(
-                            value: s,
-                            child: Text(_scopeLabel(s)),
-                          ),
-                        ),
-                      ],
-                      onChanged: filters.setScope,
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                FutureBuilder<List<String>>(
-                  future: islandsFuture,
-                  builder: (context, snapshot) {
-                    final items = snapshot.data ?? [];
-                    return DropdownButtonFormField<String?>(
-                      value: st.island,
-                      decoration: const InputDecoration(labelText: 'Isla'),
-                      items: [
-                        const DropdownMenuItem<String?>(value: null, child: Text('Todas las islas')),
-                        ...items.map(
-                          (c) => DropdownMenuItem<String?>(value: c, child: Text(c)),
-                        ),
-                      ],
-                      onChanged: filters.setIsland,
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
-                FutureBuilder<List<int>>(
-                  future: yearsFuture,
-                  builder: (context, snapshot) {
-                    final items = snapshot.data ?? [];
-                    return DropdownButtonFormField<int?>(
-                      value: st.year,
-                      decoration: const InputDecoration(labelText: 'Año'),
-                      items: [
-                        const DropdownMenuItem<int?>(value: null, child: Text('Todos los años')),
-                        ...items.map(
-                          (y) => DropdownMenuItem<int?>(value: y, child: Text(y.toString())),
-                        ),
-                      ],
-                      onChanged: filters.setYear,
-                    );
-                  },
-                ),
-                const SizedBox(height: 18),
-                Row(
+            return Scrollbar(
+              controller: scrollController,
+              thumbVisibility: scrollController != null,
+              child: SingleChildScrollView(
+                controller: scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        searchController.clear();
-                        filters.reset();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Brand.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                      icon: const Icon(Icons.filter_alt_off),
-                      label: const Text('Limpiar filtros'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Filtros',
+                          style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary),
+                        ),
+                        if (showHeaderAction)
+                          IconButton(
+                            tooltip: 'Contraer filtros',
+                            icon: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.filter_alt),
+                                SizedBox(width: 4),
+                                Icon(Icons.chevron_right),
+                              ],
+                            ),
+                            onPressed: onToggle,
+                          ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text('Proyectos mostrados dinámicamente en el mapa.', style: t.bodySmall),
+                    const SizedBox(height: 4),
+                    Text('Refina los proyectos por categoría, ámbito, isla y año.', style: t.bodyMedium),
+                    const Divider(height: 24),
+                    TextFormField(
+                      controller: searchController,
+                      decoration: const InputDecoration(
+                        labelText: 'Buscar por título o municipio',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: filters.setSearch,
+                    ),
+                    const SizedBox(height: 14),
+                    FutureBuilder<List<String>>(
+                      future: categoriesFuture,
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? [];
+                        final selectedCategory =
+                            items.contains(st.category) ? st.category : null;
+                        return DropdownButtonFormField<String?>(
+                          value: selectedCategory,
+                          decoration: const InputDecoration(labelText: 'Categoría'),
+                          isExpanded: true,
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(
+                                'Todas',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            ...items.map(
+                              (c) => DropdownMenuItem<String?>(
+                                value: c,
+                                child: Text(
+                                  c,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: filters.setCategory,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    FutureBuilder<List<ProjectScope>>(
+                      future: scopesFuture,
+                      builder: (context, snapshot) {
+                        final scopes = snapshot.data ?? [];
+                        return DropdownButtonFormField<ProjectScope?>(
+                          value: st.scope,
+                          decoration: const InputDecoration(labelText: 'Ámbito'),
+                          isExpanded: true,
+                          items: [
+                            const DropdownMenuItem<ProjectScope?>(
+                              value: null,
+                              child: Text(
+                                'Todos',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            ...scopes.map(
+                              (s) => DropdownMenuItem<ProjectScope?>(
+                                value: s,
+                                child: Text(
+                                  _scopeLabel(s),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: filters.setScope,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    FutureBuilder<List<String>>(
+                      future: islandsFuture,
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? [];
+                        final selectedIsland = items.contains(st.island) ? st.island : null;
+                        return DropdownButtonFormField<String?>(
+                          value: selectedIsland,
+                          decoration: const InputDecoration(labelText: 'Isla'),
+                          isExpanded: true,
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(
+                                'Todas las islas',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            ...items.map(
+                              (c) => DropdownMenuItem<String?>(
+                                value: c,
+                                child: Text(
+                                  c,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: filters.setIsland,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    FutureBuilder<List<int>>(
+                      future: yearsFuture,
+                      builder: (context, snapshot) {
+                        final items = snapshot.data ?? [];
+                        return DropdownButtonFormField<int?>(
+                          value: st.year,
+                          decoration: const InputDecoration(labelText: 'Año'),
+                          isExpanded: true,
+                          items: [
+                            const DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text(
+                                'Todos los años',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            ...items.map(
+                              (y) => DropdownMenuItem<int?>(
+                                value: y,
+                                child: Text(
+                                  y.toString(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                          onChanged: filters.setYear,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            searchController.clear();
+                            filters.reset();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Brand.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                          icon: const Icon(Icons.filter_alt_off),
+                          label: const Text('Limpiar filtros'),
+                        ),
+                        Text(
+                          'Proyectos mostrados dinámicamente en el mapa.',
+                          style: t.bodySmall,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             );
           },
         ),
@@ -256,5 +471,30 @@ class _FiltersPanel extends StatelessWidget {
       case ProjectScope.unknown:
         return 'Otro';
     }
+  }
+}
+
+class _FiltersRail extends StatelessWidget {
+  const _FiltersRail();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      decoration: BoxDecoration(
+        color: Brand.primary.withOpacity(0.18),
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+      ),
+      child: Center(
+        child: Tooltip(
+          message: 'Filtros',
+          child: Icon(
+            Icons.filter_alt,
+            size: 12,
+            color: Brand.primary,
+          ),
+        ),
+      ),
+    );
   }
 }
