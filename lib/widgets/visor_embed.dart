@@ -21,7 +21,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
   bool _expanded = false;
   OverlayEntry? _backdrop;
   final _mapCtrl = MapController();
-  final _legendKey = GlobalKey();
+  BaseMapStyle _baseMapStyle = BaseMapStyle.standard;
 
   @override
   void initState() {
@@ -76,6 +76,10 @@ class _VisorEmbedState extends State<VisorEmbed> {
     super.dispose();
   }
 
+  void _onBaseMapChanged(BaseMapStyle style) {
+    setState(() => _baseMapStyle = style);
+  }
+
   @override
   Widget build(BuildContext context) {
     final filters = FiltersController.instance;
@@ -98,7 +102,8 @@ class _VisorEmbedState extends State<VisorEmbed> {
         child: _ProjectsMap(
           mapCtrl: _mapCtrl,
           filters: filters,
-          legendKey: _legendKey,
+          baseMapStyle: _baseMapStyle,
+          onBaseMapChanged: _onBaseMapChanged,
         ),
       ),
     );
@@ -108,12 +113,14 @@ class _VisorEmbedState extends State<VisorEmbed> {
 class _ProjectsMap extends StatefulWidget {
   final MapController mapCtrl;
   final FiltersController filters;
-  final GlobalKey legendKey;
+  final BaseMapStyle baseMapStyle;
+  final ValueChanged<BaseMapStyle> onBaseMapChanged;
 
   const _ProjectsMap({
     required this.mapCtrl,
     required this.filters,
-    required this.legendKey,
+    required this.baseMapStyle,
+    required this.onBaseMapChanged,
   });
 
   @override
@@ -125,7 +132,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
   bool _mapReady = false;
   VoidCallback? _pendingCameraAction;
   double _zoom = 7;
-  List<String> _lastProjectIds = const [];
+  List<Project> _lastProjects = const [];
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +143,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     return AnimatedBuilder(
       animation: filters,
       builder: (ctx, _) {
-        final FiltersState st = filters.state;
+        final st = filters.state;
 
         return StreamBuilder<List<Project>>(
           stream: ProjectService.stream(
@@ -148,8 +155,8 @@ class _ProjectsMapState extends State<_ProjectsMap> {
           ),
           builder: (ctx, snap) {
             final projects = snap.data ?? [];
-
             final clusters = _buildClusters(projects, _zoom);
+
             final markers = clusters.map((cluster) {
               if (cluster.items.length == 1) {
                 final project = cluster.items.first;
@@ -160,7 +167,7 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   height: 24,
                   child: Tooltip(
                     message:
-                        '${project.title}\n${project.category} · ${project.year ?? 's/f'}',
+                    '${project.title}\n${project.category} · ${project.year ?? 's/f'}',
                     child: Center(
                       child: Container(
                         width: 12,
@@ -175,118 +182,46 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                   ),
                 );
               }
-              final clusterCategories = _clusterCategories(cluster.items);
               final clusterColor =
-                  _dominantClusterColor(context, cluster.items);
+              _dominantClusterColor(context, cluster.items);
               return Marker(
                 point: cluster.center,
                 width: 28,
                 height: 28,
-                child: Tooltip(
-                  message: '${cluster.items.length} proyectos',
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _openClusterSheet(context, cluster.items),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: clusterColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 1.5),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black26, blurRadius: 3),
-                            ],
-                          ),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _openClusterSheet(context, cluster.items),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: clusterColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 3),
+                          ],
                         ),
-                        Text(
-                          '${cluster.items.length}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                            color: Colors.white,
-                          ),
+                      ),
+                      Text(
+                        '${cluster.items.length}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: Colors.white,
                         ),
-                        if (clusterCategories.length > 1)
-                          Positioned(
-                            bottom: 4,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: clusterCategories
-                                  .take(3)
-                                  .map(
-                                    (category) => Container(
-                                      margin:
-                                          const EdgeInsets.symmetric(horizontal: 1),
-                                      width: 5,
-                                      height: 5,
-                                      decoration: BoxDecoration(
-                                        color:
-                                            _categoryColor(context, category),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: Colors.white, width: 0.6),
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               );
             }).toList();
 
-            final currentIds = projects.map((p) => p.id).toList()..sort();
-            final projectsChanged =
-                currentIds.length != _lastProjectIds.length ||
-                    !_lastProjectIds
-                        .asMap()
-                        .entries
-                        .every((entry) => entry.value == currentIds[entry.key]);
-            if (projectsChanged) {
-              _lastProjectIds = currentIds;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                _runWhenMapReady(() {
-                  if (projects.isNotEmpty) {
-                    final latLngs =
-                        projects.map((p) => LatLng(p.lat, p.lon)).toList();
-                    var swLat = latLngs.first.latitude;
-                    var swLng = latLngs.first.longitude;
-                    var neLat = swLat;
-                    var neLng = swLng;
-
-                    for (final ll in latLngs) {
-                      if (ll.latitude < swLat) swLat = ll.latitude;
-                      if (ll.longitude < swLng) swLng = ll.longitude;
-                      if (ll.latitude > neLat) neLat = ll.latitude;
-                      if (ll.longitude > neLng) neLng = ll.longitude;
-                    }
-
-                    final bounds = LatLngBounds(
-                      LatLng(swLat, swLng),
-                      LatLng(neLat, neLng),
-                    );
-                    mapCtrl.fitCamera(
-                      CameraFit.bounds(
-                        bounds: bounds,
-                        padding: const EdgeInsets.all(60),
-                      ),
-                    );
-                  } else {
-                    mapCtrl.move(center, 7);
-                  }
-                });
-              });
-            }
-
-            final emptyMessage = snap.hasError
-                ? snap.error.toString()
-                : 'No hay proyectos que coincidan con el filtro.';
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              _lastProjects = projects;
+            });
 
             return Stack(
               children: [
@@ -297,63 +232,50 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     initialZoom: 7,
                     minZoom: 4,
                     maxZoom: 18,
-                    onMapReady: () {
-                      if (!mounted) return;
-                      _mapReady = true;
-                      final pending = _pendingCameraAction;
-                      _pendingCameraAction = null;
-                      pending?.call();
-                    },
                     onMapEvent: (event) {
                       if (!mounted) return;
                       if (_zoom != event.camera.zoom) {
                         setState(() => _zoom = event.camera.zoom);
                       }
                     },
-                    interactionOptions:
-                        InteractionOptions(flags: InteractiveFlag.all),
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate: widget.baseMapStyle.urlTemplate,
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
                     MarkerLayer(markers: markers),
                   ],
                 ),
-                if (projects.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            emptyMessage,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 10),
-                          ElevatedButton.icon(
-                            onPressed: filters.reset,
-                            icon: const Icon(Icons.visibility),
-                            label: const Text('Ver todos'),
-                          ),
-                          if (kDebugMode) ...[
-                            const SizedBox(height: 14),
-                            _DebugEmptyPanel(filtersState: st),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
                 Positioned(
                   top: 12,
-                  left: 12,
-                  child: _Legend(
-                    key: widget.legendKey,
-                    filtersState: st,
+                  right: 12,
+                  child: _BaseMapControl(
+                    value: widget.baseMapStyle,
+                    onChanged: widget.onBaseMapChanged,
+                  ),
+                ),
+                Positioned(
+                  bottom: 12,
+                  right: 12,
+                  child: _ZoomControls(
+                    onZoomIn: () {
+                      mapCtrl.move(mapCtrl.camera.center, _zoom + 1);
+                    },
+                    onZoomOut: () {
+                      mapCtrl.move(mapCtrl.camera.center, _zoom - 1);
+                    },
+                    onCenter: () {
+                      if (_lastProjects.isEmpty) return;
+                      final latLngs =
+                      _lastProjects.map((p) => LatLng(p.lat, p.lon)).toList();
+                      final bounds = LatLngBounds.fromPoints(latLngs);
+                      mapCtrl.fitCamera(CameraFit.bounds(
+                        bounds: bounds,
+                        padding: const EdgeInsets.all(60),
+                      ));
+                    },
                   ),
                 ),
               ],
@@ -362,11 +284,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
         );
       },
     );
-  }
-
-  void _runWhenMapReady(VoidCallback action) {
-    if (_mapReady) action();
-    else _pendingCameraAction = action;
   }
 
   List<_ProjectCluster> _buildClusters(List<Project> projects, double zoom) {
@@ -417,86 +334,45 @@ class _ProjectsMapState extends State<_ProjectsMap> {
         const minHeight = 220.0;
         final desiredHeight = 56 + projects.length * 64 + 40;
         final dialogHeight =
-            desiredHeight.clamp(minHeight, maxHeight).toDouble();
-        final isMaxHeight = dialogHeight >= maxHeight;
-        final listView = ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-          itemCount: projects.length,
-          physics: const AlwaysScrollableScrollPhysics(),
-          shrinkWrap: !isMaxHeight,
-          separatorBuilder: (_, __) => const Divider(height: 24),
-          itemBuilder: (_, index) {
-            final project = projects[index];
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: _categoryColor(
-                      dialogContext,
-                      project.category,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    project.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(dialogContext).textTheme.titleSmall,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    _runWhenMapReady(() {
-                      final target = LatLng(project.lat, project.lon);
-                      final double targetZoom = _zoom < 13.0 ? 13.0 : _zoom;
-                      widget.mapCtrl.move(target, targetZoom);
-                    });
-                  },
-                  child: const Text('Ver'),
-                ),
-              ],
-            );
-          },
-        );
+        desiredHeight.clamp(minHeight, maxHeight).toDouble();
 
         return Dialog(
           child: SizedBox(
             width: maxWidth,
             height: dialogHeight,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Proyectos (${projects.length})',
-                          style: Theme.of(dialogContext).textTheme.titleSmall,
-                        ),
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: projects.length,
+              separatorBuilder: (_, __) => const Divider(height: 24),
+              itemBuilder: (_, index) {
+                final project = projects[index];
+                return Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: _categoryColor(context, project.category),
+                        shape: BoxShape.circle,
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(),
-                        icon: const Icon(Icons.close),
-                        tooltip: 'Cerrar',
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                if (isMaxHeight)
-                  Expanded(child: listView)
-                else
-                  Flexible(fit: FlexFit.loose, child: listView),
-              ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(project.title,
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(dialogContext).pop();
+                        final target = LatLng(project.lat, project.lon);
+                        final double targetZoom = _zoom < 13.0 ? 13.0 : _zoom;
+                        widget.mapCtrl.move(target, targetZoom);
+                      },
+                      child: const Text('Ver'),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         );
@@ -529,13 +405,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     return Theme.of(context).colorScheme.primary;
   }
 
-  List<String> _clusterCategories(List<Project> projects) {
-    final categories =
-        projects.map((project) => project.category).toSet().toList()
-          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    return categories;
-  }
-
   Color _dominantClusterColor(BuildContext context, List<Project> projects) {
     final counts = <String, int>{};
     var bestCategory = projects.first.category;
@@ -551,245 +420,119 @@ class _ProjectsMapState extends State<_ProjectsMap> {
     }
     return _categoryColor(context, bestCategory);
   }
-
-  String _normalizeCategory(String raw) {
-    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return normalized.isEmpty ? raw.trim() : normalized;
-  }
-}
-
-class _Legend extends StatefulWidget {
-  final FiltersState filtersState;
-
-  const _Legend({
-    super.key,
-    required this.filtersState,
-  });
-
-  @override
-  State<_Legend> createState() => _LegendState();
-}
-
-class _LegendState extends State<_Legend> {
-  bool _expanded = false;
-
-  void _collapse() {
-    if (_expanded) {
-      setState(() => _expanded = false);
-    }
-  }
-
-  void _expand() {
-    if (!_expanded) {
-      setState(() => _expanded = true);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
-    final surfaceColor = theme.colorScheme.surface;
-    final outlineColor = theme.colorScheme.outlineVariant.withOpacity(0.45);
-    final secondaryText = textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontSize: 11,
-          height: 1.2,
-        ) ??
-        TextStyle(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontSize: 11,
-          height: 1.2,
-        );
-
-    final activeFilters = _activeFilters(widget.filtersState);
-
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 200),
-      alignment: Alignment.topLeft,
-      curve: Curves.easeInOut,
-      child: Material(
-        color: surfaceColor,
-        elevation: 3,
-        shadowColor: Colors.black12,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: _expanded ? null : _expand,
-          child: Container(
-            padding: _expanded
-                ? const EdgeInsets.fromLTRB(12, 10, 10, 10)
-                : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            constraints: _expanded
-                ? const BoxConstraints(maxWidth: 240, maxHeight: 240)
-                : const BoxConstraints(minHeight: 44),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: outlineColor),
-            ),
-            child: _expanded
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Filtros activos',
-                              style: textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: _collapse,
-                            icon: const Icon(Icons.close, size: 16),
-                            tooltip: 'Cerrar',
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 24,
-                              minHeight: 24,
-                            ),
-                            splashRadius: 16,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      if (activeFilters.isNotEmpty)
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 200),
-                          child: SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: activeFilters
-                                  .map(
-                                    (filter) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 6),
-                                      child: Text(filter, style: secondaryText),
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ),
-                        ),
-                    ],
-                  )
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.tune, size: 16),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Filtros',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.expand_more, size: 18),
-                    ],
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<String> _activeFilters(FiltersState st) {
-    final filters = <String>[];
-    if (st.category != null && st.category!.trim().isNotEmpty) {
-      filters.add('Categoría: ${_normalizeCategory(st.category!)}');
-    }
-    if (st.island != null && st.island!.trim().isNotEmpty) {
-      filters.add('Isla: ${st.island}');
-    }
-    if (st.scope != null) {
-      filters.add('Ámbito: ${st.scope!.name}');
-    }
-    if (st.year != null) {
-      filters.add('Año: ${st.year}');
-    }
-    if (st.search.isNotEmpty) {
-      filters.add('Búsqueda: "${st.search}"');
-    }
-    return filters;
-  }
-
-  String _normalizeCategory(String raw) {
-    final normalized = raw.replaceAll(RegExp(r'\s+'), ' ').trim();
-    return normalized.isEmpty ? raw.trim() : normalized;
-  }
 }
 
 class _ProjectCluster {
   _ProjectCluster(this.center, this.items);
-
   LatLng center;
   final List<Project> items;
 
   void recenter() {
-    var lat = 0.0;
-    var lon = 0.0;
-    for (final project in items) {
-      lat += project.lat;
-      lon += project.lon;
+    var lat = 0.0, lon = 0.0;
+    for (final p in items) {
+      lat += p.lat;
+      lon += p.lon;
     }
     center = LatLng(lat / items.length, lon / items.length);
   }
 }
 
-class _DebugEmptyPanel extends StatelessWidget {
-  final FiltersState filtersState;
+enum BaseMapStyle {
+  standard(
+    label: 'Estándar',
+    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    icon: Icons.map,
+  ),
+  satellite(
+    label: 'Satélite',
+    urlTemplate:
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    icon: Icons.satellite_alt,
+  ),
+  terrain(
+    label: 'Relieve',
+    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+    icon: Icons.terrain,
+  );
 
-  const _DebugEmptyPanel({
-    required this.filtersState,
+  final String label;
+  final String urlTemplate;
+  final IconData icon;
+  const BaseMapStyle({
+    required this.label,
+    required this.urlTemplate,
+    required this.icon,
+  });
+}
+
+class _BaseMapControl extends StatelessWidget {
+  final BaseMapStyle value;
+  final ValueChanged<BaseMapStyle> onChanged;
+  const _BaseMapControl({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Colors.white,
+      elevation: 5,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: BaseMapStyle.values.map((style) {
+          final selected = style == value;
+          return IconButton(
+            tooltip: style.label,
+            icon: Icon(
+              style.icon,
+              color: selected
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey.shade600,
+            ),
+            onPressed: () => onChanged(style),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _ZoomControls extends StatelessWidget {
+  final VoidCallback onZoomIn;
+  final VoidCallback onZoomOut;
+  final VoidCallback onCenter;
+  const _ZoomControls({
+    required this.onZoomIn,
+    required this.onZoomOut,
+    required this.onCenter,
   });
 
   @override
   Widget build(BuildContext context) {
-    final remoteCount = ProjectService.lastRemoteCount;
-    final usingFallback = ProjectService.usingLocalFallback;
-    final fallbackCount = ProjectService.localFallbackCount;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade400),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Diagnóstico (debug)',
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const SizedBox(height: 6),
-            Text('Proyectos recibidos de Firestore: $remoteCount'),
-            if (usingFallback)
-              Text('Fallback local activo: $fallbackCount proyectos'),
-            Text('Filtros actuales: ${_filtersSummary(filtersState)}'),
-          ],
-        ),
+    return Card(
+      color: Colors.white,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Acercar',
+            icon: const Icon(Icons.add),
+            onPressed: onZoomIn,
+          ),
+          const Divider(height: 1),
+          IconButton(
+            tooltip: 'Alejar',
+            icon: const Icon(Icons.remove),
+            onPressed: onZoomOut,
+          ),
+          const Divider(height: 1),
+          IconButton(
+            tooltip: 'Centrar mapa',
+            icon: const Icon(Icons.my_location),
+            onPressed: onCenter,
+          ),
+        ],
       ),
     );
-  }
-
-  String _filtersSummary(FiltersState st) {
-    final parts = <String>[
-      'categoría: ${st.category?.toLowerCase() ?? 'todas'}',
-      'isla: ${st.island ?? 'todas'}',
-      'ámbito: ${st.scope?.name ?? 'todos'}',
-      'año: ${st.year?.toString() ?? 'todos'}',
-      'búsqueda: ${st.search.isEmpty ? 'ninguna' : '"${st.search}"'}',
-    ];
-    return parts.join(' · ');
   }
 }
