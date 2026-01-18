@@ -22,7 +22,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
   OverlayEntry? _backdrop;
   final _mapCtrl = MapController();
   final _legendKey = GlobalKey();
-  _BaseMapStyle _baseMapStyle = _BaseMapStyle.standard;
+  BaseMapStyle _baseMapStyle = BaseMapStyle.standard;
 
   @override
   void initState() {
@@ -106,8 +106,8 @@ class _ProjectsMap extends StatelessWidget {
   final MapController mapCtrl;
   final FiltersController filters;
   final GlobalKey legendKey;
-  final _BaseMapStyle baseMapStyle;
-  final ValueChanged<_BaseMapStyle> onBaseMapChanged;
+  final BaseMapStyle baseMapStyle;
+  final ValueChanged<BaseMapStyle> onBaseMapChanged;
 
   const _ProjectsMap({
     required this.mapCtrl,
@@ -196,7 +196,7 @@ class _ProjectsMap extends StatelessWidget {
                 ),
                 Positioned(
                   top: 12,
-                  left: 12,
+                  right: 12,
                   child: _BaseMapControl(
                     value: baseMapStyle,
                     onChanged: onBaseMapChanged,
@@ -238,32 +238,37 @@ class _ProjectsMap extends StatelessWidget {
   }
 }
 
-enum _BaseMapStyle {
+enum BaseMapStyle {
   standard(
     label: 'Estándar',
     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    icon: Icons.map,
   ),
   satellite(
     label: 'Satélite',
     urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    icon: Icons.satellite_alt,
   ),
-  relief(
+  terrain(
     label: 'Relieve',
     urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+    icon: Icons.terrain,
   );
 
   final String label;
   final String urlTemplate;
+  final IconData icon;
 
-  const _BaseMapStyle({
+  const BaseMapStyle({
     required this.label,
     required this.urlTemplate,
+    required this.icon,
   });
 }
 
 class _BaseMapControl extends StatelessWidget {
-  final _BaseMapStyle value;
-  final ValueChanged<_BaseMapStyle> onChanged;
+  final BaseMapStyle value;
+  final ValueChanged<BaseMapStyle> onChanged;
 
   const _BaseMapControl({
     required this.value,
@@ -272,21 +277,40 @@ class _BaseMapControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     return Card(
       elevation: 6,
       color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: _BaseMapStyle.values
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: BaseMapStyle.values
               .map(
-                (style) => ChoiceChip(
-                  label: Text(style.label, style: t.labelSmall),
-                  selected: value == style,
-                  onSelected: (_) => onChanged(style),
+                (style) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Tooltip(
+                    message: style.label,
+                    child: InkResponse(
+                      radius: 20,
+                      onTap: () => onChanged(style),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: value == style ? Brand.primary.withOpacity(0.12) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: value == style ? Brand.primary : Colors.grey.shade300,
+                          ),
+                        ),
+                        child: Icon(
+                          style.icon,
+                          size: 18,
+                          color: value == style ? Brand.primary : Colors.grey.shade800,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               )
               .toList(),
