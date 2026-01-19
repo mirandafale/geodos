@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:geodos/services/firebase_service.dart';
 import 'package:geodos/theme/brand.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Formulario de contacto reutilizable para GEODOS.
 ///
@@ -44,7 +46,18 @@ class _ContactFormState extends State<ContactForm> {
   final _companyController = TextEditingController();
   final _projectTypeController = TextEditingController();
   final _messageController = TextEditingController();
+  late final TapGestureRecognizer _emailLinkRecognizer;
+  late final TapGestureRecognizer _privacyLinkRecognizer;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailLinkRecognizer = TapGestureRecognizer()
+      ..onTap = () => _launchUri(Uri.parse('mailto:info@geodos.es'));
+    _privacyLinkRecognizer = TapGestureRecognizer()
+      ..onTap = () => _launchUri(Uri.parse('/legal'));
+  }
 
   @override
   void dispose() {
@@ -53,6 +66,8 @@ class _ContactFormState extends State<ContactForm> {
     _companyController.dispose();
     _projectTypeController.dispose();
     _messageController.dispose();
+    _emailLinkRecognizer.dispose();
+    _privacyLinkRecognizer.dispose();
     super.dispose();
   }
 
@@ -192,19 +207,60 @@ class _ContactFormState extends State<ContactForm> {
                     ?.copyWith(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Tus datos serán tratados conforme a nuestra Política de Protección de Datos.\n'
-                'GEODOS garantiza la confidencialidad y el uso responsable de la información proporcionada.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.grey.shade600, height: 1.4),
+              Text.rich(
+                TextSpan(
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade600,
+                        height: 1.4,
+                      ),
+                  children: [
+                    const TextSpan(
+                      text:
+                          'Los datos proporcionados serán tratados por GEODOS Consultoría Ambiental y SIG '
+                          'con la finalidad de atender su solicitud de información y mantener comunicaciones '
+                          'comerciales relacionadas con nuestros servicios. Puede ejercer sus derechos de '
+                          'acceso, rectificación, supresión y demás derechos reconocidos por el Reglamento '
+                          'General de Protección de Datos (UE) 2016/679 y la Ley Orgánica 3/2018 escribiendo a ',
+                    ),
+                    TextSpan(
+                      text: 'info@geodos.es',
+                      style: const TextStyle(
+                        color: Brand.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: _emailLinkRecognizer,
+                    ),
+                    const TextSpan(
+                      text:
+                          '. Al enviar este formulario, usted acepta nuestra ',
+                    ),
+                    TextSpan(
+                      text: 'Política de Privacidad',
+                      style: const TextStyle(
+                        color: Brand.primary,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: _privacyLinkRecognizer,
+                    ),
+                    const TextSpan(text: '.'),
+                  ],
+                ),
+                textAlign: TextAlign.justify,
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _launchUri(Uri uri) async {
+    final success = await launchUrl(uri, mode: LaunchMode.platformDefault);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el enlace.')),
+      );
+    }
   }
 
   Future<void> _submit() async {

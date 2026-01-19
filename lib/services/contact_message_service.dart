@@ -5,6 +5,10 @@ class ContactMessageService {
   static CollectionReference<Map<String, dynamic>> get _collection =>
       FirebaseFirestore.instance.collection('contact_messages');
 
+  Stream<List<ContactMessage>> getContactMessages() {
+    return streamAll();
+  }
+
   static Stream<List<ContactMessage>> streamAll() {
     return _collection.orderBy('createdAt', descending: true).snapshots().map(
           (snapshot) => snapshot.docs

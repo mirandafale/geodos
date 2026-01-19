@@ -1,28 +1,45 @@
 const functions = require("firebase-functions");
 const nodemailer = require("nodemailer");
 
+const emailUser = functions.config().email?.user || "info@geodos.es";
+const emailPass = functions.config().email?.pass || "APP_PASSWORD";
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: functions.config().email?.user || "admin@geodos.es",
-    pass: functions.config().email?.pass || "APP_PASSWORD",
+    user: emailUser,
+    pass: emailPass,
   },
 });
 
 exports.sendEmailOnContactForm = functions.firestore
-  .document("contacts/{contactId}")
+  .document("contact_messages/{contactId}")
   .onCreate(async (snap) => {
-    const data = snap.data();
+    const data = snap.data() || {};
+    const createdAt = data.createdAt?.toDate
+      ? data.createdAt.toDate()
+      : data.createdAt;
     const mailOptions = {
-      from: "GEODOS <admin@geodos.es>",
-      to: "admin@geodos.es",
-      subject: `📩 Nuevo formulario de contacto: ${data.name}`,
-      text: `
-        Nombre: ${data.name}
-        Correo: ${data.email}
-        Tipo: ${data.projectType}
-        Mensaje: ${data.message}
+      from: `GEODOS <${emailUser}>`,
+      to: ["info@geodos.es", "leoencero@gmail.com"],
+      subject: `📩 Nuevo mensaje de ${data.name || "Contacto"}`,
+      html: `
+        <h2>Nuevo mensaje de contacto desde GEODOS</h2>
+        <p><b>Nombre:</b> ${data.name || ""}</p>
+        <p><b>Correo:</b> ${data.email || ""}</p>
+        <p><b>Mensaje:</b><br>${data.message || ""}</p>
+        <hr/>
+        <p>📍 <b>Origen:</b> ${data.source || ""}</p>
+        <p>🕒 <b>Fecha:</b> ${createdAt || ""}</p>
       `,
     };
-    await transporter.sendMail(mailOptions);
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log(
+        "✅ Correo enviado correctamente a info@geodos.es y leoencero@gmail.com"
+      );
+    } catch (error) {
+      console.error("❌ Error enviando correo:", error);
+    }
   });
