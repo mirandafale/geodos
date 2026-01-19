@@ -13,6 +13,8 @@ class ContactMessage {
     required this.createdAt,
     required this.isRead,
     required this.readAt,
+    required this.isArchived,
+    required this.archivedAt,
   });
 
   final String id;
@@ -26,6 +28,8 @@ class ContactMessage {
   final DateTime? createdAt;
   final bool isRead;
   final DateTime? readAt;
+  final bool isArchived;
+  final DateTime? archivedAt;
 
   factory ContactMessage.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
@@ -41,6 +45,8 @@ class ContactMessage {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       isRead: data['isRead'] == true,
       readAt: (data['readAt'] as Timestamp?)?.toDate(),
+      isArchived: data['isArchived'] == true,
+      archivedAt: (data['archivedAt'] as Timestamp?)?.toDate(),
     );
   }
 }

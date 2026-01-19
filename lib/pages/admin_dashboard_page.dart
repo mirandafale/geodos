@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geodos/brand/brand.dart';
-import 'package:geodos/models/contact_message.dart';
 import 'package:geodos/models/news_item.dart';
 import 'package:geodos/models/project.dart';
+import 'package:geodos/pages/admin_message_page.dart';
 import 'package:geodos/services/auth_service.dart';
 import 'package:geodos/services/contact_message_service.dart';
 import 'package:geodos/services/news_service.dart';
@@ -45,7 +45,7 @@ class AdminDashboardPage extends StatelessWidget {
           children: [
             _ProjectsTab(),
             _NewsTab(),
-            _ContactMessagesTab(),
+            AdminMessagePage(),
           ],
         ),
       ),
@@ -676,136 +676,6 @@ class _ContactMessagesTabLabel extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-class _ContactMessagesTab extends StatefulWidget {
-  const _ContactMessagesTab();
-
-  @override
-  State<_ContactMessagesTab> createState() => _ContactMessagesTabState();
-}
-
-class _ContactMessagesTabState extends State<_ContactMessagesTab> {
-  late final Stream<List<ContactMessage>> _messagesStream;
-
-  @override
-  void initState() {
-    super.initState();
-    _messagesStream = ContactMessageService.getContactMessagesStream();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _SectionHeader(
-            title: 'Mensajes de contacto',
-            subtitle: 'Gestiona los mensajes enviados desde el formulario.',
-            action: SizedBox.shrink(),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: StreamBuilder<List<ContactMessage>>(
-                  stream: _messagesStream,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const _LoadingState(message: 'Cargando mensajes...');
-                    }
-                    if (snapshot.hasError) {
-                      return const _ErrorState(
-                        icon: Icons.cloud_off,
-                        title: 'No se pudieron cargar los mensajes',
-                        message:
-                            'Revisa tu conexión a internet o intenta nuevamente en unos minutos.',
-                      );
-                    }
-                    final messages = snapshot.data ?? [];
-                    if (messages.isEmpty) {
-                      return const _EmptyState(
-                        icon: Icons.mail_outline,
-                        title: 'No hay mensajes nuevos aún',
-                        message: 'Las consultas de contacto aparecerán aquí cuando lleguen.',
-                      );
-                    }
-                    return ListView.separated(
-                      itemCount: messages.length,
-                      separatorBuilder: (_, __) => const Divider(),
-                      itemBuilder: (context, index) {
-                        final message = messages[index];
-                        final statusLabel = message.isRead ? 'Leído' : 'Sin leer';
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                          title: Text(message.name, style: Theme.of(context).textTheme.titleMedium),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${message.email} · ${_formatDate(message.createdAt)}',
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                message.message,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: Colors.blueGrey.shade700,
-                                    ),
-                              ),
-                            ],
-                          ),
-                          trailing: Wrap(
-                            spacing: 8,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Chip(
-                                label: Text(statusLabel),
-                                backgroundColor: message.isRead
-                                    ? Colors.green.shade100
-                                    : Colors.orange.shade100,
-                                labelStyle: TextStyle(
-                                  color: message.isRead
-                                      ? Colors.green.shade800
-                                      : Colors.orange.shade800,
-                                ),
-                              ),
-                              if (!message.isRead)
-                                TextButton.icon(
-                                  onPressed: () async {
-                                    await ContactMessageService.markAsRead(message.id);
-                                  },
-                                  icon: const Icon(Icons.mark_email_read_outlined, size: 18),
-                                  label: const Text('Marcar leído'),
-                                ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'Sin fecha';
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    final year = date.year.toString();
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year $hour:$minute';
   }
 }
 
