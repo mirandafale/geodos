@@ -687,6 +687,14 @@ class _ContactMessagesTab extends StatefulWidget {
 }
 
 class _ContactMessagesTabState extends State<_ContactMessagesTab> {
+  late final Stream<List<ContactMessage>> _messagesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _messagesStream = ContactMessageService.getContactMessagesStream();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -705,17 +713,25 @@ class _ContactMessagesTabState extends State<_ContactMessagesTab> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: StreamBuilder<List<ContactMessage>>(
-                  stream: ContactMessageService.streamAll(),
+                  stream: _messagesStream,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const _LoadingState(message: 'Cargando mensajes...');
+                    }
+                    if (snapshot.hasError) {
+                      return const _ErrorState(
+                        icon: Icons.cloud_off,
+                        title: 'No se pudieron cargar los mensajes',
+                        message:
+                            'Revisa tu conexión a internet o intenta nuevamente en unos minutos.',
+                      );
                     }
                     final messages = snapshot.data ?? [];
                     if (messages.isEmpty) {
                       return const _EmptyState(
                         icon: Icons.mail_outline,
-                        title: 'No hay mensajes nuevos',
-                        message: 'Las consultas de contacto aparecerán aquí.',
+                        title: 'No hay mensajes nuevos aún',
+                        message: 'Las consultas de contacto aparecerán aquí cuando lleguen.',
                       );
                     }
                     return ListView.separated(
@@ -727,8 +743,22 @@ class _ContactMessagesTabState extends State<_ContactMessagesTab> {
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                           title: Text(message.name, style: Theme.of(context).textTheme.titleMedium),
-                          subtitle: Text(
-                            '${message.email} · ${_formatDate(context, message.createdAt)}',
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${message.email} · ${_formatDate(message.createdAt)}',
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                message.message,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: Colors.blueGrey.shade700,
+                                    ),
+                              ),
+                            ],
                           ),
                           trailing: Wrap(
                             spacing: 8,
@@ -768,12 +798,14 @@ class _ContactMessagesTabState extends State<_ContactMessagesTab> {
     );
   }
 
-  String _formatDate(BuildContext context, DateTime? date) {
+  String _formatDate(DateTime? date) {
     if (date == null) return 'Sin fecha';
-    final localizations = MaterialLocalizations.of(context);
-    final dateLabel = localizations.formatShortDate(date);
-    final timeLabel = localizations.formatTimeOfDay(TimeOfDay.fromDateTime(date));
-    return '$dateLabel · $timeLabel';
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year $hour:$minute';
   }
 }
 
@@ -889,6 +921,35 @@ class _LoadingState extends StatelessWidget {
           const CircularProgressIndicator(),
           const SizedBox(height: 12),
           Text(message),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 48, color: theme.colorScheme.error.withOpacity(0.7)),
+          const SizedBox(height: 12),
+          Text(title, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(message, style: theme.textTheme.bodyMedium, textAlign: TextAlign.center),
         ],
       ),
     );
