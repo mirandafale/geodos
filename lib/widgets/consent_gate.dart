@@ -103,19 +103,15 @@ class _ConsentBanner extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Uso de datos y privacidad',
+                      '🔒 Uso de cookies y datos personales',
                       style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Utilizamos datos técnicos y de contacto para mejorar la experiencia y responder '
-                      'a tus solicitudes. Al continuar, aceptas este uso básico de información.',
+                      'Utilizamos cookies técnicas y de análisis para mejorar tu experiencia. '
+                      'Al continuar, aceptas el uso básico de cookies y el tratamiento de tus datos '
+                      'conforme a nuestra Política de Privacidad y Aviso Legal.',
                       style: textTheme.bodySmall?.copyWith(color: Colors.black87),
-                    ),
-                    const SizedBox(height: 4),
-                    TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/privacy'),
-                      child: const Text('Ver política de privacidad'),
                     ),
                   ],
                 ),
@@ -124,8 +120,13 @@ class _ConsentBanner extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/privacy'),
+                    child: const Text('Más información'),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
                     onPressed: onDismiss,
-                    child: const Text('Cerrar'),
+                    child: const Text('Rechazar'),
                   ),
                   const SizedBox(width: 8),
                   FilledButton(

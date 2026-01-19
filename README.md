@@ -52,6 +52,12 @@ service firebase.storage {
 - Home muestra el carrusel de noticias publicadas y el visor sigue siendo público con filtros.
 - Sesión de admin persistente gracias a Firebase Auth y el guardián de ruta `AdminGate`.
 
+## Funciones de Firebase
+- Para desplegar las funciones (por ejemplo, notificaciones del formulario de contacto):
+  ```bash
+  firebase deploy --only functions
+  ```
+
 ## Checklist rápido antes de merge
 - Revisa que no queden marcadores de conflicto en `lib`:
   ```bash
