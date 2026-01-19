@@ -942,7 +942,7 @@ class _FiltersToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = expanded ? 'Filtros ⬆️' : 'Filtros ⬇️';
+    final label = expanded ? 'Filtros ∧' : 'Filtros ∨';
 
     return FilledButton(
       onPressed: onPressed,

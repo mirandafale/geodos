@@ -144,27 +144,61 @@ class _ContactFormState extends State<ContactForm> {
                 },
               ),
               const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _submitting ? null : _submit,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Brand.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Brand.primary, Brand.secondary],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _submitting ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _submitting
+                            ? const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.send),
+                        const SizedBox(width: 8),
+                        Text(_submitting ? 'Enviando...' : 'Enviar mensaje'),
+                      ],
+                    ),
+                  ),
                 ),
-                icon: _submitting
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.send),
-                label: Text(_submitting ? 'Enviando...' : 'Enviar'),
               ),
               const SizedBox(height: 6),
               Text(
                 widget.helperText,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tus datos serán tratados conforme a nuestra Política de Protección de Datos.\n'
+                'GEODOS garantiza la confidencialidad y el uso responsable de la información proporcionada.',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Colors.grey.shade600, height: 1.4),
               ),
             ],
           ),
