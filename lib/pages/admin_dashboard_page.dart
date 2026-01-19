@@ -705,7 +705,7 @@ class _ContactMessagesTabState extends State<_ContactMessagesTab> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: StreamBuilder<List<ContactMessage>>(
-                  stream: ContactMessageService.streamAll(),
+                  stream: ContactMessageService().getContactMessages(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const _LoadingState(message: 'Cargando mensajes...');
