@@ -31,7 +31,7 @@ class ContactMessage {
   final bool isArchived;
   final DateTime? archivedAt;
 
-  factory ContactMessage.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory ContactMessage.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     return ContactMessage(
       id: doc.id,
@@ -48,5 +48,9 @@ class ContactMessage {
       isArchived: data['isArchived'] == true,
       archivedAt: (data['archivedAt'] as Timestamp?)?.toDate(),
     );
+  }
+
+  factory ContactMessage.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+    return ContactMessage.fromFirestore(doc);
   }
 }

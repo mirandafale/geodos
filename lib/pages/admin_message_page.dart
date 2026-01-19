@@ -13,16 +13,6 @@ class AdminMessagePage extends StatefulWidget {
 }
 
 class _AdminMessagePageState extends State<AdminMessagePage> {
-  late final Stream<List<ContactMessage>> _messagesStream;
-  late final Stream<List<ContactMessage>> _archivedStream;
-
-  @override
-  void initState() {
-    super.initState();
-    _messagesStream = ContactMessageService.getContactMessagesStream();
-    _archivedStream = ContactMessageService.getArchivedMessagesStream();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -52,19 +42,43 @@ class _AdminMessagePageState extends State<AdminMessagePage> {
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: TabBarView(
-                children: [
-                  _MessageListPane(
-                    stream: _messagesStream,
-                    showGrouping: true,
-                  ),
-                  _MessageListPane(
-                    stream: _archivedStream,
-                    showGrouping: false,
-                    emptyTitle: 'Aún no hay mensajes archivados',
-                    emptyMessage: 'Los mensajes archivados aparecerán aquí.',
-                  ),
-                ],
+              child: StreamBuilder<List<ContactMessage>>(
+                stream: ContactMessageService.getMessages(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const _LoadingState(message: 'Cargando mensajes...');
+                  }
+                  if (snapshot.hasError) {
+                    return const _ErrorState(
+                      icon: Icons.cloud_off,
+                      title: 'No se pudieron cargar los mensajes',
+                      message:
+                          'Revisa tu conexión a internet o intenta nuevamente en unos minutos.',
+                    );
+                  }
+                  final messages = snapshot.data ?? [];
+                  final inboxMessages =
+                      messages.where((message) => !message.isArchived).toList();
+                  final archivedMessages =
+                      messages.where((message) => message.isArchived).toList();
+                  return TabBarView(
+                    children: [
+                      _MessageListPane(
+                        messages: inboxMessages,
+                        showGrouping: true,
+                        emptyTitle: 'No hay mensajes nuevos',
+                        emptyMessage:
+                            'Las consultas de contacto aparecerán aquí cuando lleguen.',
+                      ),
+                      _MessageListPane(
+                        messages: archivedMessages,
+                        showGrouping: false,
+                        emptyTitle: 'Aún no hay mensajes archivados',
+                        emptyMessage: 'Los mensajes archivados aparecerán aquí.',
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -124,68 +138,53 @@ class _MessagesHeader extends StatelessWidget {
 
 class _MessageListPane extends StatelessWidget {
   const _MessageListPane({
-    required this.stream,
+    required this.messages,
     required this.showGrouping,
     this.emptyTitle = 'No hay mensajes en la bandeja',
     this.emptyMessage = 'Las consultas de contacto aparecerán aquí cuando lleguen.',
   });
 
-  final Stream<List<ContactMessage>> stream;
+  final List<ContactMessage> messages;
   final bool showGrouping;
   final String emptyTitle;
   final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
+    if (messages.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: _EmptyState(
+            icon: Icons.mail_outline,
+            title: emptyTitle,
+            message: emptyMessage,
+          ),
+        ),
+      );
+    }
+    final unread = messages.where((message) => !message.isRead).toList();
+    final read = messages.where((message) => message.isRead).toList();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: StreamBuilder<List<ContactMessage>>(
-          stream: stream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const _LoadingState(message: 'Cargando mensajes...');
-            }
-            if (snapshot.hasError) {
-              return const _ErrorState(
-                icon: Icons.cloud_off,
-                title: 'No se pudieron cargar los mensajes',
-                message: 'Revisa tu conexión a internet o intenta nuevamente en unos minutos.',
-              );
-            }
-            final messages = snapshot.data ?? [];
-            if (messages.isEmpty) {
-              return _EmptyState(
-                icon: Icons.mail_outline,
-                title: emptyTitle,
-                message: emptyMessage,
-              );
-            }
-            if (!showGrouping) {
-              return ListView(
-                children: [
-                  _MessageList(messages: messages),
-                ],
-              );
-            }
-            final unread = messages.where((message) => !message.isRead).toList();
-            final read = messages.where((message) => message.isRead).toList();
-            return ListView(
-              children: [
-                if (unread.isNotEmpty) ...[
-                  _GroupHeader(title: 'Nuevos', count: unread.length),
-                  const SizedBox(height: 8),
-                  _MessageList(messages: unread),
-                  const SizedBox(height: 20),
-                ],
-                if (read.isNotEmpty) ...[
-                  _GroupHeader(title: 'Leídos', count: read.length),
-                  const SizedBox(height: 8),
-                  _MessageList(messages: read),
-                ],
-              ],
-            );
-          },
+        child: ListView(
+          children: [
+            if (showGrouping && unread.isNotEmpty) ...[
+              _GroupHeader(title: 'Nuevos', count: unread.length),
+              const SizedBox(height: 8),
+              _MessageList(messages: unread),
+              const SizedBox(height: 20),
+            ],
+            if (!showGrouping) ...[
+              _MessageList(messages: messages),
+            ],
+            if (showGrouping && read.isNotEmpty) ...[
+              _GroupHeader(title: 'Leídos', count: read.length),
+              const SizedBox(height: 8),
+              _MessageList(messages: read),
+            ],
+          ],
         ),
       ),
     );

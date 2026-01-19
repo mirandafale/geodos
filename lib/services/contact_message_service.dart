@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geodos/models/contact_message.dart';
 import 'package:geodos/services/auth_service.dart';
 
@@ -6,12 +7,24 @@ class ContactMessageService {
   static CollectionReference<Map<String, dynamic>> get _collection =>
       FirebaseFirestore.instance.collection('contact_messages');
 
+  static Stream<List<ContactMessage>> getMessages() {
+    return _collection.orderBy('createdAt', descending: true).snapshots().map((snapshot) {
+      final messages = snapshot.docs
+          .map(ContactMessage.fromFirestore)
+          .toList(growable: false);
+      if (kDebugMode) {
+        debugPrint('ContactMessageService: loaded ${messages.length} messages');
+      }
+      return messages;
+    }).handleError((error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('ContactMessageService: error loading messages: $error');
+      }
+    });
+  }
+
   static Stream<List<ContactMessage>> streamAll() {
-    return _collection.orderBy('createdAt', descending: true).snapshots().map(
-          (snapshot) => snapshot.docs
-              .map(ContactMessage.fromDoc)
-              .toList(growable: false),
-        );
+    return getMessages();
   }
 
   static Stream<List<ContactMessage>> getContactMessagesStream() {
@@ -67,6 +80,7 @@ class ContactMessageService {
     return _collection
         .doc(messageId)
         .snapshots()
-        .map((snapshot) => snapshot.exists ? ContactMessage.fromDoc(snapshot) : null);
+        .map((snapshot) =>
+            snapshot.exists ? ContactMessage.fromFirestore(snapshot) : null);
   }
 }
