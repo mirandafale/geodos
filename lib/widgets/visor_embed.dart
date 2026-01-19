@@ -309,18 +309,21 @@ class _VisorEmbedState extends State<VisorEmbed> {
                             ),
                           ),
                           Positioned(
+                            top: 12,
+                            right: 12,
+                            child: _BaseMapToggle(
+                              value: _baseMapStyle,
+                              onChanged: (style) {
+                                setState(() => _baseMapStyle = style);
+                              },
+                            ),
+                          ),
+                          Positioned(
                             bottom: 12,
                             right: 12,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                _BaseMapToggle(
-                                  value: _baseMapStyle,
-                                  onChanged: (style) {
-                                    setState(() => _baseMapStyle = style);
-                                  },
-                                ),
-                                const SizedBox(height: 8),
                                 _ZoomControls(
                                   zoom: _zoom,
                                   minZoom: _minZoom,
@@ -727,21 +730,11 @@ class _MapFiltersPanel extends StatelessWidget {
             duration: const Duration(milliseconds: 200),
             crossFadeState:
                 expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-            firstChild: InkWell(
-              onTap: onToggle,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.filter_alt, size: 18),
-                    SizedBox(width: 6),
-                    Text('Filtros'),
-                  ],
-                ),
+            firstChild: Padding(
+              padding: const EdgeInsets.all(6),
+              child: _FiltersToggleButton(
+                expanded: false,
+                onPressed: onToggle,
               ),
             ),
             secondChild: ConstrainedBox(
@@ -776,10 +769,9 @@ class _MapFiltersPanel extends StatelessWidget {
                             ),
                           ),
                         ),
-                        IconButton(
-                          tooltip: 'Ocultar filtros',
+                        _FiltersToggleButton(
+                          expanded: true,
                           onPressed: onToggle,
-                          icon: const Icon(Icons.close, size: 18),
                         ),
                       ],
                     ),
@@ -936,6 +928,36 @@ class _MapFiltersPanel extends StatelessWidget {
       case ProjectScope.unknown:
         return 'Otro';
     }
+  }
+}
+
+class _FiltersToggleButton extends StatelessWidget {
+  final bool expanded;
+  final VoidCallback onPressed;
+
+  const _FiltersToggleButton({
+    required this.expanded,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = expanded ? 'Filtros ∧' : 'Filtros ∨';
+
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        backgroundColor: Brand.primary,
+        foregroundColor: Colors.white,
+        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        minimumSize: const Size(0, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+      ),
+      child: Text(label),
+    );
   }
 }
 
