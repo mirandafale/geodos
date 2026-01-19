@@ -13,6 +13,10 @@ class ContactMessageService {
         );
   }
 
+  static Stream<List<ContactMessage>> getContactMessagesStream() {
+    return streamAll();
+  }
+
   static Stream<int> streamUnreadCount() {
     return streamAll().map(
       (messages) => messages.where((message) => !message.isRead).length,
