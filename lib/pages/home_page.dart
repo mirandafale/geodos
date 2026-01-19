@@ -72,6 +72,7 @@ class _HomePageState extends State<HomePage> {
     final isWide = MediaQuery.of(context).size.width >= 980;
 
     return AppShell(
+      showPrimaryNavigation: false,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -118,7 +119,7 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   _NavAction(
                     label: 'Servicios',
-                    onPressed: () => _scrollTo(_servicesKey),
+                    onPressed: () => Navigator.pushNamed(context, '/services'),
                   ),
                   _NavAction(
                     label: 'Proyectos',
@@ -126,11 +127,11 @@ class _HomePageState extends State<HomePage> {
                   ),
                   _NavAction(
                     label: 'Quiénes somos',
-                    onPressed: () => _scrollTo(_aboutKey),
+                    onPressed: () => Navigator.pushNamed(context, '/about'),
                   ),
                   _NavAction(
                     label: 'Blog',
-                    onPressed: () => _scrollTo(_blogKey),
+                    onPressed: () => Navigator.pushNamed(context, '/blog'),
                   ),
                   _NavAction(
                     label: 'Contacto',
@@ -2171,6 +2172,7 @@ class _FooterSection extends StatelessWidget {
                     title: 'Legal',
                     children: const [
                       _FooterLink(label: 'Política de privacidad', route: '/privacy'),
+                      _FooterLink(label: 'Aviso legal', route: '/legal'),
                       _FooterLink(label: 'Cookies', route: '/cookies'),
                       _FooterLink(label: 'Términos de uso', route: '/terms'),
                     ],

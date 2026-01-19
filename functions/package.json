@@ -1,0 +1,12 @@
+{
+  "name": "geodos-functions",
+  "description": "Firebase Cloud Functions for GEODOS.",
+  "main": "index.js",
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "firebase-functions": "^4.5.0",
+    "nodemailer": "^6.9.8"
+  }
+}
