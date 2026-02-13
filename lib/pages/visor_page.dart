@@ -23,6 +23,7 @@ class _VisorPageState extends State<VisorPage> {
   late Future<List<String>> _islandsFuture;
   final _searchCtrl = TextEditingController();
   final _scrollController = ScrollController();
+  final _formAnchorKey = GlobalKey();
   bool _showScrollTop = false;
 
   @override
@@ -73,118 +74,123 @@ class _VisorPageState extends State<VisorPage> {
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1400),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final vertical = constraints.maxWidth < 1100;
-
-                final filtersPanel = _FiltersPanel(
-                  filters: filters,
-                  yearsFuture: _yearsFuture,
-                  categoriesFuture: _categoriesFuture,
-                  scopesFuture: _scopesFuture,
-                  islandsFuture: _islandsFuture,
-                  searchController: _searchCtrl,
-                );
-
-                final mapSection = _ResponsiveMapSection(vertical: vertical);
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (vertical) ...[
-                      filtersPanel,
-                      const SizedBox(height: 16),
-                      mapSection,
-                    ] else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(width: 360, child: filtersPanel),
-                          const SizedBox(width: 20),
-                          Expanded(child: mapSection),
-                        ],
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ResponsiveMapSection(
+                        filters: filters,
+                        yearsFuture: _yearsFuture,
+                        categoriesFuture: _categoriesFuture,
+                        scopesFuture: _scopesFuture,
+                        islandsFuture: _islandsFuture,
+                        searchController: _searchCtrl,
+                        onTapConsulta: _scrollToForm,
                       ),
-                    const SizedBox(height: 20),
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOut,
-                      opacity: 1,
-                      child: Container(
-                        margin: const EdgeInsets.all(8),
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 10,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(
-                              '¿Quieres que te contactemos?',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Brand.primary,
-                                  ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Cuéntanos sobre tu proyecto o consulta, y nuestro equipo te responderá lo antes posible.',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: Colors.grey[700],
-                                  ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 24),
-                            const ContactForm(originSection: 'visor'),
-                          ],
+                      const SizedBox(height: 20),
+                      KeyedSubtree(
+                        key: _formAnchorKey,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 10,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                '¿Quieres que te contactemos?',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Brand.primary,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Cuéntanos sobre tu proyecto o consulta, y nuestro equipo te responderá lo antes posible.',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 18),
+                              const ContactForm(originSection: 'visor'),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
       ),
     );
   }
+
+  Future<void> _scrollToForm() async {
+    final context = _formAnchorKey.currentContext;
+    if (context == null) return;
+    await Scrollable.ensureVisible(
+      context,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOut,
+    );
+  }
 }
 
 class _ResponsiveMapSection extends StatelessWidget {
-  final bool vertical;
+  final FiltersController filters;
+  final Future<List<int>> yearsFuture;
+  final Future<List<String>> categoriesFuture;
+  final Future<List<ProjectScope>> scopesFuture;
+  final Future<List<String>> islandsFuture;
+  final TextEditingController searchController;
+  final VoidCallback onTapConsulta;
 
-  const _ResponsiveMapSection({required this.vertical});
+  const _ResponsiveMapSection({
+    required this.filters,
+    required this.yearsFuture,
+    required this.categoriesFuture,
+    required this.scopesFuture,
+    required this.islandsFuture,
+    required this.searchController,
+    required this.onTapConsulta,
+  });
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
+        final viewportHeight = MediaQuery.of(context).size.height;
+        final isMobile = width < 900;
         double mapHeight;
 
         if (width >= 1200) {
-          mapHeight = MediaQuery.of(context).size.height * 0.65;
-        } else if (width >= 800) {
-          mapHeight = MediaQuery.of(context).size.height * 0.55;
+          mapHeight = (viewportHeight * 0.62).clamp(520.0, 720.0);
+        } else if (width >= 900) {
+          mapHeight = (viewportHeight * 0.55).clamp(460.0, 640.0);
         } else {
-          mapHeight = 360;
+          mapHeight = 420;
         }
 
         return Container(
-          margin: EdgeInsets.symmetric(horizontal: vertical ? 0 : 8, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             boxShadow: const [
@@ -196,14 +202,70 @@ class _ResponsiveMapSection extends StatelessWidget {
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          child: VisorEmbed(baseHeight: mapHeight),
+          child: SizedBox(
+            height: mapHeight,
+            width: double.infinity,
+            child: Stack(
+              children: [
+                Positioned.fill(child: VisorEmbed(baseHeight: mapHeight)),
+                if (isMobile)
+                  Positioned(
+                    left: 12,
+                    top: 12,
+                    right: 12,
+                    child: _FloatingFiltersMobile(
+                      filters: filters,
+                      yearsFuture: yearsFuture,
+                      categoriesFuture: categoriesFuture,
+                      scopesFuture: scopesFuture,
+                      islandsFuture: islandsFuture,
+                      searchController: searchController,
+                      maxHeight: mapHeight - 24,
+                    ),
+                  )
+                else
+                  Positioned(
+                    left: 16,
+                    top: 16,
+                    child: SizedBox(
+                      width: 320,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxHeight: mapHeight - 32),
+                        child: _FloatingFiltersDesktop(
+                          filters: filters,
+                          yearsFuture: yearsFuture,
+                          categoriesFuture: categoriesFuture,
+                          scopesFuture: scopesFuture,
+                          islandsFuture: islandsFuture,
+                          searchController: searchController,
+                        ),
+                      ),
+                    ),
+                  ),
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: FilledButton.icon(
+                    onPressed: onTapConsulta,
+                    icon: const Icon(Icons.arrow_downward),
+                    label: const Text('Hacer consulta'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Brand.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 }
 
-class _FiltersPanel extends StatelessWidget {
+class _FloatingFiltersDesktop extends StatelessWidget {
   final FiltersController filters;
   final Future<List<int>> yearsFuture;
   final Future<List<String>> categoriesFuture;
@@ -211,7 +273,7 @@ class _FiltersPanel extends StatelessWidget {
   final Future<List<String>> islandsFuture;
   final TextEditingController searchController;
 
-  const _FiltersPanel({
+  const _FloatingFiltersDesktop({
     required this.filters,
     required this.yearsFuture,
     required this.categoriesFuture,
@@ -222,25 +284,111 @@ class _FiltersPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final t = theme.textTheme;
-
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: AnimatedBuilder(
-          animation: filters,
-          builder: (context, _) {
-            final st = filters.state;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Filtros', style: t.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary)),
-                const SizedBox(height: 4),
-                Text('Refina los proyectos por categoría, ámbito, isla y año.', style: t.bodyMedium),
-                const Divider(height: 24),
+      elevation: 6,
+      color: Colors.white.withOpacity(0.95),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: _FiltersContent(
+          filters: filters,
+          yearsFuture: yearsFuture,
+          categoriesFuture: categoriesFuture,
+          scopesFuture: scopesFuture,
+          islandsFuture: islandsFuture,
+          searchController: searchController,
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingFiltersMobile extends StatelessWidget {
+  final FiltersController filters;
+  final Future<List<int>> yearsFuture;
+  final Future<List<String>> categoriesFuture;
+  final Future<List<ProjectScope>> scopesFuture;
+  final Future<List<String>> islandsFuture;
+  final TextEditingController searchController;
+  final double maxHeight;
+
+  const _FloatingFiltersMobile({
+    required this.filters,
+    required this.yearsFuture,
+    required this.categoriesFuture,
+    required this.scopesFuture,
+    required this.islandsFuture,
+    required this.searchController,
+    required this.maxHeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 5,
+      color: Colors.white.withOpacity(0.96),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: const Text('Filtros'),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight * 0.7),
+              child: SingleChildScrollView(
+                child: _FiltersContent(
+                  filters: filters,
+                  yearsFuture: yearsFuture,
+                  categoriesFuture: categoriesFuture,
+                  scopesFuture: scopesFuture,
+                  islandsFuture: islandsFuture,
+                  searchController: searchController,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FiltersContent extends StatelessWidget {
+  final FiltersController filters;
+  final Future<List<int>> yearsFuture;
+  final Future<List<String>> categoriesFuture;
+  final Future<List<ProjectScope>> scopesFuture;
+  final Future<List<String>> islandsFuture;
+  final TextEditingController searchController;
+
+  const _FiltersContent({
+    required this.filters,
+    required this.yearsFuture,
+    required this.categoriesFuture,
+    required this.scopesFuture,
+    required this.islandsFuture,
+    required this.searchController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+
+    return AnimatedBuilder(
+      animation: filters,
+      builder: (context, _) {
+        final st = filters.state;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Filtros', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w700, color: Brand.primary)),
+            const SizedBox(height: 4),
+            Text('Refina los proyectos por categoría, ámbito, isla y año.', style: t.bodySmall),
+            const Divider(height: 22),
                 TextFormField(
                   controller: searchController,
                   decoration: const InputDecoration(
@@ -341,14 +489,14 @@ class _FiltersPanel extends StatelessWidget {
                       label: const Text('Limpiar filtros'),
                     ),
                     const SizedBox(width: 12),
-                    Text('Proyectos mostrados dinámicamente en el mapa.', style: t.bodySmall),
+                    Expanded(
+                      child: Text('Proyectos mostrados dinámicamente en el mapa.', style: t.bodySmall),
+                    ),
                   ],
                 ),
               ],
             );
-          },
-        ),
-      ),
+      },
     );
   }
 
