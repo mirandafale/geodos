@@ -198,16 +198,18 @@ class _ProjectsMap extends StatelessWidget {
                 ),
                 Positioned(
                   top: 12,
-                  left: 12,
-                  child: _BaseMapControl(
-                    value: baseMapStyle,
-                    onChanged: onBaseMapChanged,
-                  ),
-                ),
-                Positioned(
-                  top: 12,
                   right: 12,
-                  child: _MapActionControls(mapCtrl: mapCtrl),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _BaseMapControl(
+                        value: baseMapStyle,
+                        onChanged: onBaseMapChanged,
+                      ),
+                      const SizedBox(height: 8),
+                      _MapActionControls(mapCtrl: mapCtrl),
+                    ],
+                  ),
                 ),
                 if (projects.isEmpty)
                   const Center(
