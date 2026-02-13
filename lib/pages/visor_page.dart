@@ -5,6 +5,7 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/widgets/contact_form.dart';
 import 'package:geodos/widgets/visor_embed.dart';
 
 class VisorPage extends StatefulWidget {
@@ -21,6 +22,8 @@ class _VisorPageState extends State<VisorPage> {
   late Future<List<ProjectScope>> _scopesFuture;
   late Future<List<String>> _islandsFuture;
   final _searchCtrl = TextEditingController();
+  final _scrollController = ScrollController();
+  bool _showScrollTop = false;
 
   @override
   void initState() {
@@ -30,11 +33,18 @@ class _VisorPageState extends State<VisorPage> {
     _scopesFuture = ProjectService.getScopes();
     _islandsFuture = ProjectService.getIslands();
     _searchCtrl.text = filters.state.search;
+    _scrollController.addListener(() {
+      final shouldShow = _scrollController.offset > 300;
+      if (shouldShow != _showScrollTop) {
+        setState(() => _showScrollTop = shouldShow);
+      }
+    });
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -47,49 +57,148 @@ class _VisorPageState extends State<VisorPage> {
         foregroundColor: Colors.white,
         backgroundColor: Colors.transparent,
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final vertical = constraints.maxWidth < 1100;
-          final content = [
-            _FiltersPanel(
-              filters: filters,
-              yearsFuture: _yearsFuture,
-              categoriesFuture: _categoriesFuture,
-              scopesFuture: _scopesFuture,
-              islandsFuture: _islandsFuture,
-              searchController: _searchCtrl,
-            ),
-            const SizedBox(width: 20, height: 20),
-            const Expanded(
-              child: Padding(
-                padding: EdgeInsets.all(12.0),
-                child: VisorEmbed(startExpanded: true),
-              ),
-            ),
-          ];
+      backgroundColor: const Color(0xFFF8F9FA),
+      floatingActionButton: AnimatedScale(
+        scale: _showScrollTop ? 1 : 0,
+        duration: const Duration(milliseconds: 200),
+        child: FloatingActionButton.small(
+          onPressed: () => _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOut,
+          ),
+          tooltip: 'Volver arriba',
+          child: const Icon(Icons.keyboard_arrow_up),
+        ),
+      ),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final vertical = constraints.maxWidth < 1100;
 
-          return Container(
-            color: Brand.mist,
-            padding: const EdgeInsets.all(16),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1400),
-                child: vertical
-                    ? Column(
-                        children: content,
-                      )
-                    : Row(
+                final filtersPanel = _FiltersPanel(
+                  filters: filters,
+                  yearsFuture: _yearsFuture,
+                  categoriesFuture: _categoriesFuture,
+                  scopesFuture: _scopesFuture,
+                  islandsFuture: _islandsFuture,
+                  searchController: _searchCtrl,
+                );
+
+                final mapSection = _ResponsiveMapSection(vertical: vertical);
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (vertical) ...[
+                      filtersPanel,
+                      const SizedBox(height: 16),
+                      mapSection,
+                    ] else
+                      Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(width: 360, child: content.first),
-                          ...content.sublist(1),
+                          SizedBox(width: 360, child: filtersPanel),
+                          const SizedBox(width: 20),
+                          Expanded(child: mapSection),
                         ],
                       ),
-              ),
+                    const SizedBox(height: 20),
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeOut,
+                      opacity: 1,
+                      child: Container(
+                        margin: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 10,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              '¿Quieres que te contactemos?',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Brand.primary,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Cuéntanos sobre tu proyecto o consulta, y nuestro equipo te responderá lo antes posible.',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.grey[700],
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            const ContactForm(originSection: 'visor'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
       ),
+    );
+  }
+}
+
+class _ResponsiveMapSection extends StatelessWidget {
+  final bool vertical;
+
+  const _ResponsiveMapSection({required this.vertical});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        double mapHeight;
+
+        if (width >= 1200) {
+          mapHeight = MediaQuery.of(context).size.height * 0.65;
+        } else if (width >= 800) {
+          mapHeight = MediaQuery.of(context).size.height * 0.55;
+        } else {
+          mapHeight = 360;
+        }
+
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: vertical ? 0 : 8, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: VisorEmbed(baseHeight: mapHeight),
+        );
+      },
     );
   }
 }
