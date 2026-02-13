@@ -11,7 +11,9 @@ import 'package:geodos/services/project_service.dart';
 
 class VisorEmbed extends StatefulWidget {
   final bool startExpanded;
-  const VisorEmbed({super.key, this.startExpanded = false});
+  final double? baseHeight;
+
+  const VisorEmbed({super.key, this.startExpanded = false, this.baseHeight});
 
   @override
   State<VisorEmbed> createState() => _VisorEmbedState();
@@ -30,7 +32,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
     _expanded = widget.startExpanded;
   }
 
-  double get _targetHeight => _expanded ? MediaQuery.of(context).size.height * 0.8 : 360;
+  double get _targetHeight => _expanded ? MediaQuery.of(context).size.height * 0.8 : (widget.baseHeight ?? 360);
 
   void _showBackdrop() {
     if (_backdrop != null) return;
@@ -202,6 +204,11 @@ class _ProjectsMap extends StatelessWidget {
                     onChanged: onBaseMapChanged,
                   ),
                 ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: _MapActionControls(mapCtrl: mapCtrl),
+                ),
                 if (projects.isEmpty)
                   const Center(
                     child: Padding(
@@ -283,14 +290,51 @@ class _BaseMapControl extends StatelessWidget {
           runSpacing: 6,
           children: _BaseMapStyle.values
               .map(
-                (style) => ChoiceChip(
-                  label: Text(style.label, style: t.labelSmall),
-                  selected: value == style,
-                  onSelected: (_) => onChanged(style),
+                (style) => Tooltip(
+                  message: 'Cambiar vista: ${style.label}',
+                  child: ChoiceChip(
+                    label: Text(style.label, style: t.labelSmall),
+                    selected: value == style,
+                    onSelected: (_) => onChanged(style),
+                  ),
                 ),
               )
               .toList(),
         ),
+      ),
+    );
+  }
+}
+
+
+
+class _MapActionControls extends StatelessWidget {
+  final MapController mapCtrl;
+
+  const _MapActionControls({required this.mapCtrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 6,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Tooltip(
+            message: 'Zoom +',
+            child: IconButton(
+              onPressed: () => mapCtrl.move(mapCtrl.camera.center, mapCtrl.camera.zoom + 1),
+              icon: const Icon(Icons.add),
+            ),
+          ),
+          Tooltip(
+            message: 'Zoom -',
+            child: IconButton(
+              onPressed: () => mapCtrl.move(mapCtrl.camera.center, mapCtrl.camera.zoom - 1),
+              icon: const Icon(Icons.remove),
+            ),
+          ),
+        ],
       ),
     );
   }
