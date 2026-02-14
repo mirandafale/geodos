@@ -956,30 +956,33 @@ class _FooterSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Container(
+      width: double.infinity,
       color: const Color(0xFF0B1F26),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '© ${DateTime.now().year} GEODOS · Consultoría ambiental y territorial',
-                style: t.bodySmall?.copyWith(color: Colors.white70),
-              ),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: const [
-                  _FooterLink(label: 'Accesibilidad', route: '/accessibility'),
-                  _FooterLink(label: 'Política de cookies', route: '/cookies'),
-                  _FooterLink(label: 'Política de privacidad', route: '/privacy'),
-                  _FooterLink(label: 'Configuración de privacidad', route: '/data-privacy'),
-                  _FooterLink(label: 'Aviso legal', route: '/terms'),
-                ],
-              ),
-            ],
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '© ${DateTime.now().year} GEODOS · Consultoría ambiental y territorial',
+                  style: t.bodySmall?.copyWith(color: Colors.white70),
+                ),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: const [
+                    _FooterLink(label: 'Accesibilidad', route: '/accessibility'),
+                    _FooterLink(label: 'Política de cookies', route: '/cookies'),
+                    _FooterLink(label: 'Política de privacidad', route: '/privacy'),
+                    _FooterLink(label: 'Configuración de privacidad', route: '/data-privacy'),
+                    _FooterLink(label: 'Aviso legal', route: '/terms'),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

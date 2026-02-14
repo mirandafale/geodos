@@ -198,14 +198,14 @@ class _ProjectsMap extends StatelessWidget {
                 ),
                 Positioned(
                   top: 12,
-                  left: 12,
+                  right: 12,
                   child: _BaseMapControl(
                     value: baseMapStyle,
                     onChanged: onBaseMapChanged,
                   ),
                 ),
                 Positioned(
-                  top: 12,
+                  top: 70,
                   right: 12,
                   child: _MapActionControls(mapCtrl: mapCtrl),
                 ),
@@ -253,10 +253,6 @@ enum _BaseMapStyle {
   satellite(
     label: 'Satélite',
     urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  ),
-  relief(
-    label: 'Relieve',
-    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
   );
 
   final String label;
