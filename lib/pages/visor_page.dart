@@ -79,10 +79,7 @@ class _VisorPageState extends State<VisorPage> {
             constraints: const BoxConstraints(maxWidth: 1400),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final vertical = constraints.maxWidth < 1100;
-
-                final filtersPanel = _FiltersPanel(
-                  filters: filters,
+                final mapSection = _ResponsiveMapSection(
                   yearsFuture: _yearsFuture,
                   categoriesFuture: _categoriesFuture,
                   scopesFuture: _scopesFuture,
@@ -90,24 +87,10 @@ class _VisorPageState extends State<VisorPage> {
                   searchController: _searchCtrl,
                 );
 
-                final mapSection = _ResponsiveMapSection(vertical: vertical);
-
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (vertical) ...[
-                      filtersPanel,
-                      const SizedBox(height: 16),
-                      mapSection,
-                    ] else
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(width: 360, child: filtersPanel),
-                          const SizedBox(width: 20),
-                          Expanded(child: mapSection),
-                        ],
-                      ),
+                    mapSection,
                     const SizedBox(height: 20),
                     AnimatedOpacity(
                       duration: const Duration(milliseconds: 500),
@@ -164,28 +147,40 @@ class _VisorPageState extends State<VisorPage> {
 }
 
 class _ResponsiveMapSection extends StatelessWidget {
-  final bool vertical;
+  final Future<List<int>> yearsFuture;
+  final Future<List<String>> categoriesFuture;
+  final Future<List<ProjectScope>> scopesFuture;
+  final Future<List<String>> islandsFuture;
+  final TextEditingController searchController;
 
-  const _ResponsiveMapSection({required this.vertical});
+  const _ResponsiveMapSection({
+    required this.yearsFuture,
+    required this.categoriesFuture,
+    required this.scopesFuture,
+    required this.islandsFuture,
+    required this.searchController,
+  });
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final viewportHeight = MediaQuery.of(context).size.height;
         final width = constraints.maxWidth;
-        double mapHeight;
-
-        if (width >= 1200) {
-          mapHeight = MediaQuery.of(context).size.height * 0.65;
-        } else if (width >= 800) {
-          mapHeight = MediaQuery.of(context).size.height * 0.55;
-        } else {
-          mapHeight = 360;
-        }
+        final bool mobile = width < 900;
+        final bool desktop = width >= 1200;
+        final double mapHeight = mobile
+            ? 420
+            : desktop
+                ? (viewportHeight * 0.62).clamp(520, 720)
+                : (viewportHeight * 0.55).clamp(460, 640);
 
         return Container(
-          margin: EdgeInsets.symmetric(horizontal: vertical ? 0 : 8, vertical: 8),
+          width: double.infinity,
+          height: mapHeight,
+          margin: const EdgeInsets.all(16),
           decoration: BoxDecoration(
+            color: Colors.white,
             borderRadius: BorderRadius.circular(14),
             boxShadow: const [
               BoxShadow(
@@ -196,9 +191,135 @@ class _ResponsiveMapSection extends StatelessWidget {
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          child: VisorEmbed(baseHeight: mapHeight),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: VisorEmbed(baseHeight: mapHeight),
+              ),
+              if (mobile)
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  top: 12,
+                  child: _MobileFiltersOverlay(
+                    filters: FiltersController.instance,
+                    yearsFuture: yearsFuture,
+                    categoriesFuture: categoriesFuture,
+                    scopesFuture: scopesFuture,
+                    islandsFuture: islandsFuture,
+                    searchController: searchController,
+                  ),
+                )
+              else
+                Positioned(
+                  left: 16,
+                  top: 16,
+                  child: SizedBox(
+                    width: 320,
+                    child: _DesktopFiltersOverlay(
+                      mapHeight: mapHeight,
+                      filters: FiltersController.instance,
+                      yearsFuture: yearsFuture,
+                      categoriesFuture: categoriesFuture,
+                      scopesFuture: scopesFuture,
+                      islandsFuture: islandsFuture,
+                      searchController: searchController,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
+    );
+  }
+}
+
+class _DesktopFiltersOverlay extends StatelessWidget {
+  final double mapHeight;
+  final FiltersController filters;
+  final Future<List<int>> yearsFuture;
+  final Future<List<String>> categoriesFuture;
+  final Future<List<ProjectScope>> scopesFuture;
+  final Future<List<String>> islandsFuture;
+  final TextEditingController searchController;
+
+  const _DesktopFiltersOverlay({
+    required this.mapHeight,
+    required this.filters,
+    required this.yearsFuture,
+    required this.categoriesFuture,
+    required this.scopesFuture,
+    required this.islandsFuture,
+    required this.searchController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: mapHeight - 32),
+      child: SingleChildScrollView(
+        child: _FiltersPanel(
+          filters: filters,
+          yearsFuture: yearsFuture,
+          categoriesFuture: categoriesFuture,
+          scopesFuture: scopesFuture,
+          islandsFuture: islandsFuture,
+          searchController: searchController,
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileFiltersOverlay extends StatelessWidget {
+  final FiltersController filters;
+  final Future<List<int>> yearsFuture;
+  final Future<List<String>> categoriesFuture;
+  final Future<List<ProjectScope>> scopesFuture;
+  final Future<List<String>> islandsFuture;
+  final TextEditingController searchController;
+
+  const _MobileFiltersOverlay({
+    required this.filters,
+    required this.yearsFuture,
+    required this.categoriesFuture,
+    required this.scopesFuture,
+    required this.islandsFuture,
+    required this.searchController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 6,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          title: const Text('Filtros'),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: SizedBox(
+                height: 260,
+                child: SingleChildScrollView(
+                  child: _FiltersPanel(
+                    filters: filters,
+                    yearsFuture: yearsFuture,
+                    categoriesFuture: categoriesFuture,
+                    scopesFuture: scopesFuture,
+                    islandsFuture: islandsFuture,
+                    searchController: searchController,
+                    compact: true,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -210,6 +331,7 @@ class _FiltersPanel extends StatelessWidget {
   final Future<List<ProjectScope>> scopesFuture;
   final Future<List<String>> islandsFuture;
   final TextEditingController searchController;
+  final bool compact;
 
   const _FiltersPanel({
     required this.filters,
@@ -218,6 +340,7 @@ class _FiltersPanel extends StatelessWidget {
     required this.scopesFuture,
     required this.islandsFuture,
     required this.searchController,
+    this.compact = false,
   });
 
   @override
@@ -228,8 +351,9 @@ class _FiltersPanel extends StatelessWidget {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: compact ? EdgeInsets.zero : null,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(compact ? 12 : 20),
         child: AnimatedBuilder(
           animation: filters,
           builder: (context, _) {
@@ -325,7 +449,10 @@ class _FiltersPanel extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 18),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     ElevatedButton.icon(
                       onPressed: () {
@@ -340,7 +467,6 @@ class _FiltersPanel extends StatelessWidget {
                       icon: const Icon(Icons.filter_alt_off),
                       label: const Text('Limpiar filtros'),
                     ),
-                    const SizedBox(width: 12),
                     Text('Proyectos mostrados dinámicamente en el mapa.', style: t.bodySmall),
                   ],
                 ),
