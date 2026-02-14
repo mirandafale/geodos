@@ -5,7 +5,9 @@ import 'package:geodos/brand/brand.dart';
 import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
+import 'package:geodos/widgets/app_shell.dart';
 import 'package:geodos/widgets/contact_form.dart';
+import 'package:geodos/widgets/site_footer.dart';
 import 'package:geodos/widgets/visor_embed.dart';
 
 class VisorPage extends StatefulWidget {
@@ -50,36 +52,43 @@ class _VisorPageState extends State<VisorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppShell(
       appBar: AppBar(
         title: const Text('Visor de proyectos'),
         flexibleSpace: Container(decoration: const BoxDecoration(gradient: Brand.appBarGradient)),
         foregroundColor: Colors.white,
         backgroundColor: Colors.transparent,
+        actions: MediaQuery.of(context).size.width < 900
+            ? null
+            : [
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/'),
+                  child: const Text('Inicio', style: TextStyle(color: Colors.white)),
+                ),
+                TextButton(
+                  onPressed: null,
+                  child: const Text('Proyectos', style: TextStyle(color: Colors.white70)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/contact'),
+                  child: const Text('Contacto', style: TextStyle(color: Colors.white)),
+                ),
+                const SizedBox(width: 16),
+              ],
       ),
-      backgroundColor: const Color(0xFFF8F9FA),
-      floatingActionButton: AnimatedScale(
-        scale: _showScrollTop ? 1 : 0,
-        duration: const Duration(milliseconds: 200),
-        child: FloatingActionButton.small(
-          onPressed: () => _scrollController.animateTo(
-            0,
-            duration: const Duration(milliseconds: 350),
-            curve: Curves.easeOut,
-          ),
-          tooltip: 'Volver arriba',
-          child: const Icon(Icons.keyboard_arrow_up),
-        ),
-      ),
-      body: SingleChildScrollView(
-        controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1400),
-            child: LayoutBuilder(
+      body: Stack(
+        children: [
+          ColoredBox(
+            color: const Color(0xFFF8F9FA),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: LayoutBuilder(
               builder: (context, constraints) {
-                final vertical = constraints.maxWidth < 1100;
+                final vertical = constraints.maxWidth < 900;
 
                 final filtersPanel = _FiltersPanel(
                   filters: filters,
@@ -152,12 +161,34 @@ class _VisorPageState extends State<VisorPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    const SiteFooter(),
                   ],
                 );
               },
             ),
           ),
-        ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: AnimatedScale(
+              scale: _showScrollTop ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: FloatingActionButton.small(
+                onPressed: () => _scrollController.animateTo(
+                  0,
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeOut,
+                ),
+                tooltip: 'Volver arriba',
+                child: const Icon(Icons.keyboard_arrow_up),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
