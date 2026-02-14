@@ -253,10 +253,6 @@ enum _BaseMapStyle {
   satellite(
     label: 'Satélite',
     urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  ),
-  relief(
-    label: 'Relieve',
-    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
   );
 
   final String label;
@@ -280,27 +276,51 @@ class _BaseMapControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final compact = MediaQuery.of(context).size.width < 900;
+
     return Card(
       elevation: 6,
       color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: _BaseMapStyle.values
-              .map(
-                (style) => Tooltip(
-                  message: 'Cambiar vista: ${style.label}',
-                  child: ChoiceChip(
-                    label: Text(style.label, style: t.labelSmall),
-                    selected: value == style,
-                    onSelected: (_) => onChanged(style),
-                  ),
+        child: compact
+            ? PopupMenuButton<_BaseMapStyle>(
+                initialValue: value,
+                tooltip: 'Cambiar mapa base',
+                onSelected: onChanged,
+                itemBuilder: (context) => _BaseMapStyle.values
+                    .map(
+                      (style) => PopupMenuItem<_BaseMapStyle>(
+                        value: style,
+                        child: Text(style.label),
+                      ),
+                    )
+                    .toList(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.layers_outlined, size: 18),
+                    const SizedBox(width: 6),
+                    Text(value.label, style: t.labelMedium),
+                  ],
                 ),
               )
-              .toList(),
-        ),
+            : Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: _BaseMapStyle.values
+                    .map(
+                      (style) => Tooltip(
+                        message: 'Cambiar vista: ${style.label}',
+                        child: ChoiceChip(
+                          label: Text(style.label, style: t.labelSmall),
+                          selected: value == style,
+                          onSelected: (_) => onChanged(style),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
       ),
     );
   }
