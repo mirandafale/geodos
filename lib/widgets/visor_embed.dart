@@ -20,85 +20,21 @@ class VisorEmbed extends StatefulWidget {
 }
 
 class _VisorEmbedState extends State<VisorEmbed> {
-  late bool _expanded;
-  OverlayEntry? _backdrop;
   final _mapCtrl = MapController();
   final _legendKey = GlobalKey();
   _BaseMapStyle _baseMapStyle = _BaseMapStyle.standard;
 
   @override
-  void initState() {
-    super.initState();
-    _expanded = widget.startExpanded;
-  }
-
-  double get _targetHeight => _expanded ? MediaQuery.of(context).size.height * 0.8 : (widget.baseHeight ?? 360);
-
-  void _showBackdrop() {
-    if (_backdrop != null) return;
-    _backdrop = OverlayEntry(
-      builder: (_) => Positioned.fill(
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: _collapse,
-          child: Container(color: Colors.transparent),
-        ),
-      ),
-    );
-    Overlay.of(context, rootOverlay: true).insert(_backdrop!);
-  }
-
-  void _removeBackdrop() {
-    _backdrop?.remove();
-    _backdrop = null;
-  }
-
-  void _expand() {
-    if (!_expanded) {
-      setState(() => _expanded = true);
-      _showBackdrop();
-    }
-  }
-
-  void _collapse() {
-    if (_expanded) {
-      setState(() => _expanded = false);
-      _removeBackdrop();
-    }
-  }
-
-  @override
-  void dispose() {
-    _removeBackdrop();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final filters = FiltersController.instance;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeInOut,
-      height: _targetHeight,
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 6)),
-        ],
-      ),
-      child: Listener(
-        onPointerDown: (_) => _expand(),
-        child: _ProjectsMap(
-          mapCtrl: _mapCtrl,
-          filters: filters,
-          legendKey: _legendKey,
-          baseMapStyle: _baseMapStyle,
-          onBaseMapChanged: (style) => setState(() => _baseMapStyle = style),
-        ),
+    return SizedBox.expand(
+      child: _ProjectsMap(
+        mapCtrl: _mapCtrl,
+        filters: filters,
+        legendKey: _legendKey,
+        baseMapStyle: _baseMapStyle,
+        onBaseMapChanged: (style) => setState(() => _baseMapStyle = style),
       ),
     );
   }
@@ -198,14 +134,14 @@ class _ProjectsMap extends StatelessWidget {
                 ),
                 Positioned(
                   top: 12,
-                  left: 12,
+                  right: 12,
                   child: _BaseMapControl(
                     value: baseMapStyle,
                     onChanged: onBaseMapChanged,
                   ),
                 ),
                 Positioned(
-                  top: 12,
+                  top: 72,
                   right: 12,
                   child: _MapActionControls(mapCtrl: mapCtrl),
                 ),
@@ -253,10 +189,6 @@ enum _BaseMapStyle {
   satellite(
     label: 'Satélite',
     urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  ),
-  relief(
-    label: 'Relieve',
-    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
   );
 
   final String label;
@@ -305,8 +237,6 @@ class _BaseMapControl extends StatelessWidget {
     );
   }
 }
-
-
 
 class _MapActionControls extends StatelessWidget {
   final MapController mapCtrl;
