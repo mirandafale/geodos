@@ -6,6 +6,7 @@ import 'package:geodos/models/project.dart';
 import 'package:geodos/services/filters_controller.dart';
 import 'package:geodos/services/project_service.dart';
 import 'package:geodos/widgets/contact_form.dart';
+import 'package:geodos/widgets/site_footer.dart';
 import 'package:geodos/widgets/visor_embed.dart';
 
 class VisorPage extends StatefulWidget {
@@ -152,6 +153,8 @@ class _VisorPageState extends State<VisorPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    const SiteFooter(),
                   ],
                 );
               },
