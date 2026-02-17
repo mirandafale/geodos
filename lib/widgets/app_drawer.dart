@@ -29,10 +29,10 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
             // Navegación principal reducida
-            _item(context, Icons.home_rounded, 'Inicio', '/home'),
-            _item(context, Icons.badge_rounded, 'Quiénes somos', '/quienes'),
-            _item(context, Icons.map_rounded, 'Visor', '/visor'),
-            _item(context, Icons.mail_rounded, 'Contacto', '/contact'),
+            _item(context, Icons.home_rounded, 'Inicio', route: '/home'),
+            _item(context, Icons.badge_rounded, 'Quiénes somos', route: '/quienes'),
+            _item(context, Icons.map_rounded, 'Visor', route: '/visor'),
+            _item(context, Icons.mail_rounded, 'Contacto', route: '/contact'),
             const Divider(height: 24),
             // Enlace al panel de administración
             _item(
@@ -51,20 +51,21 @@ class AppDrawer extends StatelessWidget {
   ListTile _item(
     BuildContext context,
     IconData icon,
-    String title, [
+    String title, {
     String? route,
     VoidCallback? onTap,
-  ]) {
+  }) {
     return ListTile(
       leading: Icon(icon),
       title: Text(title),
       onTap: () {
-        Scaffold.of(context).closeDrawer();
         if (onTap != null) {
+          Navigator.of(context).pop();
           onTap();
           return;
         }
         if (route != null && ModalRoute.of(context)?.settings.name != route) {
+          Navigator.of(context).pop();
           Navigator.of(context).pushReplacementNamed(route);
         }
       },
