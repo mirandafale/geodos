@@ -1,7 +1,6 @@
-// visor_embed.dart adaptado con mejoras funcionales y leyenda de categorías
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:geodos/brand/brand.dart';
@@ -193,12 +192,56 @@ class _ProjectsMap extends StatelessWidget {
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
-                    MarkerLayer(markers: markers),
+                    MarkerClusterLayerWidget(
+                      options: MarkerClusterLayerOptions(
+                        maxClusterRadius: 40,
+                        size: const Size(44, 44),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.all(56),
+                        markers: markers,
+                        builder: (context, clusterMarkers) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0C6372), Color(0xFF2A7F62)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3)),
+                              ],
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              clusterMarkers.length.toString(),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const ScaleLayerWidget(
+                      options: ScaleLayerOptions(
+                        lineColor: Color(0xFF1F2933),
+                        textStyle: TextStyle(
+                          color: Color(0xFF1F2933),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        lineWidth: 2,
+                      ),
+                    ),
                   ],
                 ),
                 Positioned(
                   top: 12,
-                  left: 12,
+                  right: 12,
                   child: _BaseMapControl(
                     value: baseMapStyle,
                     onChanged: onBaseMapChanged,
@@ -206,7 +249,7 @@ class _ProjectsMap extends StatelessWidget {
                 ),
                 Positioned(
                   top: 12,
-                  right: 12,
+                  left: 12,
                   child: _MapActionControls(mapCtrl: mapCtrl),
                 ),
                 if (projects.isEmpty)
@@ -253,10 +296,6 @@ enum _BaseMapStyle {
   satellite(
     label: 'Satélite',
     urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  ),
-  relief(
-    label: 'Relieve',
-    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
   );
 
   final String label;
@@ -305,8 +344,6 @@ class _BaseMapControl extends StatelessWidget {
     );
   }
 }
-
-
 
 class _MapActionControls extends StatelessWidget {
   final MapController mapCtrl;

@@ -7,6 +7,7 @@ import 'package:geodos/services/news_service.dart';
 // Menú lateral con las diferentes opciones de navegación.
 import '../widgets/app_shell.dart';
 // Visor incrustado para mostrar los proyectos georreferenciados.
+import '../widgets/site_footer.dart';
 import '../widgets/visor_embed.dart';
 // Controlador de filtros para mantener el estado de ámbito (categoría), año, etc.
 import '../services/filters_controller.dart';
@@ -37,7 +38,6 @@ class _HomePageState extends State<HomePage> {
   final _aboutKey = GlobalKey();
   final _blogKey = GlobalKey();
   final _ctaKey = GlobalKey();
-  final _footerKey = GlobalKey();
 
   /// Desplaza la vista hasta la sección asociada a [key].
   void _scrollTo(GlobalKey key) {
@@ -119,7 +119,7 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 40),
           _FinalCtaSection(key: _ctaKey),
           const SizedBox(height: 24),
-          _FooterSection(key: _footerKey),
+          const SiteFooter(),
         ],
       ),
     );
@@ -941,70 +941,6 @@ class _FinalCtaSection extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// FOOTER
-// ---------------------------------------------------------------------------
-
-class _FooterSection extends StatelessWidget {
-  const _FooterSection({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Container(
-      color: const Color(0xFF0B1F26),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '© ${DateTime.now().year} GEODOS · Consultoría ambiental y territorial',
-                style: t.bodySmall?.copyWith(color: Colors.white70),
-              ),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: const [
-                  _FooterLink(label: 'Accesibilidad', route: '/accessibility'),
-                  _FooterLink(label: 'Política de cookies', route: '/cookies'),
-                  _FooterLink(label: 'Política de privacidad', route: '/privacy'),
-                  _FooterLink(label: 'Configuración de privacidad', route: '/data-privacy'),
-                  _FooterLink(label: 'Aviso legal', route: '/terms'),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FooterLink extends StatelessWidget {
-  final String label;
-  final String route;
-  const _FooterLink({required this.label, required this.route});
-  @override
-  Widget build(BuildContext context) {
-    return TextButton(
-      onPressed: () => Navigator.pushNamed(context, route),
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        foregroundColor: Colors.white,
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.white,
-              decoration: TextDecoration.underline,
-            ),
       ),
     );
   }
