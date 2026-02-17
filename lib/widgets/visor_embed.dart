@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -126,9 +124,6 @@ class _ProjectsMap extends StatefulWidget {
 }
 
 class _ProjectsMapState extends State<_ProjectsMap> {
-  double _zoom = 7;
-  double _latitude = 28.2916;
-
   @override
   Widget build(BuildContext context) {
     const center = LatLng(28.2916, -16.6291);
@@ -151,21 +146,21 @@ class _ProjectsMapState extends State<_ProjectsMap> {
 
             final markers = projects
                 .map((p) {
-                  final color = _colorForCategory(context, p.category);
-                  return Marker(
-                    point: LatLng(p.lat, p.lon),
-                    width: 40,
-                    height: 40,
-                    child: Tooltip(
-                      message: '${p.title}\n${p.category} · ${p.year ?? 's/f'}',
-                      child: Icon(
-                        Icons.location_pin,
-                        color: color,
-                        size: 36,
-                      ),
-                    ),
-                  );
-                })
+              final color = _colorForCategory(context, p.category);
+              return Marker(
+                point: LatLng(p.lat, p.lon),
+                width: 40,
+                height: 40,
+                child: Tooltip(
+                  message: '${p.title}\n${p.category} · ${p.year ?? 's/f'}',
+                  child: Icon(
+                    Icons.location_pin,
+                    color: color,
+                    size: 36,
+                  ),
+                ),
+              );
+            })
                 .toList();
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -200,12 +195,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     initialCenter: center,
                     initialZoom: 7,
                     interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
-                    onMapEvent: (event) {
-                      setState(() {
-                        _zoom = event.camera.zoom;
-                        _latitude = event.camera.center.latitude;
-                      });
-                    },
                   ),
                   children: [
                     TileLayer(
@@ -262,11 +251,6 @@ class _ProjectsMapState extends State<_ProjectsMap> {
                     ),
                   ),
                 Positioned(
-                  bottom: 12,
-                  left: 12,
-                  child: _MapScaleIndicator(zoom: _zoom, latitude: _latitude),
-                ),
-                Positioned(
                   bottom: 68,
                   left: 12,
                   child: _Legend(
@@ -303,7 +287,7 @@ enum _BaseMapStyle {
   satellite(
     label: 'Satélite',
     urlTemplate:
-        'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   );
 
   final String label;
@@ -381,65 +365,6 @@ class _MapActionControls extends StatelessWidget {
   }
 }
 
-class _MapScaleIndicator extends StatelessWidget {
-  final double zoom;
-  final double latitude;
-
-  const _MapScaleIndicator({required this.zoom, required this.latitude});
-
-  @override
-  Widget build(BuildContext context) {
-    final metersPerPixel =
-        156543.03392 * math.cos(latitude * math.pi / 180) / math.pow(2, zoom).toDouble();
-    const targetWidth = 100.0;
-    final rawDistance = metersPerPixel * targetWidth;
-    final displayDistance = _niceDistance(rawDistance);
-    final barWidth = (displayDistance / metersPerPixel).clamp(48.0, 160.0);
-
-    return Card(
-      elevation: 4,
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_distanceLabel(displayDistance), style: Theme.of(context).textTheme.labelSmall),
-            const SizedBox(height: 4),
-            Container(
-              width: barWidth,
-              height: 6,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black87),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  double _niceDistance(double rawMeters) {
-    if (rawMeters <= 0) return 100;
-    final exponent = math.pow(10, (math.log(rawMeters) / math.ln10).floor()).toDouble();
-    for (final candidate in [1, 2, 5, 10]) {
-      final scaled = candidate * exponent;
-      if (scaled >= rawMeters) return scaled;
-    }
-    return 10 * exponent;
-  }
-
-  String _distanceLabel(double meters) {
-    if (meters >= 1000) {
-      final km = meters / 1000;
-      return km % 1 == 0 ? '${km.toStringAsFixed(0)} km' : '${km.toStringAsFixed(1)} km';
-    }
-    return '${meters.round()} m';
-  }
-}
-
 class _Legend extends StatelessWidget {
   final List<String> categories;
   final int total;
@@ -475,24 +400,24 @@ class _Legend extends StatelessWidget {
                 children: sorted
                     .map(
                       (c) => Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: colorForCategory(c),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            c.toUpperCase(),
-                            style: t.bodySmall?.copyWith(letterSpacing: 0.2),
-                          ),
-                        ],
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: colorForCategory(c),
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    )
+                      const SizedBox(width: 6),
+                      Text(
+                        c.toUpperCase(),
+                        style: t.bodySmall?.copyWith(letterSpacing: 0.2),
+                      ),
+                    ],
+                  ),
+                )
                     .toList(),
               ),
             ],
