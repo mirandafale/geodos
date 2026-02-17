@@ -1,7 +1,6 @@
-// visor_embed.dart adaptado con mejoras funcionales y leyenda de categorías
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:geodos/brand/brand.dart';
@@ -32,7 +31,8 @@ class _VisorEmbedState extends State<VisorEmbed> {
     _expanded = widget.startExpanded;
   }
 
-  double get _targetHeight => _expanded ? MediaQuery.of(context).size.height * 0.8 : (widget.baseHeight ?? 360);
+  double get _targetHeight =>
+      _expanded ? MediaQuery.of(context).size.height * 0.8 : (widget.baseHeight ?? 360);
 
   void _showBackdrop() {
     if (_backdrop != null) return;
@@ -104,7 +104,7 @@ class _VisorEmbedState extends State<VisorEmbed> {
   }
 }
 
-class _ProjectsMap extends StatelessWidget {
+class _ProjectsMap extends StatefulWidget {
   final MapController mapCtrl;
   final FiltersController filters;
   final GlobalKey legendKey;
@@ -120,13 +120,18 @@ class _ProjectsMap extends StatelessWidget {
   });
 
   @override
+  State<_ProjectsMap> createState() => _ProjectsMapState();
+}
+
+class _ProjectsMapState extends State<_ProjectsMap> {
+  @override
   Widget build(BuildContext context) {
     const center = LatLng(28.2916, -16.6291);
 
     return AnimatedBuilder(
-      animation: filters,
+      animation: widget.filters,
       builder: (ctx, _) {
-        final st = filters.state;
+        final st = widget.filters.state;
 
         return StreamBuilder<List<Project>>(
           stream: ProjectService.stream(
@@ -139,7 +144,8 @@ class _ProjectsMap extends StatelessWidget {
           builder: (ctx, snap) {
             final projects = snap.data ?? [];
 
-            final markers = projects.map((p) {
+            final markers = projects
+                .map((p) {
               final color = _colorForCategory(context, p.category);
               return Marker(
                 point: LatLng(p.lat, p.lon),
@@ -154,7 +160,8 @@ class _ProjectsMap extends StatelessWidget {
                   ),
                 ),
               );
-            }).toList();
+            })
+                .toList();
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (projects.isNotEmpty) {
@@ -172,42 +179,69 @@ class _ProjectsMap extends StatelessWidget {
                 }
 
                 final bounds = LatLngBounds(LatLng(swLat, swLng), LatLng(neLat, neLng));
-                mapCtrl.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60)));
+                widget.mapCtrl.fitCamera(
+                  CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(60)),
+                );
               } else {
-                mapCtrl.move(center, 7);
+                widget.mapCtrl.move(center, 7);
               }
             });
 
             return Stack(
               children: [
                 FlutterMap(
-                  mapController: mapCtrl,
-                  options: const MapOptions(
+                  mapController: widget.mapCtrl,
+                  options: MapOptions(
                     initialCenter: center,
                     initialZoom: 7,
-                    interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
+                    interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: baseMapStyle.urlTemplate,
+                      urlTemplate: widget.baseMapStyle.urlTemplate,
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
-                    MarkerLayer(markers: markers),
+                    MarkerClusterLayerWidget(
+                      options: MarkerClusterLayerOptions(
+                        maxClusterRadius: 45,
+                        size: const Size(40, 40),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.all(50),
+                        maxZoom: 16,
+                        markers: markers,
+                        builder: (context, clusterMarkers) => Container(
+                          decoration: BoxDecoration(
+                            color: Brand.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              clusterMarkers.length.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 Positioned(
                   top: 12,
-                  left: 12,
+                  right: 12,
                   child: _BaseMapControl(
-                    value: baseMapStyle,
-                    onChanged: onBaseMapChanged,
+                    value: widget.baseMapStyle,
+                    onChanged: widget.onBaseMapChanged,
                   ),
                 ),
                 Positioned(
-                  top: 12,
+                  bottom: 12,
                   right: 12,
-                  child: _MapActionControls(mapCtrl: mapCtrl),
+                  child: _MapActionControls(mapCtrl: widget.mapCtrl),
                 ),
                 if (projects.isEmpty)
                   const Center(
@@ -217,10 +251,10 @@ class _ProjectsMap extends StatelessWidget {
                     ),
                   ),
                 Positioned(
-                  bottom: 12,
-                  right: 12,
+                  bottom: 68,
+                  left: 12,
                   child: _Legend(
-                    key: legendKey,
+                    key: widget.legendKey,
                     categories: projects.map((e) => e.category).toSet().toList(),
                     total: projects.length,
                     colorForCategory: (c) => _colorForCategory(context, c),
@@ -252,11 +286,8 @@ enum _BaseMapStyle {
   ),
   satellite(
     label: 'Satélite',
-    urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  ),
-  relief(
-    label: 'Relieve',
-    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+    urlTemplate:
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   );
 
   final String label;
@@ -279,34 +310,28 @@ class _BaseMapControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     return Card(
       elevation: 6,
       color: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: _BaseMapStyle.values
-              .map(
-                (style) => Tooltip(
-                  message: 'Cambiar vista: ${style.label}',
-                  child: ChoiceChip(
-                    label: Text(style.label, style: t.labelSmall),
-                    selected: value == style,
-                    onSelected: (_) => onChanged(style),
-                  ),
-                ),
-              )
-              .toList(),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: ToggleButtons(
+          isSelected: [
+            value == _BaseMapStyle.standard,
+            value == _BaseMapStyle.satellite,
+          ],
+          onPressed: (index) => onChanged(index == 0 ? _BaseMapStyle.standard : _BaseMapStyle.satellite),
+          borderRadius: BorderRadius.circular(8),
+          constraints: const BoxConstraints(minHeight: 32, minWidth: 90),
+          children: const [
+            Text('Estándar'),
+            Text('Satélite'),
+          ],
         ),
       ),
     );
   }
 }
-
-
 
 class _MapActionControls extends StatelessWidget {
   final MapController mapCtrl;
@@ -375,24 +400,24 @@ class _Legend extends StatelessWidget {
                 children: sorted
                     .map(
                       (c) => Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: colorForCategory(c),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            c.toUpperCase(),
-                            style: t.bodySmall?.copyWith(letterSpacing: 0.2),
-                          ),
-                        ],
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: colorForCategory(c),
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                    )
+                      const SizedBox(width: 6),
+                      Text(
+                        c.toUpperCase(),
+                        style: t.bodySmall?.copyWith(letterSpacing: 0.2),
+                      ),
+                    ],
+                  ),
+                )
                     .toList(),
               ),
             ],
