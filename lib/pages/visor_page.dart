@@ -196,7 +196,18 @@ class _ResponsiveMapSection extends StatelessWidget {
             ],
           ),
           clipBehavior: Clip.antiAlias,
-          child: VisorEmbed(baseHeight: mapHeight),
+          child: SizedBox(
+            height: mapHeight,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned.fill(
+                  child: VisorEmbed(baseHeight: mapHeight),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );

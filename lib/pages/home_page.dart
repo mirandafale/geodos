@@ -475,7 +475,20 @@ class _ProjectsByCategorySection extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const VisorEmbed(startExpanded: false),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final w = constraints.maxWidth;
+                          final h = (w >= 900) ? 420.0 : 360.0;
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(14),
+                            child: SizedBox(
+                              height: h,
+                              width: double.infinity,
+                              child: const VisorEmbed(startExpanded: false),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   );
                 },
