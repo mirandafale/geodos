@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:geodos/brand/brand.dart';
@@ -147,10 +148,19 @@ class _ProjectsMap extends StatelessWidget {
                 height: 40,
                 child: Tooltip(
                   message: '${p.title}\n${p.category} · ${p.year ?? 's/f'}',
-                  child: Icon(
-                    Icons.location_pin,
-                    color: color,
-                    size: 36,
+                  child: IconTheme(
+                    data: IconThemeData(color: color),
+                    child: const Icon(
+                      Icons.location_pin,
+                      size: 34,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 5,
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -193,19 +203,54 @@ class _ProjectsMap extends StatelessWidget {
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
-                    MarkerLayer(markers: markers),
+                    MarkerClusterLayerWidget(
+                      options: MarkerClusterLayerOptions(
+                        maxClusterRadius: 48,
+                        size: const Size(42, 42),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.all(50),
+                        maxZoom: 14,
+                        markers: markers,
+                        builder: (context, clusteredMarkers) {
+                          return Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Brand.primary,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 7,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Text(
+                                clusteredMarkers.length.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
                 Positioned(
                   top: 12,
-                  left: 12,
+                  right: 12,
                   child: _BaseMapControl(
                     value: baseMapStyle,
                     onChanged: onBaseMapChanged,
                   ),
                 ),
                 Positioned(
-                  top: 12,
+                  bottom: 12,
                   right: 12,
                   child: _MapActionControls(mapCtrl: mapCtrl),
                 ),
@@ -218,7 +263,7 @@ class _ProjectsMap extends StatelessWidget {
                   ),
                 Positioned(
                   bottom: 12,
-                  right: 12,
+                  left: 12,
                   child: _Legend(
                     key: legendKey,
                     categories: projects.map((e) => e.category).toSet().toList(),
@@ -253,10 +298,6 @@ enum _BaseMapStyle {
   satellite(
     label: 'Satélite',
     urlTemplate: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  ),
-  relief(
-    label: 'Relieve',
-    urlTemplate: 'https://tile.opentopomap.org/{z}/{x}/{y}.png',
   );
 
   final String label;

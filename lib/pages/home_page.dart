@@ -475,7 +475,17 @@ class _ProjectsByCategorySection extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const VisorEmbed(startExpanded: false),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final width = constraints.maxWidth;
+                          final mapHeight = (width * 0.52).clamp(320.0, 520.0);
+
+                          return VisorEmbed(
+                            startExpanded: false,
+                            baseHeight: mapHeight,
+                          );
+                        },
+                      ),
                     ],
                   );
                 },
@@ -955,23 +965,33 @@ class _FooterSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    return Container(
-      color: const Color(0xFF0B1F26),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF0D3B4B), Color(0xFF0B1F26)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1100),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            runAlignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               Text(
                 '© ${DateTime.now().year} GEODOS · Consultoría ambiental y territorial',
                 style: t.bodySmall?.copyWith(color: Colors.white70),
               ),
-              Wrap(
+              const Wrap(
                 spacing: 12,
                 runSpacing: 8,
-                children: const [
+                children: [
                   _FooterLink(label: 'Accesibilidad', route: '/accessibility'),
                   _FooterLink(label: 'Política de cookies', route: '/cookies'),
                   _FooterLink(label: 'Política de privacidad', route: '/privacy'),
