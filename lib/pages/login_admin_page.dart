@@ -15,16 +15,45 @@ class LoginAdminPage extends StatefulWidget {
   State<LoginAdminPage> createState() => _LoginAdminPageState();
 }
 
-class _LoginAdminPageState extends State<LoginAdminPage> {
+class _LoginAdminPageState extends State<LoginAdminPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _loading = false;
   bool _loadingGoogle = false;
+  bool _primaryPressed = false;
   String? _error;
+  late final AnimationController _introController;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _introController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 520),
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _introController,
+      curve: Curves.easeOutCubic,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.06),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _introController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    _introController.forward();
+  }
 
   @override
   void dispose() {
+    _introController.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
@@ -215,30 +244,63 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Brand.mist, Color(0xFFE9F2F0)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Card(
-              elevation: 6,
-              margin: const EdgeInsets.all(24),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
-                child: isLoggedIn
-                    ? _buildLoggedIn(context, isAdmin, userEmail)
-                    : _buildForm(context),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final horizontalPadding = width < 600 ? 20.0 : 32.0;
+          final maxWidth = width < 700
+              ? width
+              : width < 1100
+                  ? 520.0
+                  : 640.0;
+
+          return Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Brand.mist.withOpacity(0.85),
+                  const Color(0xFFF2F6F5),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
-          ),
-        ),
+            child: Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: 40,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxWidth),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Card(
+                        elevation: 8,
+                        shadowColor: Brand.primary.withOpacity(0.18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: width < 600 ? 22 : 32,
+                            vertical: width < 600 ? 26 : 36,
+                          ),
+                          child: isLoggedIn
+                              ? _buildLoggedIn(context, isAdmin, userEmail)
+                              : _buildForm(context),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -250,17 +312,30 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Brand.primary, Brand.secondary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Brand.primary, Brand.secondary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child:
+                  const Icon(Icons.admin_panel_settings, color: Colors.white, size: 28),
             ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.admin_panel_settings, color: Colors.white, size: 28),
+            const SizedBox(width: 12),
+            Text(
+              'Acceso GEODOS',
+              style: t.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: Brand.primary,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Text(
@@ -345,17 +420,27 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loading ? null : _submit,
-                  child: _loading
-                      ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                      : const Text('Entrar'),
+              GestureDetector(
+                onTapDown: (_) => setState(() => _primaryPressed = true),
+                onTapUp: (_) => setState(() => _primaryPressed = false),
+                onTapCancel: () => setState(() => _primaryPressed = false),
+                child: AnimatedScale(
+                  scale: _primaryPressed ? 0.98 : 1.0,
+                  duration: const Duration(milliseconds: 140),
+                  curve: Curves.easeOut,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _loading ? null : _submit,
+                      child: _loading
+                          ? const SizedBox(
+                              height: 18,
+                              width: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Entrar'),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
