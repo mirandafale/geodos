@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:geodos/brand/brand.dart';
@@ -143,15 +144,11 @@ class _ProjectsMap extends StatelessWidget {
               final color = _colorForCategory(context, p.category);
               return Marker(
                 point: LatLng(p.lat, p.lon),
-                width: 40,
-                height: 40,
+                width: 56,
+                height: 56,
                 child: Tooltip(
                   message: '${p.title}\n${p.category} · ${p.year ?? 's/f'}',
-                  child: Icon(
-                    Icons.location_pin,
-                    color: color,
-                    size: 36,
-                  ),
+                  child: _MarkerBubble(count: 1, color: color),
                 ),
               );
             }).toList();
@@ -193,7 +190,21 @@ class _ProjectsMap extends StatelessWidget {
                       userAgentPackageName: 'geodos.app',
                       tileProvider: NetworkTileProvider(),
                     ),
-                    MarkerLayer(markers: markers),
+                    MarkerClusterLayerWidget(
+                      options: MarkerClusterLayerOptions(
+                        maxClusterRadius: 40,
+                        size: const Size(56, 56),
+                        markers: markers,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.all(48),
+                        builder: (context, clusteredMarkers) {
+                          return _MarkerBubble(
+                            count: clusteredMarkers.length,
+                            color: Brand.primary,
+                          );
+                        },
+                      ),
+                    ),
                   ],
                 ),
                 Positioned(
@@ -242,6 +253,42 @@ class _ProjectsMap extends StatelessWidget {
     if (c.contains('SISTEMAS')) return Colors.brown.shade700;
     if (c.contains('ESTUDIOS') || c.contains('DESARROLLO')) return Colors.teal.shade700;
     return Brand.secondary;
+  }
+}
+
+class _MarkerBubble extends StatelessWidget {
+  final int count;
+  final Color color;
+
+  const _MarkerBubble({
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+
+    return Container(
+      width: 44,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3)),
+        ],
+      ),
+      child: Text(
+        '$count',
+        style: t.titleSmall?.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
   }
 }
 
